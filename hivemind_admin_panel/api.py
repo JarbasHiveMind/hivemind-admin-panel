@@ -3665,3 +3665,146 @@ def server_health(server_id: str) -> Dict[str, Any]:
                     "latency_ms": round((time.time() - started) * 1000, 1)}
         except Exception:
             return {"id": server_id, "url": url, "reachable": False, "error": str(e)}
+
+
+# ===================== Ops: backup/restore, policy chain, TLS certs =====================
+
+@app.get("/backup", dependencies=[Depends(verify_credentials)])
+def export_backup() -> Dict[str, Any]:
+    """Export a portable bundle: server config + all clients (with secrets) + servers."""
+    clients = []
+    try:
+        with ClientDatabase() as db:
+            for c in db:
+                if getattr(c, "client_id", -1) != -1:
+                    clients.append(_client_to_dict(c, include_secrets=True))
+    except Exception as e:
+        LOG.error(f"backup: client export failed: {e}")
+    return {
+        "version": 1,
+        "created_at": time.time(),
+        "config": dict(get_server_config()),
+        "clients": clients,
+        "servers": _load_servers(),
+    }
+
+
+class RestoreRequest(BaseModel):
+    """A backup bundle to restore."""
+    config: Optional[Dict[str, Any]] = None
+    clients: Optional[List[Dict[str, Any]]] = None
+    servers: Optional[List[Dict[str, Any]]] = None
+    restore_config: bool = False  # opt-in: overwriting server.json is destructive
+
+
+@app.post("/restore", dependencies=[Depends(require_admin)])
+def import_backup(data: RestoreRequest) -> Dict[str, Any]:
+    """Restore clients (and optionally config/servers) from a backup bundle. Admin only."""
+    added, skipped = 0, 0
+    if data.clients:
+        with ClientDatabase() as db:
+            for c in data.clients:
+                key = c.get("api_key")
+                if not key or db.get_client_by_api_key(key):
+                    skipped += 1
+                    continue
+                db.add_client(
+                    c.get("name", "restored"), key,
+                    admin=bool(c.get("is_admin")),
+                    allowed_types=c.get("allowed_types"),
+                    crypto_key=c.get("crypto_key"),
+                    password=c.get("password"),
+                )
+                added += 1
+    if data.servers is not None:
+        _save_servers(data.servers)
+    if data.restore_config and data.config:
+        cfg = get_server_config()
+        for k, v in data.config.items():
+            cfg[k] = v
+        cfg.store()
+    return {"status": "ok", "clients_added": added, "clients_skipped": skipped,
+            "config_restored": bool(data.restore_config and data.config)}
+
+
+class PolicyUpdate(BaseModel):
+    """The admission policy chain (evaluated for every client message)."""
+    chain: List[Dict[str, Any]]
+
+
+@app.get("/policy", dependencies=[Depends(verify_credentials)])
+def get_policy() -> Dict[str, Any]:
+    """Get the message admission policy chain from server config."""
+    return get_server_config().get("policy", {"chain": []})
+
+
+@app.put("/policy", dependencies=[Depends(require_admin)])
+def set_policy(data: PolicyUpdate) -> Dict[str, Any]:
+    """Replace the admission policy chain. Admin only."""
+    cfg = get_server_config()
+    policy = cfg.get("policy", {}) or {}
+    policy["chain"] = data.chain
+    cfg["policy"] = policy
+    cfg.store()
+    return {"status": "ok", "chain": data.chain}
+
+
+def _cert_info() -> Dict[str, Any]:
+    from ovos_utils.xdg_utils import xdg_data_home
+    net = get_server_config().get("network_protocol", {}) or {}
+    cfg = {}
+    for key in ("hivemind-websocket-plugin", "hivemind-websocket-protocol"):
+        if isinstance(net.get(key), dict):
+            cfg = net[key]
+            break
+    cert_dir = cfg.get("cert_dir") or os.path.join(xdg_data_home(), "hivemind")
+    cert_name = cfg.get("cert_name", "hivemind")
+    return {"cert_dir": cert_dir, "cert_name": cert_name, "ssl_enabled": bool(cfg.get("ssl"))}
+
+
+@app.get("/certs", dependencies=[Depends(verify_credentials)])
+def get_certs() -> Dict[str, Any]:
+    """Report TLS certificate status for the websocket transport."""
+    info = _cert_info()
+    crt = os.path.join(info["cert_dir"], f"{info['cert_name']}.crt")
+    key = os.path.join(info["cert_dir"], f"{info['cert_name']}.key")
+    info.update({
+        "cert_path": crt, "key_path": key,
+        "cert_exists": os.path.isfile(crt), "key_exists": os.path.isfile(key),
+    })
+    return info
+
+
+@app.post("/certs/generate", dependencies=[Depends(require_admin)])
+def generate_certs() -> Dict[str, Any]:
+    """Generate a self-signed certificate for the websocket transport. Admin only."""
+    info = _cert_info()
+    os.makedirs(info["cert_dir"], exist_ok=True)
+    crt = os.path.join(info["cert_dir"], f"{info['cert_name']}.crt")
+    key = os.path.join(info["cert_dir"], f"{info['cert_name']}.key")
+    try:
+        import datetime
+        from cryptography import x509
+        from cryptography.x509.oid import NameOID
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+    except ImportError:
+        raise HTTPException(status_code=501, detail="cryptography not installed")
+
+    pkey = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "hivemind")])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (x509.CertificateBuilder()
+            .subject_name(name).issuer_name(name)
+            .public_key(pkey.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now)
+            .not_valid_after(now + datetime.timedelta(days=3650))
+            .sign(pkey, hashes.SHA256()))
+    with open(key, "wb") as f:
+        f.write(pkey.private_bytes(serialization.Encoding.PEM,
+                                   serialization.PrivateFormat.TraditionalOpenSSL,
+                                   serialization.NoEncryption()))
+    with open(crt, "wb") as f:
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
+    return {"status": "ok", "cert_path": crt, "key_path": key}
