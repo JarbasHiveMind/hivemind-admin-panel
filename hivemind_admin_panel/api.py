@@ -38,8 +38,9 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from fastapi import FastAPI, HTTPException, Depends, status, BackgroundTasks, Response
+from fastapi import FastAPI, HTTPException, Depends, status, BackgroundTasks, Response, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from hivemind_admin_panel._auth import authenticate, verify_token, create_token, audit, read_audit
 from hivemind_admin_panel.version import __version__ as admin_version
 from hivemind_core.config import get_server_config, _DEFAULT
 from hivemind_core.database import ClientDatabase
@@ -119,35 +120,60 @@ def get_admin_app() -> FastAPI:
     return app
 
 
-def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)) -> bool:
-    """Verify HTTP Basic Auth credentials against server config.
-
-    Args:
-        credentials: HTTP Basic credentials from request header.
-
-    Returns:
-        bool: True if credentials are valid.
-
-    Raises:
-        HTTPException: 401 if credentials are invalid.
-
-    Note:
-        Credentials are read from ~/.config/hivemind-core/server.json
-        (keys: admin_user, admin_pass). Default is admin/admin.
-    """
+def _identify(request: Request) -> Optional[tuple]:
+    """Return (username, role) for a valid Basic or Bearer request, else None."""
     cfg = get_server_config()
-    admin_user = cfg.get("admin_user", "admin")
-    admin_pass = cfg.get("admin_pass", "admin")
+    header = request.headers.get("Authorization", "")
+    if header.startswith("Bearer "):
+        payload = verify_token(cfg, header[7:].strip())
+        if payload:
+            return payload.get("sub", "?"), payload.get("role", "admin")
+        return None
+    if header.startswith("Basic "):
+        import base64 as _b64
+        try:
+            user, _, pw = _b64.b64decode(header[6:]).decode().partition(":")
+        except Exception:
+            return None
+        role = authenticate(cfg, user, pw)
+        if role:
+            return user, role
+    return None
 
-    username_ok = hmac.compare_digest(credentials.username, admin_user)
-    password_ok = hmac.compare_digest(credentials.password, admin_pass)
-    if username_ok and password_ok:
-        return True
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials",
-        headers={"WWW-Authenticate": "Basic"},
-    )
+
+def verify_credentials(request: Request) -> bool:
+    """Authenticate via HTTP Basic *or* ``Authorization: Bearer <token>``.
+
+    Basic credentials are checked against ``server.json`` (admin_user/admin_pass
+    plus any ``users``); bearer tokens are issued by ``POST /auth/login``.
+    """
+    if _identify(request) is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return True
+
+
+def require_admin(request: Request) -> bool:
+    """Like :func:`verify_credentials` but requires the ``admin`` role."""
+    ident = _identify(request)
+    if ident is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    if ident[1] != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Admin role required for this action")
+    return True
+
+
+def _current_user(request: Request) -> str:
+    ident = _identify(request)
+    return ident[0] if ident else "anonymous"
 
 
 class ClientResponse(BaseModel):
@@ -1387,9 +1413,17 @@ def list_plugins() -> List[PluginInfo]:
     return _get_plugins_from_config()
 
 
-@app.post("/plugins/install", dependencies=[Depends(verify_credentials)])
+def _install_command(package: str) -> list:
+    """Prefer `uv pip install` (org policy); fall back to pip if uv is absent."""
+    import shutil
+    if shutil.which("uv"):
+        return ["uv", "pip", "install", "--python", sys.executable, package]
+    return [sys.executable, "-m", "pip", "install", package]
+
+
+@app.post("/plugins/install", dependencies=[Depends(require_admin)])
 def install_plugin(data: PluginInstallRequest) -> PluginInstallResult:
-    """Install a plugin package using pip.
+    """Install a plugin package using uv (or pip fallback). Requires admin role.
 
     Args:
         data: PluginInstallRequest with package name.
@@ -1405,11 +1439,12 @@ def install_plugin(data: PluginInstallRequest) -> PluginInstallResult:
     LOG.info(f"Installing plugin package: {package}")
 
     try:
-        LOG.debug(f"Running: {sys.executable} -m pip install {package}")
+        cmd = _install_command(package)
+        LOG.debug(f"Running: {' '.join(cmd)}")
 
         start_time = time.time()
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", package],
+            cmd,
             capture_output=True,
             text=True,
             timeout=120
@@ -2115,7 +2150,7 @@ def test_database_connection(data: Dict[str, Any]) -> DatabaseTestResult:
     return _test_db_connectivity(module, config)
 
 
-@app.post("/database/migrate", dependencies=[Depends(verify_credentials)])
+@app.post("/database/migrate", dependencies=[Depends(require_admin)])
 def migrate_database(data: DatabaseMigrationRequest, response: Response) -> DatabaseMigrationResult:
     """Migrate clients from the current active database to a target module.
 
@@ -2303,7 +2338,7 @@ def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/database/{module}/clear", dependencies=[Depends(verify_credentials)])
+@app.post("/database/{module}/clear", dependencies=[Depends(require_admin)])
 def clear_db(module: str) -> Dict[str, Any]:
     """Delete all clients from a specific database.
     
@@ -3325,3 +3360,62 @@ def get_logs(lines: int = 200, level: Optional[str] = None) -> Dict[str, Any]:
         lvl = level.upper()
         tail = [ln for ln in tail if lvl in ln]
     return {"path": path, "lines": [ln.rstrip("\n") for ln in tail]}
+
+
+# ===================== Auth: sessions, roles, audit =====================
+
+class LoginRequest(BaseModel):
+    """Request model for token login."""
+    username: str
+    password: str
+
+
+@app.post("/auth/login")
+def login(data: LoginRequest) -> Dict[str, Any]:
+    """Exchange username/password for a signed bearer token (no auth required)."""
+    cfg = get_server_config()
+    role = authenticate(cfg, data.username, data.password)
+    if not role:
+        audit(data.username, "login.failed")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_token(cfg, data.username, role)
+    audit(data.username, "login.ok", role=role)
+    from hivemind_admin_panel._metrics import METRICS
+    METRICS.event("auth.login", f"{data.username} logged in", role=role)
+    return token
+
+
+@app.post("/auth/logout", dependencies=[Depends(verify_credentials)])
+def logout(request: Request) -> Dict[str, str]:
+    """Stateless logout — the client discards its token."""
+    audit(_current_user(request), "logout")
+    return {"status": "ok"}
+
+
+@app.get("/auth/me", dependencies=[Depends(verify_credentials)])
+def whoami(request: Request) -> Dict[str, Any]:
+    """Return the authenticated user and role."""
+    ident = _identify(request)
+    return {"username": ident[0], "role": ident[1]}
+
+
+@app.get("/audit", dependencies=[Depends(verify_credentials)])
+def get_audit(limit: int = 200) -> List[Dict[str, Any]]:
+    """Recent admin audit-log entries (most recent last)."""
+    return read_audit(limit=limit)
+
+
+@app.middleware("http")
+async def _audit_mutations(request: Request, call_next):
+    """Record mutating requests (POST/PUT/DELETE) to the audit log + event feed."""
+    response = await call_next(request)
+    if request.method in ("POST", "PUT", "DELETE"):
+        path = request.url.path
+        # /auth/login records its own outcome; skip to avoid duplicate noise
+        if path not in ("/auth/login",) and response.status_code < 400:
+            user = _current_user(request)
+            audit(user, f"{request.method} {path}", status=response.status_code)
+            from hivemind_admin_panel._metrics import METRICS
+            METRICS.event("admin.action", f"{user}: {request.method} {path}",
+                          status=response.status_code)
+    return response
