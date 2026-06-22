@@ -1,8 +1,12 @@
 # hivemind-admin-panel
 # Copyright (C) 2026 Casimiro Ferreira
 # SPDX-License-Identifier: Apache-2.0
-"""Unit: the in-process hub launcher injects the live hub (no real hub started)."""
-import ovos_utils
+"""Unit: the in-process hub launcher injects the live hub (no real hub started).
+
+The hub must run on the MAIN thread (its ``run()`` installs signal handlers), so
+``launch_core()`` only constructs + injects and returns the service — ``main()``
+runs it. These tests assert that contract without starting a real hub.
+"""
 import hivemind_core.service as core_service
 
 import hivemind_admin_panel.api as api
@@ -19,16 +23,14 @@ class _FakeService:
 
 
 def test_launch_core_injects_live_objects(monkeypatch):
-    started = {}
     monkeypatch.setattr(core_service, "HiveMindService", _FakeService)
-    monkeypatch.setattr(ovos_utils, "create_daemon", lambda target, *a, **kw: started.setdefault("target", target))
 
     svc = launch_core()
     assert isinstance(svc, _FakeService)
     assert api._service is svc
     assert api._db is svc.db
-    # the hub is handed to a daemon thread rather than run inline
-    assert started["target"] == svc.run
+    # launch_core must NOT run the hub (run() is main-thread-only, called by main())
+    assert svc.ran is False
     api.init_injected_objects(service=None, db=None, protocol=None)
 
 
