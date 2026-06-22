@@ -60,6 +60,33 @@ def test_health_and_metrics_with_real_process_status(auth):
         init_injected_objects(service=None, db=None, protocol=None)
 
 
+def test_core_ready_tracks_real_process_state():
+    # regression for the live finding: in-process core that is STARTED but never
+    # READY (blocked before binding the satellite listener) must report
+    # core_ready=False; only READY flips it true.
+    from ovos_utils.process_utils import ProcessStatus
+
+    status = ProcessStatus("test")
+
+    class _Svc:
+        _status = status
+
+    init_injected_objects(service=_Svc(), db=None, protocol=None)
+    try:
+        c = TestClient(app)
+        status.set_started()  # run() entered, listeners NOT up yet
+        body = c.get("/health").json()
+        assert body["service_status"] == "STARTED"
+        assert body["core_ready"] is False
+
+        status.set_ready()    # network protocols bound
+        body = c.get("/health").json()
+        assert body["service_status"] == "READY"
+        assert body["core_ready"] is True
+    finally:
+        init_injected_objects(service=None, db=None, protocol=None)
+
+
 def test_startup_error_absent_returns_404(client, auth):
     init_injected_objects(service=None, db=None, protocol=None)
     assert client.get("/startup-error", headers=auth).status_code == 404

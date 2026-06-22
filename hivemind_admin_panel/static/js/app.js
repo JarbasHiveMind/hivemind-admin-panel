@@ -240,6 +240,27 @@
             if (document.getElementById('dashboardPage')?.classList.contains('active')) loadDashboard();
         }
 
+        // Warn when the in-process core is started but its satellite listener isn't
+        // up yet (READY) — usually it's blocked waiting on its agent backend.
+        function renderCoreReadyBanner(health) {
+            const el = document.getElementById('coreReadyBanner');
+            if (!el) return;
+            const inproc = health && health.run_mode === 'in-process';
+            const stuck = inproc && health.service_status && health.core_ready === false;
+            if (!stuck) { el.innerHTML = ''; return; }
+            el.innerHTML = `
+                <div class="card" style="border-left:4px solid var(--accent-warning);margin-bottom:16px;">
+                    <strong style="font-size:15px;color:var(--accent-warning);">⚠️ Satellites can't connect yet</strong>
+                    <div style="font-size:13px;color:var(--text-secondary);margin-top:6px;">
+                        hivemind-core is <code>${escapeHtml(health.service_status)}</code> but not <code>READY</code> —
+                        the satellite listener hasn't bound. It's almost always blocked waiting on its
+                        <strong>agent backend</strong> (an OVOS messagebus, default <code>127.0.0.1:8181</code>).
+                        Start your OVOS instance (or point the agent protocol at a reachable bus) and this clears
+                        automatically. Until then clients you create here cannot establish a connection.
+                    </div>
+                </div>`;
+        }
+
         // Render the dashboard security self-check from /setup/status.
         function renderSecurityCard(s) {
             const el = document.getElementById('securityCard');
@@ -692,6 +713,9 @@
                     apiCall('/plugins/installed/hivemind/database').catch(() => []),
                     apiCall('/plugins/installed/hivemind/binary').catch(() => [])
                 ]);
+
+                // Core-readiness banner (in-process core hung before binding listeners)
+                renderCoreReadyBanner(health);
 
                 // Security self-check banner
                 renderSecurityCard(await fetchSetupStatus());

@@ -656,7 +656,13 @@ def health() -> Dict[str, Any]:
     if _service and hasattr(_service, "_status"):
         status = _service._status
         # report the readable state value, not the ProcessStatus object's repr
-        response["service_status"] = status.state.name if status else "unknown"
+        state_name = status.state.name if status else "unknown"
+        response["service_status"] = state_name
+        # READY is set only AFTER the satellite listeners bind; STARTED-but-not-READY
+        # means hivemind-core is hung before opening its network protocols (typically
+        # blocked waiting on its agent backend / OVOS messagebus). Surface it so the
+        # panel can warn that satellites cannot connect yet.
+        response["core_ready"] = state_name == "READY"
 
     if _protocol and hasattr(_protocol, "clients"):
         response["active_connections"] = len(_protocol.clients)
