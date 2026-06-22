@@ -246,19 +246,32 @@
             if (!el) return;
             if (!s || !Array.isArray(s.checks)) { el.innerHTML = ''; return; }
             const icon = { critical: '🔴', warning: '🟡', info: 'ℹ️' };
-            const secure = s.secure && s.checks.every(c => c.ok || c.severity === 'info');
-            const accent = secure ? 'var(--accent-success)'
+            // a check is "resolved" if it passes, is info-only, or has been acknowledged
+            const resolved = c => c.ok || c.severity === 'info' || c.acknowledged;
+            const clean = ('clean' in s) ? s.clean : s.checks.every(resolved);
+            const accent = clean ? 'var(--accent-success)'
                          : (s.checks.some(c => !c.ok && c.severity === 'critical')
                             ? 'var(--accent-danger)' : 'var(--accent-warning)');
-            const rows = s.checks.map(c => `
-                <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--border-color);">
-                    <span style="font-size:14px;">${c.ok ? '✅' : icon[c.severity] || '•'}</span>
+            const rows = s.checks.map(c => {
+                const mark = c.ok ? '✅' : (c.acknowledged ? '☑️' : (icon[c.severity] || '•'));
+                const showHint = !c.ok && !c.acknowledged;
+                let action = '';
+                if (!c.ok && c.severity === 'warning') {
+                    action = c.acknowledged
+                        ? `<a href="#" onclick="event.preventDefault();unackCheck('${escapeHtml(c.id)}')" style="font-size:11px;color:var(--text-secondary);">restore</a>`
+                        : `<a href="#" onclick="event.preventDefault();ackCheck('${escapeHtml(c.id)}')" style="font-size:11px;color:var(--text-secondary);">dismiss</a>`;
+                }
+                return `
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--border-color);${c.acknowledged ? 'opacity:.6;' : ''}">
+                    <span style="font-size:14px;">${mark}</span>
                     <div style="flex:1;">
-                        <div style="font-size:13px;color:var(--text-primary);">${escapeHtml(c.label)}</div>
-                        ${c.ok ? '' : `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${escapeHtml(c.hint)}</div>`}
+                        <div style="font-size:13px;color:var(--text-primary);">${escapeHtml(c.label)}${c.acknowledged ? ' <span style="font-size:11px;color:var(--text-secondary);">(acknowledged)</span>' : ''}</div>
+                        ${showHint ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${escapeHtml(c.hint)}</div>` : ''}
                     </div>
-                </div>`).join('');
-            const title = secure ? '🛡️ Security: looks good'
+                    ${action}
+                </div>`;
+            }).join('');
+            const title = clean ? '🛡️ Security: looks good'
                         : '🛡️ Security: action recommended';
             el.innerHTML = `
                 <div class="card" style="border-left:4px solid ${accent};">
@@ -269,6 +282,16 @@
                     <div style="margin-top:6px;">${rows}</div>
                     ${s.default_credentials ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="enforceSetupGate()">Change admin password</button>` : ''}
                 </div>`;
+        }
+
+        async function ackCheck(id) {
+            try { _setupStatus = await apiCall('/setup/ack', 'POST', { id }); renderSecurityCard(_setupStatus); }
+            catch (e) { showToast('Could not dismiss warning', 'error'); }
+        }
+
+        async function unackCheck(id) {
+            try { _setupStatus = await apiCall('/setup/ack/' + encodeURIComponent(id), 'DELETE'); renderSecurityCard(_setupStatus); }
+            catch (e) { showToast('Could not restore warning', 'error'); }
         }
 
         function updateRunModeBadge(mode) {

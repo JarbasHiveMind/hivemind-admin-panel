@@ -25,6 +25,9 @@ The panel actively pushes you off the defaults rather than just warning:
   whether the admin password is still default (critical), whether the panel is
   bound to a non-loopback address (warning), and whether the hivemind-core
   websocket has TLS configured (info). It stays red until criticals clear.
+  A *warning* you've handled deliberately (e.g. binding `0.0.0.0` behind a proxy)
+  can be **dismissed** from the card — criticals cannot, and the dismissal is
+  audit-logged.
 - **Run-mode badge.** The top bar shows whether hivemind-core runs **in-process**
   (closing the panel stops the server) or the panel is in **panel-only** mode.
 

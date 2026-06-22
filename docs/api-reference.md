@@ -58,15 +58,19 @@ config-only / mock data, and restart is unavailable.
 
 ## 1. Health & status
 
-| Method | Path             | Auth | Description |
-|--------|------------------|------|-------------|
-| GET    | `/health`        | No   | Health check with version, status, and (if injected) live counts |
-| GET    | `/startup-error` | Yes  | Full traceback of a core startup failure, if any |
+| Method | Path                   | Auth  | Description |
+|--------|------------------------|-------|-------------|
+| GET    | `/health`              | No    | Health check with version, status, `run_mode`, and (if injected) live counts |
+| GET    | `/startup-error`       | Yes   | Full traceback of a core startup failure, if any |
+| GET    | `/setup/status`        | Yes   | First-run + security self-check (drives the gate and dashboard card) |
+| POST   | `/setup/ack`           | Admin | Acknowledge a *warning* check so it stops nagging |
+| DELETE | `/setup/ack/{check_id}`| Admin | Re-enable a previously acknowledged warning |
 
 ### `GET /health`
 No auth. Returns `status` (`"ok"` or `"degraded"`), `version`, `timestamp`,
-and — when core objects are injected — `service_status`, `active_connections`,
-and `total_clients`. Error details are never exposed here.
+`run_mode` (`"in-process"` / `"panel-only"` / `"unknown"`), and — when core
+objects are injected — `service_status`, `active_connections`, and
+`total_clients`. Error details are never exposed here.
 
 ```bash
 curl http://localhost:8100/api/health
@@ -75,6 +79,18 @@ curl http://localhost:8100/api/health
 ### `GET /startup-error`
 Returns `error`, `error_type`, `traceback`, `timestamp`. Responds `404` if no
 startup error was recorded.
+
+### `GET /setup/status`
+Returns the security self-check: `default_credentials`, `bound_host`, `exposed`,
+`run_mode`, `secure` (all *critical* checks pass), `clean` (nothing un-handled
+remains), `warnings[]`, and `checks[]` — each `{id, label, ok, severity, hint,
+acknowledged}` with `severity` ∈ `critical | warning | info`.
+
+### `POST /setup/ack` · `DELETE /setup/ack/{check_id}`
+Acknowledge / un-acknowledge a **warning** (e.g. `bind_host`) so a deliberate
+posture (like binding `0.0.0.0` behind a proxy) stops flagging the dashboard.
+Critical checks (e.g. `admin_password`) cannot be acknowledged — `400`. Both
+return the updated `/setup/status` body. Body for POST: `{"id": "bind_host"}`.
 
 ---
 

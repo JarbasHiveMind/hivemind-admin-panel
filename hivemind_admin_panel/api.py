@@ -3917,10 +3917,14 @@ def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
 def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Build the security self-check list shown on the dashboard.
 
-    Each check is ``{id, label, ok, severity, hint}``. ``severity`` is
-    ``"critical"`` | ``"warning"`` | ``"info"``; ``ok`` False with a critical
+    Each check is ``{id, label, ok, severity, hint, acknowledged}``. ``severity``
+    is ``"critical"`` | ``"warning"`` | ``"info"``; ``ok`` False with a critical
     severity is what blocks the "secure" verdict and drives the first-run gate.
+    A *warning* the operator has acknowledged (``POST /setup/ack``) is marked
+    ``acknowledged`` and no longer counts against the verdict; criticals can
+    never be acknowledged away.
     """
+    acked = set(cfg.get("setup_acked", []) or [])
     admin_user = cfg.get("admin_user", "admin")
     default_creds = (admin_user == "admin"
                      and cfg.get("admin_pass", "admin") == "admin")
@@ -3956,6 +3960,9 @@ def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
                      "enable TLS (ssl/cert_file/key_file) in server.json."),
         },
     ]
+    for c in checks:
+        # only warnings are dismissable; criticals/info are never "acknowledged"
+        c["acknowledged"] = (c["severity"] == "warning" and c["id"] in acked)
     return checks
 
 
@@ -3978,8 +3985,12 @@ def setup_status() -> Dict[str, Any]:
     except Exception:
         pass
     warnings = [c["hint"] for c in checks
-                if not c["ok"] and c["severity"] in ("critical", "warning")]
+                if not c["ok"] and not c.get("acknowledged")
+                and c["severity"] in ("critical", "warning")]
+    # criticals must pass; acknowledged warnings no longer count against "secure"
     secure = all(c["ok"] for c in checks if c["severity"] == "critical")
+    clean = all(c["ok"] or c.get("acknowledged") or c["severity"] == "info"
+                for c in checks)
     return {
         "default_credentials": default_creds,
         "has_clients": clients > 0,
@@ -3989,8 +4000,48 @@ def setup_status() -> Dict[str, Any]:
         "run_mode": _run_mode,
         "checks": checks,
         "secure": secure,
+        "clean": clean,
         "warnings": warnings,
     }
+
+
+class SetupAck(BaseModel):
+    """Acknowledge (or un-acknowledge) a non-critical security warning."""
+    id: str
+
+
+@app.post("/setup/ack", dependencies=[Depends(require_admin)])
+def setup_ack(data: SetupAck, request: Request) -> Dict[str, Any]:
+    """Acknowledge a *warning* check so it stops nagging the dashboard.
+
+    Only ``warning``-severity checks can be acknowledged; trying to ack a
+    critical (e.g. default credentials) is rejected — fix it instead.
+    """
+    cfg = get_server_config()
+    check = next((c for c in _security_checks(cfg) if c["id"] == data.id), None)
+    if check is None:
+        raise HTTPException(status_code=404, detail=f"Unknown check '{data.id}'")
+    if check["severity"] != "warning":
+        raise HTTPException(status_code=400,
+                            detail="Only warnings can be acknowledged")
+    acked = list(cfg.get("setup_acked", []) or [])
+    if data.id not in acked:
+        acked.append(data.id)
+        cfg["setup_acked"] = acked
+        cfg.store()
+        audit(_current_user(request), "setup.ack", id=data.id)
+    return setup_status()
+
+
+@app.delete("/setup/ack/{check_id}", dependencies=[Depends(require_admin)])
+def setup_unack(check_id: str, request: Request) -> Dict[str, Any]:
+    """Re-enable a previously acknowledged warning."""
+    cfg = get_server_config()
+    acked = [a for a in (cfg.get("setup_acked", []) or []) if a != check_id]
+    cfg["setup_acked"] = acked
+    cfg.store()
+    audit(_current_user(request), "setup.unack", id=check_id)
+    return setup_status()
 
 
 @app.get("/messages/recent", dependencies=[Depends(verify_credentials)])
