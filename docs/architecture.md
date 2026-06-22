@@ -34,13 +34,19 @@ It stores the live objects in module globals that the endpoints read:
 | `_protocol` | the live listener protocol | `/connections`, live counts |
 | `_startup_error` | exception if core failed to boot | `/startup-error` |
 
-In **standalone** mode none of these are injected; endpoints that need a live hub
-degrade gracefully (placeholder connections, restart returns an error) while
+By default the panel is the launcher: `launch_core()` (in `__main__.py`)
+constructs a `HiveMindService`, calls `init_injected_objects(service, db)`, and
+runs the hub in a daemon thread — then uvicorn serves the panel in the main
+thread. So the panel holds the live hub reference directly; there is no separate
+`hivemind-core` process and no `--with-admin` flag in core.
+
+In `--no-core` mode none of the globals are injected; endpoints that need a live
+hub degrade gracefully (placeholder connections, restart returns an error) while
 everything DB/config/filesystem-backed works by opening the same on-disk state.
 
-In **integrated** mode, core calls `init_injected_objects` from
-`HiveMindService._start_admin()` and then `start_admin_server()` runs uvicorn in a
-daemon thread.
+If the hub raises during construction, `launch_core()` injects the exception as
+`_startup_error` and the panel still serves, surfacing the error at
+`GET /api/startup-error`.
 
 ## Why a separate package
 

@@ -1,56 +1,62 @@
 # Running the panel
 
-The panel runs in one of two modes. They expose the same REST API and UI; they
-differ only in whether the panel has an in-process handle to a *running* hub.
+`hivemind-admin-panel` is the single launcher for a HiveMind deployment. By
+default it **starts the hub in-process** and serves the admin UI; you do not run
+`hivemind-core` separately. A `--no-core` flag serves the panel only.
 
-## Standalone mode
+## Default: hub + panel together
 
 ```bash
-hivemind-admin-panel --host 127.0.0.1 --port 8000 [--reload]
+hivemind-admin-panel --host 127.0.0.1 --port 8100
 ```
 
-The panel reads the same on-disk state that `hivemind-core` uses on the host: the
-`server.json` config and the configured client database. Everything backed by the
-database, config files, plugin entry points, and the filesystem works:
+The panel constructs a `HiveMindService`, keeps a live reference to it, and runs
+the hub in a daemon thread (see [Architecture](architecture.md)). You get the full
+admin surface plus live introspection:
 
-- clients & access keys (create/list/update/delete, credentials)
-- per-client ACLs (message types, skills, intents, escalate/propagate, admin)
-- plugin discovery and installation, database profiles & migration
-- persona management, config editing
+- clients & access keys, per-client ACLs, plugins, database profiles, personas
+- `GET /connections` / `GET /stats` reflect the running hub
+- `POST /config/restart` can restart the in-process service
 
-**Not available standalone** (these need a live, in-process hub):
+If the hub fails to start, the panel still comes up in a **diagnostics mode** that
+surfaces the startup error at `GET /api/startup-error`.
+
+The hub's transports (websocket on `:5678`, etc.) are configured in `server.json`,
+independently of the panel's own `--host`/`--port`. See [Configuration](configuration.md).
+
+## Panel only (`--no-core`)
+
+```bash
+hivemind-admin-panel --no-core --host 127.0.0.1 --port 8100
+```
+
+No in-process hub is started. The panel reads the same on-disk state core uses
+(`server.json` + the configured client database), so everything backed by the
+database, config files, plugin entry points, and the filesystem still works:
+clients, ACLs, plugin install, database profiles/migration, personas, config.
+
+What needs a live hub and therefore degrades in `--no-core`:
 
 - `GET /connections` returns placeholder data — there is no live socket list
 - `GET /stats` still reports DB-derived counts but no live connection count
 - `POST /config/restart` returns an error (no service handle to restart)
 
-Standalone mode is ideal for provisioning clients and editing config without
-touching the running service, or on a host where the hub is managed separately.
+Use `--no-core` to provision clients / edit config without touching a running
+service, or on a host where the hub is managed separately.
 
-## Integrated mode (`--with-admin`)
+## Development
 
 ```bash
-hivemind-core --with-admin --admin-host 127.0.0.1 --admin-port 8100
+hivemind-admin-panel --no-core --reload
 ```
 
-Here `hivemind-core` starts the panel in a daemon thread and injects live
-references to its `service`, `database`, and `protocol` objects (see
-[Architecture](architecture.md)). The panel is started **early** in core's
-`run()`, so it stays reachable even if the agent protocol blocks (e.g. waiting for
-the OVOS bus). If core fails to start entirely, `--with-admin` still brings the
-panel up in a diagnostics mode that surfaces the startup error at
-`GET /startup-error`.
+`--reload` runs uvicorn in a child process and therefore implies `--no-core`
+(the in-process hub thread would not survive a reload).
 
 | Flag | Default | Meaning |
 |------|---------|---------|
-| `--with-admin` | off | enable the panel |
-| `--admin-host` | `127.0.0.1` | bind address for the panel |
-| `--admin-port` | `8100` | port for the panel |
-
-If the panel package is not installed, `--with-admin` logs a warning and core runs
-normally — core has no hard dependency on it.
-
-## Which mode should I use?
-
-- Want **live connection/stats** or a **restart button**? Use `--with-admin`.
-- Managing config/clients out-of-band, or the hub runs elsewhere? **Standalone**.
+| `--host` | `127.0.0.1` | bind address for the panel |
+| `--port` | `8100` | port for the panel |
+| `--no-core` | off | serve the panel only; do not start a hub |
+| `--reload` | off | dev auto-reload (implies `--no-core`) |
+| `--log-level` | `INFO` | log level for the in-process hub |

@@ -46,9 +46,9 @@ curl -u admin:admin -X POST http://localhost:8000/api/config \
 Every authenticated `curl` example below uses `-u admin:admin`. The dependency
 is wired per-route via `Depends(verify_credentials)`.
 
-### Standalone vs `--with-admin` mode
+### In-process hub (default) vs `--no-core`
 
-When hivemind-core is started with `--with-admin`, internal objects (service,
+When the panel launches the hub in-process (the default), internal objects (service,
 DB, listener protocol) are injected via `init_injected_objects()`, so
 `/health`, `/connections`, and `/stats` return real-time data and
 `/config/restart` works. In standalone admin mode those endpoints fall back to
@@ -107,7 +107,7 @@ warns about missing optional deps (`zeroconf`, `ggwave`).
 ### `POST /config/restart`
 **Side effect: schedules a graceful service restart via a background task** —
 sets `HIVEMIND_AUTO_RESTART=1` and signals the service to stop. Only works in
-`--with-admin` mode; in standalone mode returns
+in-process-hub mode; in `--no-core` mode returns
 `RestartResult(status="error", ...)`. Returns `RestartResult`.
 
 ```bash
@@ -246,7 +246,7 @@ curl -u admin:admin -X POST \
 
 | Method | Path           | Auth | Description |
 |--------|----------------|------|-------------|
-| GET    | `/connections` | Yes  | Active connections (real-time with `--with-admin`, else mock) |
+| GET    | `/connections` | Yes  | Active connections (real-time with the in-process hub, else mock) |
 | GET    | `/stats`       | Yes  | Server statistics |
 
 ### `GET /connections`

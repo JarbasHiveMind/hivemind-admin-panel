@@ -1,6 +1,6 @@
-# HiveMind Admin Panel — runs hivemind-core with the admin panel enabled.
-# The image bundles hivemind-core (a dependency of the panel), so a single
-# container serves the hub (websocket/http transports) plus the admin web UI.
+# HiveMind Admin Panel — single launcher for a HiveMind deployment.
+# The panel starts hivemind-core in-process, so one container serves the hub
+# (websocket/http transports) plus the admin web UI from a single command.
 FROM python:3.12-slim AS builder
 
 # Build deps for pycryptodomex / wheels that lack manylinux builds
@@ -31,5 +31,5 @@ WORKDIR /home/hivemind
 # websocket transport, http transport, admin panel
 EXPOSE 5678 5679 8100
 
-# Run the hub with the admin panel bound on all interfaces inside the container.
-CMD ["hivemind-core", "--with-admin", "--admin-host", "0.0.0.0", "--admin-port", "8100"]
+# Launch the hub + admin panel; the panel binds on all interfaces in-container.
+CMD ["hivemind-admin-panel", "--host", "0.0.0.0", "--port", "8100"]

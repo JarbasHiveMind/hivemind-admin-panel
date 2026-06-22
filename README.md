@@ -21,24 +21,22 @@ admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
 
 ```bash
 pip install hivemind-admin-panel
-# or, starting from core:
-pip install hivemind-core[admin]
 ```
 
 ## Quickstart
 
-**Standalone** (manage a host's config/database directly):
+`hivemind-admin-panel` is the single launcher — it starts a HiveMind hub
+in-process and serves the admin UI. You do **not** run `hivemind-core` separately.
 
 ```bash
-hivemind-admin-panel --host 127.0.0.1 --port 8000
-# open http://127.0.0.1:8000
+hivemind-admin-panel --host 127.0.0.1 --port 8100
+# open http://127.0.0.1:8100
 ```
 
-**Integrated** with a running hub (adds live connection/stats + restart):
+**Panel only** (manage on-disk config/database without starting a hub):
 
 ```bash
-hivemind-core --with-admin --admin-host 127.0.0.1 --admin-port 8100
-# open http://127.0.0.1:8100
+hivemind-admin-panel --no-core --host 127.0.0.1 --port 8100
 ```
 
 **Docker Compose** (hub + admin panel + Redis):
@@ -69,9 +67,9 @@ Full docs in [`docs/`](docs/index.md):
 ## Relationship to HiveMind-core
 
 The panel was extracted from core so it has its own release cadence and stays an
-optional, separately-deployable admin plane. Core keeps only a thin `--with-admin`
-launcher that lazily imports the panel and injects live objects — it has no hard
-dependency on it. See [docs/architecture.md](docs/architecture.md).
+optional, separately-deployable admin plane. It is the launcher: it starts a
+`hivemind-core` hub in-process and keeps a live reference to it, so core needs no
+admin-specific code. See [docs/architecture.md](docs/architecture.md).
 
 ## License
 

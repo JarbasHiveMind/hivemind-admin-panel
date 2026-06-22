@@ -2,8 +2,8 @@
 
 ## Docker (single container)
 
-The image runs `hivemind-core --with-admin`, so one container serves the hub
-(websocket transport) and the admin panel.
+The image runs `hivemind-admin-panel`, which starts the hub in-process, so one
+container serves the hub (websocket transport) and the admin panel.
 
 ```bash
 docker build -t hivemind-admin-panel .
@@ -78,7 +78,7 @@ Description=HiveMind Admin Panel
 After=network-online.target
 
 [Service]
-ExecStart=/usr/local/bin/hivemind-admin-panel --host 127.0.0.1 --port 8000
+ExecStart=/usr/local/bin/hivemind-admin-panel --host 127.0.0.1 --port 8100
 Restart=on-failure
 User=hivemind
 
@@ -90,5 +90,5 @@ WantedBy=multi-user.target
 sudo systemctl enable --now hivemind-admin-panel
 ```
 
-For the integrated mode, add `--with-admin` to your existing `hivemind-core`
-service unit instead of running a separate panel service.
+This single unit runs the hub and the panel together. Add `--no-core` to the
+`ExecStart` line if the hub is managed by a separate service on the host.

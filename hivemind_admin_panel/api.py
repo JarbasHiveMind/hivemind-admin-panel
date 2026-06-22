@@ -7,7 +7,7 @@ This module provides REST API endpoints for managing HiveMind-core clients,
 permissions, and server configuration. All endpoints except /api/health
 require HTTP Basic Authentication.
 
-When started via hivemind-core with --with-admin flag, this module has
+When the in-process hub is running (the default launcher), this module has
 direct access to internal HiveMind-core objects for real-time data.
 
 Endpoints:
@@ -87,7 +87,7 @@ def init_injected_objects(
 ) -> None:
     """Initialize admin with direct access to core objects.
 
-    Called by hivemind_core.service when starting with --with-admin flag.
+    Called by the panel launcher (launch_core) with the live hub objects.
 
     Args:
         service: HiveMindService instance for direct access.
@@ -683,7 +683,7 @@ def restart_service(background_tasks: BackgroundTasks) -> RestartResult:
 
     Note:
         This will only work when the admin UI is running integrated
-        with hivemind-core (started with --with-admin). In standalone
+        with the in-process hub. In --no-core
         mode, this returns an error.
     """
     global _service
@@ -1278,7 +1278,7 @@ def _modify_flag(client_id: int, flag: str, value: bool) -> Dict[str, Any]:
 def get_connections() -> Dict[str, Any]:
     """Get active connections from HiveMind protocol.
 
-    When started with --with-admin flag, returns real-time data from
+    When the in-process hub is running, returns real-time data from
     HiveMindListenerProtocol.clients. Otherwise returns mock data.
 
     Returns:
@@ -1301,7 +1301,7 @@ def get_connections() -> Dict[str, Any]:
     return {
         "count": 0,
         "connections": [],
-        "note": "Start hivemind-core with --with-admin for real-time data",
+        "note": "Live hub not attached; run hivemind-admin-panel (in-process hub on by default) for real-time data",
     }
 
 
@@ -1309,7 +1309,7 @@ def get_connections() -> Dict[str, Any]:
 def get_stats() -> Dict[str, Any]:
     """Get server statistics.
 
-    When started with --with-admin flag, returns real-time stats from
+    When the in-process hub is running, returns real-time stats from
     the running HiveMindService. Otherwise returns basic config info.
 
     Returns:

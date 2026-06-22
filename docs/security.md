@@ -16,7 +16,7 @@ access on the host.
 
 - Bind to `127.0.0.1` (the default in both modes) unless the panel sits behind a
   trusted reverse proxy that terminates TLS and adds authentication.
-- `--admin-host 0.0.0.0` (and the Docker image) expose it on all interfaces — only
+- `--host 0.0.0.0` (and the Docker image) expose it on all interfaces — only
   do this behind a proxy / firewall. See [Deployment](deployment.md).
 - The panel speaks plain HTTP; put TLS at the proxy.
 
