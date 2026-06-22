@@ -21,6 +21,23 @@ def test_health_reports_clients_with_db(client):
     assert "total_clients" in body
 
 
+def test_health_service_status_is_readable_not_object_repr():
+    # regression: /health must report the status value, not "<ProcessStatus ...>"
+    class _Status:
+        value = "ready"
+
+    class _Service:
+        _status = _Status()
+
+    init_injected_objects(service=_Service(), db=None, protocol=None)
+    try:
+        body = TestClient(app).get("/health").json()
+        assert body["service_status"] == "ready"
+        assert "object at" not in body["service_status"]
+    finally:
+        init_injected_objects(service=None, db=None, protocol=None)
+
+
 def test_startup_error_absent_returns_404(client, auth):
     init_injected_objects(service=None, db=None, protocol=None)
     assert client.get("/startup-error", headers=auth).status_code == 404

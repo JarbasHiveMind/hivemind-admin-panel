@@ -585,7 +585,8 @@ def health() -> Dict[str, Any]:
     # Add service info if objects are injected
     if _service and hasattr(_service, "_status"):
         status = _service._status
-        response["service_status"] = str(status) if status else "unknown"
+        # report the readable state value, not the ProcessStatus object's repr
+        response["service_status"] = str(status.value) if status else "unknown"
 
     if _protocol and hasattr(_protocol, "clients"):
         response["active_connections"] = len(_protocol.clients)
