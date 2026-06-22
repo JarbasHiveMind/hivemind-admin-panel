@@ -268,7 +268,8 @@ and — when objects are injected — `client_count`, `total_clients`,
 | GET    | `/plugins`                                 | Yes  | —                     | All known plugins + installed status (from `plugins_config.json`) |
 | POST   | `/plugins/install`                         | Yes  | `PluginInstallRequest`| Install a package via pip |
 | POST   | `/plugins/enable`                          | Yes  | `ConfigUpdateRequest` | Enable/disable a plugin in config |
-| GET    | `/plugins/solvers`                         | Yes  | —                     | Solver plugins with install status |
+| GET    | `/plugins/solvers`                         | Yes  | —                     | Persona handler plugins (modern chat/agent engines + legacy solvers) with install status |
+| GET    | `/plugins/memory`                          | Yes  | —                     | Installed persona memory plugins (entry points); default `ovos-agents-short-term-memory-plugin` |
 | GET    | `/plugins/installed/ovos/{plugin_type}`    | Yes  | —                     | Installed OVOS plugins (`stt`/`tts`/`ww`/`vad`) |
 | GET    | `/plugins/installed/hivemind/{plugin_type}`| Yes  | —                     | Installed HiveMind plugins (`network`/`agent`/`database`/`binary`) |
 
@@ -453,6 +454,14 @@ documented in §4.)
 Personas are JSON files in `~/.config/ovos_persona/`. The active persona is
 recorded in `server.json` under
 `agent_protocol["hivemind-persona-agent-plugin"]["persona"]`.
+
+Schema note: a persona's response engines are the modern **`handlers`** list
+(ordered chat/agent plugins). `POST /personas` accepts either `handlers` or the
+deprecated `solvers` alias, but always **persists `handlers`**. `memory_module`
+selects the conversational-memory plugin (default
+`ovos-agents-short-term-memory-plugin`; options via `GET /plugins/memory`). The same
+persona JSON can be served over OpenAI/Ollama by `ovos-persona-server` (see
+[ovos-servers.md](ovos-servers.md)).
 
 | Method | Path                       | Auth | Body            | Description |
 |--------|----------------------------|------|-----------------|-------------|

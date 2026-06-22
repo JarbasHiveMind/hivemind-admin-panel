@@ -63,3 +63,33 @@ semantics.
 Persona files live under `~/.config/ovos_persona/*.json` and are managed via the
 `/personas/*` endpoints. The active persona is recorded in the agent-protocol block
 of `server.json`.
+
+A persona is a small JSON document with two modern keys:
+
+```jsonc
+{
+  "name": "My Assistant",
+  "handlers": ["ovos-solver-openai-plugin"],           // ordered response engines
+  "ovos-solver-openai-plugin": { "api_url": "...", "key": "..." },
+  "memory_module": "ovos-agents-short-term-memory-plugin"
+}
+```
+
+- **`handlers`** — an ordered list of response-engine plugins (the persona tries each
+  in turn). This is the current OVOS schema. The older key **`solvers`** is still
+  accepted on input and read by `ovos-persona`, but the panel always **stores
+  `handlers`**. Solver *plugins* (`ovos_plugin_manager.solvers` /
+  `templates.solvers`) are deprecated in favour of the agent stack
+  (`AbstractAgentEngine` in `ovos_plugin_manager.templates.agents`); the panel
+  discovers handlers via the modern `ovos_plugin_manager.agents` chat engines, with a
+  guarded fallback to legacy solvers for back-compat.
+- **`memory_module`** — the conversational-memory plugin (default
+  `ovos-agents-short-term-memory-plugin`). Installed options are listed by
+  `GET /plugins/memory`.
+
+Handlers can be LLM engines (OpenAI/Claude/Gemini/local GGUF), factual/tool engines
+(Wolfram Alpha, Wikipedia, DuckDuckGo), or scripted ones (RiveScript) — mix freely; a
+persona built only from factual/scripted handlers needs no GPU.
+
+The same persona JSON can be hosted over an OpenAI/Ollama HTTP API by
+**ovos-persona-server** — see [OVOS servers & homelab synergy](ovos-servers.md).

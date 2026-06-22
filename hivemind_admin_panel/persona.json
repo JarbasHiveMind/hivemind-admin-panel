@@ -1,11 +1,12 @@
 {
     "name": "My Local LLM",
-    "solvers": [
+    "handlers": [
         "ovos-solver-openai-plugin"
     ],
     "ovos-solver-openai-plugin": {
         "api_url": "https://llama.smartgic.io/v1",
         "key": "sk-xxxx",
         "persona": "helpful, creative, clever, and very friendly."
-    }
+    },
+    "memory_module": "ovos-agents-short-term-memory-plugin"
 }

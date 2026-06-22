@@ -49,8 +49,11 @@ from hivemind_plugin_manager import DatabaseFactory
 from hivemind_plugin_manager import NetworkProtocolFactory
 from hivemind_plugin_manager import find_plugins, HiveMindPluginTypes
 from hivemind_plugin_manager.database import Client
-from ovos_plugin_manager.solvers import find_question_solver_plugins, find_chat_solver_plugins
-from ovos_plugin_manager.agents import find_chat_plugins
+# Modern OVOS agent stack. Solver plugins (ovos_plugin_manager.solvers /
+# templates.solvers) are deprecated in favour of AbstractAgentEngine
+# (ovos_plugin_manager.templates.agents); legacy solver discovery is imported
+# lazily in _discover_chat_engines() only for back-compat.
+from ovos_plugin_manager.agents import find_chat_plugins, find_memory_plugins
 from ovos_plugin_manager.stt import find_stt_plugins
 from ovos_plugin_manager.tts import find_tts_plugins
 from ovos_plugin_manager.vad import find_vad_plugins
@@ -2442,22 +2445,65 @@ def list_common_intents() -> List[Dict[str, str]]:
     return config.get("common_intents", [])
 
 
+def _discover_chat_engines() -> Dict[str, Any]:
+    """Discover installed persona handler plugins (modern + legacy).
+
+    Prefers the modern OVOS agent stack (``ovos_plugin_manager.agents`` chat
+    engines / AbstractAgentEngine). Legacy ``solver`` plugins are still loaded as
+    persona handlers by ovos-persona, so they are included via a guarded,
+    lazy import of the deprecated finders for back-compat — without emitting
+    deprecation warnings at module import time.
+    """
+    engines: Dict[str, Any] = {}
+    try:
+        engines.update(find_chat_plugins())
+    except Exception as e:
+        LOG.debug(f"chat-engine discovery failed: {e}")
+    # Legacy solver plugins (deprecated, removed in ovos-plugin-manager 3.0)
+    try:
+        from ovos_plugin_manager.solvers import (
+            find_question_solver_plugins,
+            find_chat_solver_plugins,
+        )
+        engines.update(find_question_solver_plugins())
+        engines.update(find_chat_solver_plugins())
+    except Exception as e:
+        LOG.debug(f"legacy solver discovery skipped: {e}")
+    return engines
+
+
+@app.get("/plugins/memory", dependencies=[Depends(verify_credentials)])
+def list_memory_plugins() -> List[str]:
+    """List installed conversational-memory plugins for personas.
+
+    Returns the entry points discoverable via the modern agent stack
+    (``ovos_plugin_manager.agents.find_memory_plugins``); the persona default is
+    ``ovos-agents-short-term-memory-plugin``.
+    """
+    try:
+        return sorted(find_memory_plugins().keys())
+    except Exception as e:
+        LOG.error(f"Failed to load memory plugins: {e}")
+        return []
+
+
 @app.get("/plugins/solvers", dependencies=[Depends(verify_credentials)])
 def list_solver_plugins() -> List[Dict[str, Any]]:
-    """List available solver plugins with installation status.
+    """List available persona handler plugins with installation status.
+
+    "Handlers" are the persona's response engines: modern OVOS chat/agent
+    engines plus legacy solver plugins (deprecated). The endpoint path is kept
+    for backwards compatibility with existing clients.
 
     Returns:
-        List of solver plugins with name, package, entry_point, description, and install_status.
+        List of plugins with name, package, entry_point, description, and install_status.
     """
     config = _load_plugins_config()
     solvers = []
-    
-    # Get all installed solver entry points
+
+    # Get all installed handler entry points (modern chat engines + legacy solvers)
     try:
-        installed_solvers = {}
-        installed_solvers.update(find_question_solver_plugins())
-        installed_solvers.update(find_chat_solver_plugins())
-        installed_solvers.update(find_chat_plugins())
+        installed_solvers = _discover_chat_engines()
     except Exception as e:
         LOG.error(f"Failed to load solver plugins: {e}")
         installed_solvers = {}
@@ -2772,10 +2818,10 @@ def _validate_persona_config(config: Dict[str, Any]) -> tuple[bool, List[str]]:
     if "name" not in config or not config["name"]:
         errors.append("Persona must have a 'name' field")
 
-    # Solvers or handlers field
-    solvers = config.get("solvers") or config.get("handlers")
-    if not solvers or not isinstance(solvers, list) or len(solvers) == 0:
-        errors.append("Persona must have 'solvers' or 'handlers' list with at least one solver")
+    # Response engines: modern `handlers` (preferred) or legacy `solvers`
+    handlers = config.get("handlers") or config.get("solvers")
+    if not handlers or not isinstance(handlers, list) or len(handlers) == 0:
+        errors.append("Persona must have a 'handlers' list with at least one response engine")
 
     return len(errors) == 0, errors
 
@@ -2842,10 +2888,10 @@ class PersonaCreate(BaseModel):
 
     name: str
     description: Optional[str] = None
-    solvers: List[str] = []
-    handlers: Optional[List[str]] = None  # Alternative to solvers
+    handlers: Optional[List[str]] = None  # modern: persona response engines (chat/agent plugins)
+    solvers: List[str] = []  # deprecated alias for handlers (legacy solver plugins)
     memory_module: Optional[str] = "ovos-agents-short-term-memory-plugin"
-    # Additional solver-specific config will be in extra fields
+    # Per-handler config goes in extra fields keyed by entry point
 
 
 @app.get("/personas", dependencies=[Depends(verify_credentials)])
@@ -2923,11 +2969,10 @@ def create_persona(data: PersonaCreate) -> Dict[str, Any]:
         "description": data.description or "",
     }
 
-    # Use solvers or handlers
-    if data.handlers:
-        config["handlers"] = data.handlers
-    else:
-        config["solvers"] = data.solvers
+    # Always persist the modern persona schema: `handlers` (ovos-persona reads
+    # `handlers`, falling back to the deprecated `solvers`). Accept either field
+    # on input for back-compat, but store `handlers`.
+    config["handlers"] = data.handlers if data.handlers else data.solvers
 
     # Memory module
     if data.memory_module:

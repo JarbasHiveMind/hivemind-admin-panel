@@ -62,6 +62,7 @@ Full docs in [`docs/`](docs/index.md):
 - [Architecture](docs/architecture.md) · [Security](docs/security.md)
 - [API reference](docs/api-reference.md) — every REST endpoint with `curl` examples
 - [Deployment](docs/deployment.md) — Docker / Compose / reverse proxy / systemd
+- [OVOS servers](docs/ovos-servers.md) — persona-server + STT/TTS/translate servers; homelab synergy
 - [Development](docs/development.md) — the end-to-end test suite & contributing
 
 ## Relationship to HiveMind-core

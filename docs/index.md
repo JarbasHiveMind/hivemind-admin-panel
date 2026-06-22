@@ -19,6 +19,7 @@ admin plane; core deployments that don't want one are unaffected.
 | [Security](security.md) | Auth model, the privileged admin plane, hardening |
 | [API reference](api-reference.md) | Every REST endpoint, request models, `curl` examples |
 | [Deployment](deployment.md) | Docker, Docker Compose, reverse proxy, systemd |
+| [OVOS servers](ovos-servers.md) | persona-server, STT/TTS/translate servers — homelab synergy |
 | [Development](development.md) | Local setup, the end-to-end test suite, contributing |
 
 ## At a glance
