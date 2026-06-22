@@ -81,6 +81,18 @@
                     <span class="nav-icon">🔐</span>
                     <span>Encodings</span>
                 </button>
+                <button class="nav-item" onclick="navigate('monitor')" data-page="monitor">
+                    <span class="nav-icon">📊</span>
+                    <span>Monitor</span>
+                </button>
+                <button class="nav-item" onclick="navigate('servers')" data-page="servers">
+                    <span class="nav-icon">🛰️</span>
+                    <span>OVOS Servers</span>
+                </button>
+                <button class="nav-item" onclick="navigate('ops')" data-page="ops">
+                    <span class="nav-icon">🛟</span>
+                    <span>Operations</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -709,6 +721,90 @@
                             <div id="ciphersContainer" style="display: grid; gap: 12px;">
                                 <!-- Ciphers loaded dynamically -->
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monitor Page -->
+                <div id="monitorPage" class="page">
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header">
+                            <h3>📊 Live metrics</h3>
+                            <label style="font-size:13px;color:var(--text-secondary);">
+                                <input type="checkbox" id="monitorLive" onchange="toggleMonitorLive()"> live
+                            </label>
+                        </div>
+                        <div class="card-body"><div id="metricsContainer">Loading…</div></div>
+                    </div>
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header"><h3>🔔 Recent events</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadMonitorPage()">Refresh</button></div>
+                        <div class="card-body"><div id="eventsContainer">Loading…</div></div>
+                    </div>
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header"><h3>📜 Hub log</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadLogs()">Refresh</button></div>
+                        <div class="card-body"><pre id="logsContainer" style="max-height:320px;overflow:auto;font-size:12px;"></pre></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>🧾 Audit log</h3></div>
+                        <div class="card-body"><div id="auditContainer">Loading…</div></div>
+                    </div>
+                </div>
+
+                <!-- OVOS Servers Page -->
+                <div id="serversPage" class="page">
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header"><h3>🛰️ Register an OVOS server</h3></div>
+                        <div class="card-body">
+                            <p style="color:var(--text-secondary);margin-bottom:12px;">
+                                Register external <a href="https://github.com/OpenVoiceOS/ovos-persona-server" target="_blank">persona</a> /
+                                STT / TTS / translate servers so the hub and homelab can share them.</p>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <input id="serverName" placeholder="Name" style="flex:1;min-width:140px;padding:8px;">
+                                <select id="serverType" style="padding:8px;">
+                                    <option value="persona">persona</option><option value="stt">stt</option>
+                                    <option value="tts">tts</option><option value="translate">translate</option>
+                                    <option value="other">other</option>
+                                </select>
+                                <input id="serverUrl" placeholder="http://host:port" style="flex:2;min-width:200px;padding:8px;">
+                                <button class="btn btn-primary btn-sm" onclick="addServer()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>Registered servers</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadServersPage()">Refresh</button></div>
+                        <div class="card-body"><div id="serversContainer">Loading…</div></div>
+                    </div>
+                </div>
+
+                <!-- Operations Page -->
+                <div id="opsPage" class="page">
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header"><h3>💾 Backup &amp; restore</h3></div>
+                        <div class="card-body">
+                            <button class="btn btn-primary btn-sm" onclick="downloadBackup()">Download backup</button>
+                            <label class="btn btn-secondary btn-sm" style="margin-left:8px;">
+                                Restore… <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="uploadRestore(this)">
+                            </label>
+                            <div id="opsResult" style="margin-top:12px;color:var(--text-secondary);"></div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header"><h3>🛡️ TLS certificates</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadCerts()">Refresh</button></div>
+                        <div class="card-body">
+                            <div id="certsContainer">Loading…</div>
+                            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="generateCerts()">Generate self-signed</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>⚖️ Admission policy chain</h3>
+                            <button class="btn btn-primary btn-sm" onclick="savePolicy()">Save</button></div>
+                        <div class="card-body">
+                            <p style="color:var(--text-secondary);margin-bottom:8px;">JSON list of policy modules evaluated for every client message.</p>
+                            <textarea id="policyEditor" style="width:100%;height:140px;font-family:monospace;font-size:12px;"></textarea>
                         </div>
                     </div>
                 </div>

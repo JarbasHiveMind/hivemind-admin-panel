@@ -210,7 +210,10 @@
                 network: 'Network Protocols',
                 'voice-plugins': 'Voice Plugins',
                 binary: 'Binary Protocol',
-                encodings: 'Encodings & Ciphers'
+                encodings: 'Encodings & Ciphers',
+                monitor: 'Monitor',
+                servers: 'OVOS Servers',
+                ops: 'Operations'
             };
             document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
 
@@ -229,6 +232,176 @@
             if (page === 'voice-plugins') loadVoicePluginsPage();
             if (page === 'binary') loadBinaryPage();
             if (page === 'encodings') loadEncodings();
+            if (page === 'monitor') loadMonitorPage();
+            if (page === 'servers') loadServersPage();
+            if (page === 'ops') loadOpsPage();
+            if (page !== 'monitor') stopMonitorLive();
+        }
+
+        // ===================== Monitor =====================
+        let monitorEventSource = null;
+        function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+        async function loadMonitorPage() {
+            await renderMetrics();
+            await loadEvents();
+            await loadLogs();
+            await loadAudit();
+        }
+        async function renderMetrics() {
+            try {
+                const m = await apiCall('/metrics');
+                const c = m.counters || {};
+                document.getElementById('metricsContainer').innerHTML =
+                    `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+                       ${metricCard('Uptime', (m.uptime_seconds/60).toFixed(1)+' min')}
+                       ${metricCard('Active connections', m.active_connections ?? '—')}
+                       ${metricCard('Total clients', m.total_clients ?? '—')}
+                       ${metricCard('Service', esc(m.service_status ?? '—'))}
+                       ${metricCard('Clients created', c['event.client.created'] || 0)}
+                       ${metricCard('Admin actions', c['event.admin.action'] || 0)}
+                     </div>`;
+            } catch (e) { document.getElementById('metricsContainer').textContent = 'metrics unavailable'; }
+        }
+        function metricCard(label, val) {
+            return `<div style="background:var(--bg-hover);padding:12px;border-radius:8px;">
+                      <div style="font-size:22px;font-weight:600;">${val}</div>
+                      <div style="font-size:12px;color:var(--text-secondary);">${label}</div></div>`;
+        }
+        async function loadEvents() {
+            try {
+                const evts = await apiCall('/events/recent?limit=50');
+                document.getElementById('eventsContainer').innerHTML = evts.length
+                    ? evts.slice().reverse().map(e =>
+                        `<div style="padding:6px 0;border-bottom:1px solid var(--border-color);font-size:13px;">
+                           <span style="color:var(--text-secondary);">${new Date(e.ts*1000).toLocaleTimeString()}</span>
+                           <strong> ${esc(e.kind)}</strong> — ${esc(e.message)}</div>`).join('')
+                    : '<span style="color:var(--text-secondary);">no events yet</span>';
+            } catch (e) {}
+        }
+        async function loadLogs() {
+            try {
+                const r = await apiCall('/logs?lines=200');
+                document.getElementById('logsContainer').textContent =
+                    r.lines && r.lines.length ? r.lines.join('\n') : (r.note || 'no log output');
+            } catch (e) {}
+        }
+        async function loadAudit() {
+            try {
+                const a = await apiCall('/audit?limit=50');
+                document.getElementById('auditContainer').innerHTML = a.length
+                    ? a.slice().reverse().map(e =>
+                        `<div style="padding:5px 0;border-bottom:1px solid var(--border-color);font-size:13px;">
+                           <span style="color:var(--text-secondary);">${new Date(e.ts*1000).toLocaleString()}</span>
+                           — <strong>${esc(e.user)}</strong> ${esc(e.action)}</div>`).join('')
+                    : '<span style="color:var(--text-secondary);">no audit entries</span>';
+            } catch (e) {}
+        }
+        function toggleMonitorLive() {
+            document.getElementById('monitorLive').checked ? startMonitorLive() : stopMonitorLive();
+        }
+        async function startMonitorLive() {
+            stopMonitorLive();
+            // EventSource can't set headers, so mint a short-lived token and pass it
+            // as access_token (accepted by the SSE endpoint).
+            let token;
+            try {
+                token = (await apiCall('/auth/login', 'POST',
+                    { username: auth.username, password: auth.password })).token;
+            } catch (e) { return; }
+            monitorEventSource = new EventSource('/api/events?interval=2&access_token=' + encodeURIComponent(token));
+            monitorEventSource.addEventListener('snapshot', renderMetrics);
+            monitorEventSource.addEventListener('event', loadEvents);
+            monitorEventSource.onerror = () => { renderMetrics(); };
+        }
+        function stopMonitorLive() {
+            if (monitorEventSource) { monitorEventSource.close(); monitorEventSource = null; }
+        }
+
+        // ===================== OVOS Servers =====================
+        async function loadServersPage() {
+            try {
+                const servers = await apiCall('/servers');
+                const el = document.getElementById('serversContainer');
+                el.innerHTML = servers.length ? servers.map(s =>
+                    `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-color);">
+                       <strong>${esc(s.name)}</strong>
+                       <span class="badge">${esc(s.type)}</span>
+                       <span style="color:var(--text-secondary);flex:1;">${esc(s.url)}</span>
+                       <span id="health-${s.id}" style="font-size:12px;color:var(--text-secondary);">—</span>
+                       <button class="btn btn-secondary btn-sm" onclick="checkServer('${s.id}')">Health</button>
+                       <button class="btn btn-danger btn-sm" onclick="deleteServer('${s.id}')">Remove</button>
+                     </div>`).join('') : '<span style="color:var(--text-secondary);">no servers registered</span>';
+            } catch (e) {}
+        }
+        async function addServer() {
+            const name = document.getElementById('serverName').value.trim();
+            const type = document.getElementById('serverType').value;
+            const url = document.getElementById('serverUrl').value.trim();
+            if (!name || !url) return;
+            await apiCall('/servers', 'POST', { name, type, url });
+            document.getElementById('serverName').value = '';
+            document.getElementById('serverUrl').value = '';
+            loadServersPage();
+        }
+        async function deleteServer(id) {
+            await apiCall('/servers/' + id, 'DELETE');
+            loadServersPage();
+        }
+        async function checkServer(id) {
+            const el = document.getElementById('health-' + id);
+            el.textContent = '…';
+            try {
+                const h = await apiCall('/servers/' + id + '/health');
+                el.textContent = h.reachable ? `✅ ${h.status_code} (${h.latency_ms}ms)` : '❌ unreachable';
+                el.style.color = h.reachable ? 'var(--success, #3fb950)' : 'var(--danger, #f85149)';
+            } catch (e) { el.textContent = '❌'; }
+        }
+
+        // ===================== Operations =====================
+        async function loadOpsPage() { await loadCerts(); await loadPolicy(); }
+        async function downloadBackup() {
+            const data = await apiCall('/backup');
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'hivemind-backup.json';
+            a.click();
+        }
+        async function uploadRestore(input) {
+            const file = input.files[0]; if (!file) return;
+            const bundle = JSON.parse(await file.text());
+            const res = await apiCall('/restore', 'POST', bundle);
+            document.getElementById('opsResult').textContent =
+                `Restored: +${res.clients_added} clients, ${res.clients_skipped} skipped.`;
+        }
+        async function loadCerts() {
+            try {
+                const c = await apiCall('/certs');
+                document.getElementById('certsContainer').innerHTML =
+                    `<div style="font-size:13px;">
+                       SSL enabled: <strong>${c.ssl_enabled}</strong><br>
+                       Cert: ${c.cert_exists ? '✅' : '❌'} <code>${esc(c.cert_path)}</code><br>
+                       Key: ${c.key_exists ? '✅' : '❌'} <code>${esc(c.key_path)}</code>
+                     </div>`;
+            } catch (e) {}
+        }
+        async function generateCerts() {
+            await apiCall('/certs/generate', 'POST');
+            loadCerts();
+        }
+        async function loadPolicy() {
+            try {
+                const p = await apiCall('/policy');
+                document.getElementById('policyEditor').value = JSON.stringify(p.chain || [], null, 2);
+            } catch (e) {}
+        }
+        async function savePolicy() {
+            try {
+                const chain = JSON.parse(document.getElementById('policyEditor').value);
+                await apiCall('/policy', 'PUT', { chain });
+                alert('Policy saved');
+            } catch (e) { alert('Invalid JSON: ' + e.message); }
         }
 
         // Health Check

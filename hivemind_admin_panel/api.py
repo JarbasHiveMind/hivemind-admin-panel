@@ -121,9 +121,18 @@ def get_admin_app() -> FastAPI:
 
 
 def _identify(request: Request) -> Optional[tuple]:
-    """Return (username, role) for a valid Basic or Bearer request, else None."""
+    """Return (username, role) for a valid Basic or Bearer request, else None.
+
+    Also accepts a bearer token via the ``access_token`` query parameter, since
+    the browser EventSource API (used by the SSE /events feed) cannot set headers.
+    """
     cfg = get_server_config()
     header = request.headers.get("Authorization", "")
+    qtoken = request.query_params.get("access_token")
+    if qtoken:
+        payload = verify_token(cfg, qtoken)
+        if payload:
+            return payload.get("sub", "?"), payload.get("role", "admin")
     if header.startswith("Bearer "):
         payload = verify_token(cfg, header[7:].strip())
         if payload:
@@ -3808,3 +3817,59 @@ def generate_certs() -> Dict[str, Any]:
     with open(crt, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
     return {"status": "ok", "cert_path": crt, "key_path": key}
+
+
+# ===================== Pairing QR + topology =====================
+
+@app.get("/clients/{client_id}/pairing/qr.svg", dependencies=[Depends(verify_credentials)])
+def get_pairing_qr(client_id: int, host: Optional[str] = None) -> Response:
+    """Render the client's pairing bundle as a scannable QR code (SVG)."""
+    bundle = get_client_pairing(client_id, host=host)
+    try:
+        import qrcode
+        import qrcode.image.svg
+        img = qrcode.make(bundle["qr"], image_factory=qrcode.image.svg.SvgImage)
+        import io
+        buf = io.BytesIO()
+        img.save(buf)
+        return Response(content=buf.getvalue(), media_type="image/svg+xml")
+    except ImportError:
+        raise HTTPException(status_code=501, detail="qrcode not installed")
+
+
+@app.get("/topology", dependencies=[Depends(verify_credentials)])
+def get_topology() -> Dict[str, Any]:
+    """Graph data for the hub mesh: the hub node plus each client, with live status.
+
+    Nodes carry an ``online`` flag derived from the live protocol's connected
+    sessions when available (best-effort in --no-core mode).
+    """
+    online_keys = set()
+    if _protocol is not None and hasattr(_protocol, "clients"):
+        try:
+            online_keys = {str(k) for k in _protocol.clients.keys()}
+        except Exception:
+            online_keys = set()
+
+    nodes = [{"id": "hub", "label": "HiveMind Hub", "type": "hub", "online": True}]
+    edges = []
+    try:
+        with ClientDatabase() as db:
+            for c in db:
+                if getattr(c, "client_id", -1) == -1:
+                    continue
+                revoked = str(getattr(c, "api_key", "")).upper() == "REVOKED"
+                if revoked:
+                    continue
+                nid = f"client-{c.client_id}"
+                nodes.append({
+                    "id": nid,
+                    "label": c.name,
+                    "type": "admin" if c.is_admin else "satellite",
+                    "online": str(c.api_key) in online_keys,
+                })
+                edges.append({"from": "hub", "to": nid})
+    except Exception as e:
+        LOG.error(f"topology: {e}")
+    return {"nodes": nodes, "edges": edges,
+            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "hub")}
