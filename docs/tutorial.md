@@ -29,9 +29,14 @@ Open <http://127.0.0.1:8100> and log in — the default credentials are
 
 ## 3. Lock down the admin login
 
-Default credentials are dangerous. Change them:
+Default credentials are dangerous — so the panel **forces the issue**. On first
+login with the default password, a modal blocks the whole UI until you set a new
+one (minimum 8 characters, stored hashed). Type a strong password and continue;
+the dashboard's **Security** card then turns green.
 
-- In the UI: there's a password field, or
+You can change it again any time:
+
+- In the UI: the Security card's **Change admin password** button, or
 - via the API:
 
 ```bash

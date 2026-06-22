@@ -207,6 +207,10 @@ def main() -> None:
     # so reload (a dev affordance) forces panel-only mode.
     run_core = not args.no_core and not args.reload
 
+    from hivemind_admin_panel.api import set_runtime_info
+    set_runtime_info(run_mode="in-process" if run_core else "panel-only",
+                     host=args.host)
+
     if not run_core:
         import uvicorn
         print("hivemind-core: not started (--no-core)")

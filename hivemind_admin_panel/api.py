@@ -80,6 +80,22 @@ _protocol: Optional["HiveMindListenerProtocol"] = None
 _logger: Optional[logging.Logger] = None
 _startup_error: Optional[Exception] = None
 _error_traceback: Optional[str] = None
+# How the panel was launched (set by __main__.main via set_runtime_info).
+_run_mode: str = "unknown"          # "in-process" | "panel-only" | "unknown"
+_bound_host: Optional[str] = None    # the host the panel's HTTP server bound to
+
+
+def set_runtime_info(run_mode: str = "unknown", host: Optional[str] = None) -> None:
+    """Record how the panel was launched, for the security self-check.
+
+    Args:
+        run_mode: ``"in-process"`` (the panel runs hivemind-core itself),
+            ``"panel-only"`` (``--no-core``), or ``"unknown"``.
+        host: the host the panel's HTTP server bound to (e.g. ``127.0.0.1``).
+    """
+    global _run_mode, _bound_host
+    _run_mode = run_mode or "unknown"
+    _bound_host = host
 
 
 def init_injected_objects(
@@ -618,6 +634,7 @@ def health() -> Dict[str, Any]:
         "status": "ok" if not _startup_error else "degraded",
         "version": admin_version,
         "timestamp": time.time(),
+        "run_mode": _run_mode,
     }
 
     # Add service info if objects are injected
@@ -3897,24 +3914,82 @@ def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
+def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Build the security self-check list shown on the dashboard.
+
+    Each check is ``{id, label, ok, severity, hint}``. ``severity`` is
+    ``"critical"`` | ``"warning"`` | ``"info"``; ``ok`` False with a critical
+    severity is what blocks the "secure" verdict and drives the first-run gate.
+    """
+    admin_user = cfg.get("admin_user", "admin")
+    default_creds = (admin_user == "admin"
+                     and cfg.get("admin_pass", "admin") == "admin")
+    host = _bound_host or "127.0.0.1"
+    loopback = host in ("127.0.0.1", "localhost", "::1", "")
+    # hivemind-core's satellite-facing websocket TLS (independent of the panel's HTTP).
+    core_tls = bool(cfg.get("ssl") or (cfg.get("cert_file") and cfg.get("key_file")))
+
+    checks: List[Dict[str, Any]] = [
+        {
+            "id": "admin_password",
+            "label": "Admin password changed from default",
+            "ok": not default_creds,
+            "severity": "critical",
+            "hint": ("The panel can install packages and migrate databases. "
+                     "Change the default admin password before doing anything else."),
+        },
+        {
+            "id": "bind_host",
+            "label": "Panel bound to loopback (127.0.0.1)",
+            "ok": loopback,
+            "severity": "warning",
+            "hint": (f"The panel is bound to {host} and reachable from the network. "
+                     "Keep it on 127.0.0.1, or put it behind a TLS-terminating, "
+                     "authenticating reverse proxy."),
+        },
+        {
+            "id": "core_tls",
+            "label": "hivemind-core websocket TLS configured",
+            "ok": core_tls,
+            "severity": "info",
+            "hint": ("Satellites connect over plain ws://. For untrusted networks, "
+                     "enable TLS (ssl/cert_file/key_file) in server.json."),
+        },
+    ]
+    return checks
+
+
 @app.get("/setup/status", dependencies=[Depends(verify_credentials)])
 def setup_status() -> Dict[str, Any]:
-    """First-run hints: whether default credentials are still in use, etc."""
+    """First-run + security self-check.
+
+    Drives the dashboard "Security" card and the blocking first-run password
+    gate. ``secure`` is False whenever any *critical* check fails.
+    """
     cfg = get_server_config()
-    default_creds = (cfg.get("admin_user", "admin") == "admin"
-                     and cfg.get("admin_pass", "admin") == "admin")
+    checks = _security_checks(cfg)
+    default_creds = not next(c["ok"] for c in checks if c["id"] == "admin_password")
+    host = _bound_host or "127.0.0.1"
+    exposed = host not in ("127.0.0.1", "localhost", "::1", "")
     clients = 0
     try:
         with ClientDatabase() as db:
             clients = sum(1 for c in db if getattr(c, "client_id", -1) != -1)
     except Exception:
         pass
+    warnings = [c["hint"] for c in checks
+                if not c["ok"] and c["severity"] in ("critical", "warning")]
+    secure = all(c["ok"] for c in checks if c["severity"] == "critical")
     return {
         "default_credentials": default_creds,
         "has_clients": clients > 0,
         "client_count": clients,
-        "warnings": (["Default admin credentials are still in use — change "
-                      "admin_user/admin_pass in server.json."] if default_creds else []),
+        "bound_host": host,
+        "exposed": exposed,
+        "run_mode": _run_mode,
+        "checks": checks,
+        "secure": secure,
+        "warnings": warnings,
     }
 
 

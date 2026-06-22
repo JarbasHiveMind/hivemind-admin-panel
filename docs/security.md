@@ -7,10 +7,26 @@ access on the host.
 
 ## Authentication
 
-- **HTTP Basic** on every endpoint except `GET /health`.
+- **HTTP Basic** (or a Bearer token from `POST /auth/login`) on every endpoint
+  except `GET /health`.
 - Credentials come from `server.json` (`admin_user` / `admin_pass`); comparison is
-  timing-safe (`hmac.compare_digest`).
-- The defaults are `admin` / `admin`. **Change them before exposing the panel.**
+  timing-safe. New passwords are stored **hashed** (PBKDF2) via `POST /auth/password`.
+- The defaults are `admin` / `admin`.
+
+## First-run gate & self-check
+
+The panel actively pushes you off the defaults rather than just warning:
+
+- **Forced password change.** When you log in while the default password is still
+  in use, a modal blocks the entire UI until you set a new one (minimum 8
+  characters, stored hashed). It cannot be dismissed.
+- **Dashboard security self-check.** A card at the top of the dashboard runs
+  `GET /setup/status` and reports, with red/yellow/green status and a fix hint:
+  whether the admin password is still default (critical), whether the panel is
+  bound to a non-loopback address (warning), and whether the hivemind-core
+  websocket has TLS configured (info). It stays red until criticals clear.
+- **Run-mode badge.** The top bar shows whether hivemind-core runs **in-process**
+  (closing the panel stops the server) or the panel is in **panel-only** mode.
 
 ## Network exposure
 

@@ -32,6 +32,26 @@
     </div>
 
     <!-- Main App -->
+    <!-- First-run security gate: blocks the app until the default password is changed -->
+    <div id="firstRunModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;align-items:center;justify-content:center;">
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-md);max-width:460px;width:90%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+            <div style="font-size:34px;text-align:center;margin-bottom:8px;">🔐</div>
+            <h2 style="margin:0 0 6px;text-align:center;">Secure your panel</h2>
+            <p style="color:var(--text-secondary);font-size:13px;text-align:center;margin:0 0 18px;">
+                You're signed in with the <strong>default password</strong>. This panel can
+                install software and migrate databases — set a new password before continuing.
+            </p>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">New password</label>
+            <input id="frNewPass" type="password" autocomplete="new-password" oninput="frScore()" style="width:100%;padding:10px;margin-bottom:6px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
+            <div id="frStrength" style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:12px;"><div style="height:100%;width:0;border-radius:2px;background:var(--accent-danger);transition:all .2s;"></div></div>
+            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Confirm password</label>
+            <input id="frConfirmPass" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitFirstRunPassword()" style="width:100%;padding:10px;margin-bottom:12px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
+            <div id="frError" class="hidden" style="color:var(--accent-danger);font-size:12px;margin-bottom:12px;"></div>
+            <button class="btn btn-primary" onclick="submitFirstRunPassword()" style="width:100%;">Set password &amp; continue</button>
+            <p style="color:var(--text-secondary);font-size:11px;text-align:center;margin:12px 0 0;">Stored hashed (PBKDF2). Minimum 8 characters.</p>
+        </div>
+    </div>
+
     <div id="app" class="app">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -43,43 +63,43 @@
             <nav class="nav">
                 <button class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
                     <span class="nav-icon">📊</span>
-                    <span>Dashboard</span>
+                    <span data-i18n="dashboard">Dashboard</span>
                 </button>
                 <button class="nav-item" onclick="navigate('clients')" data-page="clients">
                     <span class="nav-icon">👥</span>
-                    <span>Clients</span>
+                    <span data-i18n="clients">Clients</span>
                 </button>
                 <button class="nav-item" onclick="navigate('acl')" data-page="acl">
                     <span class="nav-icon">🔒</span>
-                    <span>Permissions</span>
+                    <span data-i18n="acl">Permissions</span>
                 </button>
                 <button class="nav-item" onclick="navigate('personas')" data-page="personas">
                     <span class="nav-icon">👤</span>
-                    <span>Personas</span>
+                    <span data-i18n="personas">Personas</span>
                 </button>
                 <button class="nav-item" onclick="navigate('agents')" data-page="agents">
                     <span class="nav-icon">🤖</span>
-                    <span>Agent Protocol</span>
+                    <span data-i18n="agents">Agent Protocol</span>
                 </button>
                 <button class="nav-item" onclick="navigate('database')" data-page="database">
                     <span class="nav-icon">🗄️</span>
-                    <span>Database</span>
+                    <span data-i18n="database">Database</span>
                 </button>
                 <button class="nav-item" onclick="navigate('network')" data-page="network">
                     <span class="nav-icon">🌐</span>
-                    <span>Network</span>
+                    <span data-i18n="network">Network</span>
                 </button>
                 <button class="nav-item" onclick="navigate('voice-plugins')" data-page="voice-plugins">
                     <span class="nav-icon">🎙️</span>
-                    <span>OpenVoiceOS Plugins</span>
+                    <span data-i18n="voice">OpenVoiceOS Plugins</span>
                 </button>
                 <button class="nav-item" onclick="navigate('binary')" data-page="binary">
                     <span class="nav-icon">📦</span>
-                    <span>Binary Protocol</span>
+                    <span data-i18n="binary">Binary Protocol</span>
                 </button>
                 <button class="nav-item" onclick="navigate('encodings')" data-page="encodings">
                     <span class="nav-icon">🔐</span>
-                    <span>Encodings</span>
+                    <span data-i18n="encodings">Encodings</span>
                 </button>
                 <button class="nav-item" onclick="navigate('monitor')" data-page="monitor">
                     <span class="nav-icon">📊</span>
@@ -113,7 +133,7 @@
                     <option value="es">🇪🇸 ES</option>
                     <option value="pt">🇵🇹 PT</option>
                 </select>
-                <button class="btn btn-secondary btn-sm" onclick="logout()" style="flex: 1;">
+                <button class="btn btn-secondary btn-sm" onclick="logout()" style="flex: 1;" data-i18n="logout">
                     Logout
                 </button>
             </div>
@@ -136,6 +156,7 @@
                     <button class="btn btn-sm" style="background: rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.2); padding: 2px 8px; font-size: 11px; color: #1e1e1e;" onclick="showRestartConfirm()">Restart Now</button>
                 </div>
                 <div class="topbar-actions">
+                    <span id="runModeBadge" class="hidden" title="" style="font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-secondary); white-space: nowrap; cursor: help;"></span>
                     <button class="btn btn-danger btn-sm" onclick="showRestartConfirm()" title="Restart HiveMind-core">
                         🔄 Restart HiveMind
                     </button>
@@ -150,6 +171,7 @@
             <div class="content">
                 <!-- Dashboard Page -->
                 <div id="dashboardPage" class="page active">
+                    <div id="securityCard" style="margin-bottom: 20px;"></div>
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-icon blue">👥</div>

@@ -151,6 +151,9 @@
                 showApp();
 
                 const health = await fetch('/api/health').then(r => r.json());
+                updateRunModeBadge(health.run_mode);
+                // Block the app behind a forced password change while defaults are in use.
+                await enforceSetupGate();
                 if (health.status === 'degraded') {
                     await handleStartupError(health);
                 } else {
@@ -169,6 +172,119 @@
             stopHealthCheck();
             hideApp();
             showLoginScreen();
+        }
+
+        // ---- First-run security gate -------------------------------------------------
+        let _setupStatus = null;
+
+        // Cached security self-check; refreshed by enforceSetupGate / dashboard.
+        async function fetchSetupStatus() {
+            try { _setupStatus = await apiCall('/setup/status'); }
+            catch (e) { _setupStatus = null; }
+            return _setupStatus;
+        }
+
+        // If the default password is still in use, show a modal that the user
+        // cannot dismiss until they pick a new one. Resolves once secured.
+        async function enforceSetupGate() {
+            const s = await fetchSetupStatus();
+            if (s && s.default_credentials) {
+                document.getElementById('firstRunModal').style.display = 'flex';
+                document.getElementById('frNewPass').focus();
+            }
+        }
+
+        function frScore() {
+            const v = document.getElementById('frNewPass').value;
+            let score = 0;
+            if (v.length >= 8) score++;
+            if (v.length >= 12) score++;
+            if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+            if (/[0-9]/.test(v)) score++;
+            if (/[^A-Za-z0-9]/.test(v)) score++;
+            const pct = [0, 20, 40, 60, 80, 100][score];
+            const color = score <= 1 ? 'var(--accent-danger)' : score <= 3 ? 'var(--accent-warning)' : 'var(--accent-success)';
+            const bar = document.querySelector('#frStrength > div');
+            if (bar) { bar.style.width = pct + '%'; bar.style.background = color; }
+        }
+
+        async function submitFirstRunPassword() {
+            const np = document.getElementById('frNewPass').value;
+            const cp = document.getElementById('frConfirmPass').value;
+            const err = document.getElementById('frError');
+            const fail = (m) => { err.textContent = m; err.classList.remove('hidden'); };
+            if (np.length < 8) return fail('Password must be at least 8 characters.');
+            if (np !== cp) return fail('Passwords do not match.');
+            if (np === auth.password) return fail('Choose a password different from the default.');
+            try {
+                const res = await fetch('/api/auth/password', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Basic ' + btoa(auth.username + ':' + auth.password),
+                               'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_password: auth.password, new_password: np }),
+                });
+                if (!res.ok) {
+                    const d = await res.json().catch(() => ({}));
+                    return fail(d.detail || ('Server error: ' + res.status));
+                }
+            } catch (e) { return fail('Could not reach the server.'); }
+            // Re-authenticate with the new password so the session keeps working.
+            auth.password = np;
+            sessionStorage.setItem('hm_password', np);
+            document.getElementById('firstRunModal').style.display = 'none';
+            document.getElementById('frNewPass').value = '';
+            document.getElementById('frConfirmPass').value = '';
+            err.classList.add('hidden');
+            showToast && showToast('Admin password updated — panel secured', 'success');
+            await fetchSetupStatus();
+            if (document.getElementById('dashboardPage')?.classList.contains('active')) loadDashboard();
+        }
+
+        // Render the dashboard security self-check from /setup/status.
+        function renderSecurityCard(s) {
+            const el = document.getElementById('securityCard');
+            if (!el) return;
+            if (!s || !Array.isArray(s.checks)) { el.innerHTML = ''; return; }
+            const icon = { critical: '🔴', warning: '🟡', info: 'ℹ️' };
+            const secure = s.secure && s.checks.every(c => c.ok || c.severity === 'info');
+            const accent = secure ? 'var(--accent-success)'
+                         : (s.checks.some(c => !c.ok && c.severity === 'critical')
+                            ? 'var(--accent-danger)' : 'var(--accent-warning)');
+            const rows = s.checks.map(c => `
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--border-color);">
+                    <span style="font-size:14px;">${c.ok ? '✅' : icon[c.severity] || '•'}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:13px;color:var(--text-primary);">${escapeHtml(c.label)}</div>
+                        ${c.ok ? '' : `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${escapeHtml(c.hint)}</div>`}
+                    </div>
+                </div>`).join('');
+            const title = secure ? '🛡️ Security: looks good'
+                        : '🛡️ Security: action recommended';
+            el.innerHTML = `
+                <div class="card" style="border-left:4px solid ${accent};">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <strong style="font-size:15px;">${title}</strong>
+                        <span style="font-size:12px;color:var(--text-secondary);">bound to ${escapeHtml(s.bound_host || '?')} · ${escapeHtml(s.run_mode || '?')}</span>
+                    </div>
+                    <div style="margin-top:6px;">${rows}</div>
+                    ${s.default_credentials ? `<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="enforceSetupGate()">Change admin password</button>` : ''}
+                </div>`;
+        }
+
+        function updateRunModeBadge(mode) {
+            const el = document.getElementById('runModeBadge');
+            if (!el) return;
+            if (mode === 'in-process') {
+                el.textContent = '⚙️ core: in-process';
+                el.title = 'hivemind-core runs inside this panel — closing the panel stops the server.';
+                el.classList.remove('hidden');
+            } else if (mode === 'panel-only') {
+                el.textContent = '📂 panel-only';
+                el.title = 'Started with --no-core: editing on-disk config/database; no hivemind-core is running.';
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
         }
 
         function showLoginScreen() {
@@ -553,6 +669,9 @@
                     apiCall('/plugins/installed/hivemind/database').catch(() => []),
                     apiCall('/plugins/installed/hivemind/binary').catch(() => [])
                 ]);
+
+                // Security self-check banner
+                renderSecurityCard(await fetchSetupStatus());
 
                 // Render active plugins (Database, Binary, Agent)
                 renderActivePlugins(config);

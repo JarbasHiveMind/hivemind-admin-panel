@@ -13,7 +13,8 @@ admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
 - **Per-client ACLs** — allow/blacklist message types, skills, and intents; toggle
   escalate / propagate and admin flags; apply ACL templates.
 - **Monitor** — live metrics, an SSE event feed, the hivemind-core log tail, and an audit log.
-- **Security** — session tokens, `admin`/`operator` roles, audit trail; uv installs.
+- **Security** — forced first-run password change, a dashboard security self-check,
+  session tokens, `admin`/`operator` roles, audit trail; uv installs.
 - **Topology** — interactive mesh graph (hivemind-core ↔ satellites) with online status.
 - **Plugins** — discover and install network/agent/database and OVOS plugins (uv).
 - **Databases** — JSON / SQLite / Redis backends, profiles, tests, and migration.

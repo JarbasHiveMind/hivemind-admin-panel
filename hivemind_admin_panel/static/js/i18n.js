@@ -2,25 +2,25 @@
 // Strings are externalized progressively; tag elements with data-i18n="key".
 const I18N = {
   en: {
-    dashboard: 'Dashboard', clients: 'Clients', acl: 'ACL', personas: 'Personas',
-    agents: 'Agents', database: 'Database', network: 'Network', voice: 'Voice Plugins',
-    binary: 'Binary Protocol', encodings: 'Encodings', monitor: 'Monitor',
-    topology: 'Topology', servers: 'OVOS Servers', operations: 'Operations',
-    refresh: 'Refresh', language: 'Language'
+    dashboard: 'Dashboard', clients: 'Clients', acl: 'Permissions', personas: 'Personas',
+    agents: 'Agent Protocol', database: 'Database', network: 'Network',
+    voice: 'OpenVoiceOS Plugins', binary: 'Binary Protocol', encodings: 'Encodings',
+    monitor: 'Monitor', topology: 'Topology', servers: 'OVOS Servers',
+    operations: 'Operations', logout: 'Logout', refresh: 'Refresh', language: 'Language'
   },
   es: {
-    dashboard: 'Panel', clients: 'Clientes', acl: 'ACL', personas: 'Personas',
-    agents: 'Agentes', database: 'Base de datos', network: 'Red', voice: 'Plugins de voz',
-    binary: 'Protocolo binario', encodings: 'Codificaciones', monitor: 'Monitor',
-    topology: 'Topología', servers: 'Servidores OVOS', operations: 'Operaciones',
-    refresh: 'Actualizar', language: 'Idioma'
+    dashboard: 'Panel', clients: 'Clientes', acl: 'Permisos', personas: 'Personas',
+    agents: 'Protocolo de agente', database: 'Base de datos', network: 'Red',
+    voice: 'Plugins de OpenVoiceOS', binary: 'Protocolo binario', encodings: 'Codificaciones',
+    monitor: 'Monitor', topology: 'Topología', servers: 'Servidores OVOS',
+    operations: 'Operaciones', logout: 'Salir', refresh: 'Actualizar', language: 'Idioma'
   },
   pt: {
-    dashboard: 'Painel', clients: 'Clientes', acl: 'ACL', personas: 'Personas',
-    agents: 'Agentes', database: 'Base de dados', network: 'Rede', voice: 'Plugins de voz',
-    binary: 'Protocolo binário', encodings: 'Codificações', monitor: 'Monitor',
-    topology: 'Topologia', servers: 'Servidores OVOS', operations: 'Operações',
-    refresh: 'Atualizar', language: 'Idioma'
+    dashboard: 'Painel', clients: 'Clientes', acl: 'Permissões', personas: 'Personas',
+    agents: 'Protocolo de agente', database: 'Base de dados', network: 'Rede',
+    voice: 'Plugins do OpenVoiceOS', binary: 'Protocolo binário', encodings: 'Codificações',
+    monitor: 'Monitor', topology: 'Topologia', servers: 'Servidores OVOS',
+    operations: 'Operações', logout: 'Sair', refresh: 'Atualizar', language: 'Idioma'
   }
 };
 
