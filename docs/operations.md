@@ -85,13 +85,23 @@ flags) — rendered as an interactive SVG on the Topology page.
 FastAPI's interactive Swagger UI is served at **`/api/docs`** (OpenAPI schema at
 `/api/openapi.json`).
 
-## Known limits
+## Live monitoring, message inspector & fleet
 
-- Live `/connections` and topology `online` flags are best-effort (the hub is
-  built after the admin objects are injected); a core status seam would make them
-  authoritative.
-- A true per-message inspector (tapping every HiveMessage) needs hooks in
-  hivemind-core and is not yet available — the event feed is the current
-  approximation.
-- Passwords in `server.json` are plaintext (parity with hivemind-core); hashing
-  is a tracked hardening follow-up, as is CSRF protection for cookie-less clients.
+When the hub runs **in-process** (the default), the panel taps the listener
+protocol, so `/connections`, `/stats`, the topology `online` flags, and the
+**message inspector** (`GET /messages/recent`, filter by `msg_type`/`peer`) are
+authoritative — no hivemind-core change required. In `--no-core` mode they degrade
+gracefully.
+
+**Multi-hub fleet** — register other hubs' admin URLs (with a token) via `/fleet`
+and aggregate their health/metrics with `GET /fleet/{id}/status`.
+
+## Security notes
+
+- **Password hashing** — `server.json` passwords may be PBKDF2 hashes
+  (`pbkdf2_sha256$…`); legacy plaintext still works. Change your password with
+  `POST /auth/password` (stores a hash).
+- **CSRF** is not applicable: the API authenticates via the `Authorization` header
+  (Basic/Bearer), not cookies, so it is not exposed to cross-site request forgery.
+- **Config dry-run** — `POST /config/diff` previews added/removed/changed keys
+  before you apply a config.

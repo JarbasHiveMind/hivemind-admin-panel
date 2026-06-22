@@ -55,13 +55,34 @@ def _users(config: Dict[str, Any]) -> List[Dict[str, str]]:
     return users
 
 
+def hash_password(password: str, iterations: int = 200_000) -> str:
+    """Hash a password with PBKDF2-SHA256 (stored format ``pbkdf2_sha256$...``)."""
+    salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${salt.hex()}${dk.hex()}"
+
+
+def verify_password(stored: str, password: str) -> bool:
+    """Verify a password against a stored PBKDF2 hash or legacy plaintext value."""
+    if stored.startswith("pbkdf2_sha256$"):
+        try:
+            _, iters, salt_hex, hash_hex = stored.split("$")
+            dk = hashlib.pbkdf2_hmac("sha256", password.encode(),
+                                     bytes.fromhex(salt_hex), int(iters))
+            return hmac.compare_digest(dk.hex(), hash_hex)
+        except Exception:
+            return False
+    return hmac.compare_digest(stored, password)  # legacy plaintext
+
+
 def authenticate(config: Dict[str, Any], username: str, password: str) -> Optional[str]:
-    """Return the user's role if credentials match, else None (timing-safe)."""
+    """Return the user's role if credentials match, else None.
+
+    Passwords may be PBKDF2 hashes or legacy plaintext (see :func:`verify_password`).
+    """
     role = None
     for u in _users(config):
-        user_ok = hmac.compare_digest(u["username"], username)
-        pass_ok = hmac.compare_digest(u["password"], password)
-        if user_ok and pass_ok:
+        if hmac.compare_digest(u["username"], username) and verify_password(u["password"], password):
             role = u["role"]
     return role
 

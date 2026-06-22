@@ -30,6 +30,7 @@ def test_static_assets_bundled():
     static = Path(hivemind_admin_panel.__file__).parent / "static"
     assert (static / "index.html").is_file()
     assert (static / "js" / "app.js").is_file()
+    assert (static / "js" / "i18n.js").is_file()
     assert (static / "css" / "style.css").is_file()
 
 

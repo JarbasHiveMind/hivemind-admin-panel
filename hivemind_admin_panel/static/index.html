@@ -83,19 +83,19 @@
                 </button>
                 <button class="nav-item" onclick="navigate('monitor')" data-page="monitor">
                     <span class="nav-icon">📊</span>
-                    <span>Monitor</span>
+                    <span data-i18n="monitor">Monitor</span>
                 </button>
                 <button class="nav-item" onclick="navigate('topology')" data-page="topology">
                     <span class="nav-icon">🕸️</span>
-                    <span>Topology</span>
+                    <span data-i18n="topology">Topology</span>
                 </button>
                 <button class="nav-item" onclick="navigate('servers')" data-page="servers">
                     <span class="nav-icon">🛰️</span>
-                    <span>OVOS Servers</span>
+                    <span data-i18n="servers">OVOS Servers</span>
                 </button>
                 <button class="nav-item" onclick="navigate('ops')" data-page="ops">
                     <span class="nav-icon">🛟</span>
-                    <span>Operations</span>
+                    <span data-i18n="operations">Operations</span>
                 </button>
             </nav>
 
@@ -107,6 +107,11 @@
                     <option value="monokai">🍌 Monokai</option>
                     <option value="nord">❄️ Nord</option>
                     <option value="dracula">🧛 Dracula</option>
+                </select>
+                <select id="langSelect" onchange="setLang(this.value)" title="Language" style="flex: 1; padding: 8px; background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-sm); cursor: pointer;">
+                    <option value="en">🇬🇧 EN</option>
+                    <option value="es">🇪🇸 ES</option>
+                    <option value="pt">🇵🇹 PT</option>
                 </select>
                 <button class="btn btn-secondary btn-sm" onclick="logout()" style="flex: 1;">
                     Logout
@@ -1464,6 +1469,7 @@
             </div>
         </div>
     </div>
+    <script src="/static/js/i18n.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

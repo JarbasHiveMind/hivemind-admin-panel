@@ -3928,3 +3928,121 @@ def get_recent_messages(limit: int = 100, msg_type: Optional[str] = None,
     """
     from hivemind_admin_panel._metrics import METRICS
     return METRICS.recent_messages(limit=limit, msg_type=msg_type, peer=peer)
+
+
+# ===================== Password change, config diff, multi-hub fleet =====================
+
+class PasswordChange(BaseModel):
+    """Change the current user's password."""
+    old_password: str
+    new_password: str
+
+
+@app.post("/auth/password", dependencies=[Depends(verify_credentials)])
+def change_password(data: PasswordChange, request: Request) -> Dict[str, str]:
+    """Change the current user's password (stored hashed with PBKDF2)."""
+    from hivemind_admin_panel._auth import hash_password
+    cfg = get_server_config()
+    user = _current_user(request)
+    if not authenticate(cfg, user, data.old_password):
+        raise HTTPException(status_code=401, detail="Old password is incorrect")
+    hashed = hash_password(data.new_password)
+    if cfg.get("admin_user", "admin") == user:
+        cfg["admin_pass"] = hashed
+    else:
+        users = cfg.get("users", []) or []
+        for u in users:
+            if u.get("username") == user:
+                u["password"] = hashed
+        cfg["users"] = users
+    cfg.store()
+    audit(user, "password.changed")
+    return {"status": "ok"}
+
+
+@app.post("/config/diff", dependencies=[Depends(verify_credentials)])
+def config_diff(data: ConfigUpdate) -> Dict[str, Any]:
+    """Diff a proposed config against the current server.json (dry-run preview)."""
+    current = dict(get_server_config())
+    proposed = data.config or {}
+    added = {k: proposed[k] for k in proposed if k not in current}
+    removed = {k: current[k] for k in current if k not in proposed}
+    changed = {k: {"from": current[k], "to": proposed[k]}
+               for k in proposed if k in current and current[k] != proposed[k]}
+    return {"added": added, "removed": removed, "changed": changed,
+            "has_changes": bool(added or removed or changed)}
+
+
+def _fleet_path() -> Path:
+    base = Path(xdg_config_home()) / "hivemind-admin"
+    base.mkdir(parents=True, exist_ok=True)
+    return base / "fleet.json"
+
+
+def _load_fleet() -> List[Dict[str, Any]]:
+    p = _fleet_path()
+    if not p.exists():
+        return []
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return []
+
+
+def _save_fleet(hubs: List[Dict[str, Any]]) -> None:
+    _fleet_path().write_text(json.dumps(hubs, indent=2))
+
+
+class FleetHubCreate(BaseModel):
+    """Register a remote HiveMind hub (its admin-panel URL) for fleet management."""
+    name: str
+    url: str
+    token: Optional[str] = None
+
+
+@app.get("/fleet", dependencies=[Depends(verify_credentials)])
+def list_fleet() -> List[Dict[str, Any]]:
+    """List registered remote hubs (tokens are not returned)."""
+    return [{k: v for k, v in h.items() if k != "token"} for h in _load_fleet()]
+
+
+@app.post("/fleet", dependencies=[Depends(require_admin)])
+def add_fleet_hub(data: FleetHubCreate) -> Dict[str, Any]:
+    """Register a remote hub. Admin only."""
+    import uuid
+    hubs = _load_fleet()
+    entry = {"id": uuid.uuid4().hex[:8], "name": data.name,
+             "url": data.url.rstrip("/"), "token": data.token}
+    hubs.append(entry)
+    _save_fleet(hubs)
+    return {k: v for k, v in entry.items() if k != "token"}
+
+
+@app.delete("/fleet/{hub_id}", dependencies=[Depends(require_admin)])
+def delete_fleet_hub(hub_id: str) -> Dict[str, str]:
+    """Remove a registered remote hub. Admin only."""
+    hubs = _load_fleet()
+    kept = [h for h in hubs if h.get("id") != hub_id]
+    if len(kept) == len(hubs):
+        raise HTTPException(status_code=404, detail="Hub not found")
+    _save_fleet(kept)
+    return {"status": "ok"}
+
+
+@app.get("/fleet/{hub_id}/status", dependencies=[Depends(verify_credentials)])
+def fleet_hub_status(hub_id: str) -> Dict[str, Any]:
+    """Fetch a remote hub's health/metrics for an aggregate fleet view."""
+    hub = next((h for h in _load_fleet() if h.get("id") == hub_id), None)
+    if not hub:
+        raise HTTPException(status_code=404, detail="Hub not found")
+    import requests
+    headers = {"Authorization": f"Bearer {hub['token']}"} if hub.get("token") else {}
+    started = time.time()
+    try:
+        resp = requests.get(hub["url"] + "/api/health", headers=headers, timeout=4)
+        return {"id": hub_id, "name": hub["name"], "reachable": True,
+                "status_code": resp.status_code,
+                "health": resp.json() if resp.ok else None,
+                "latency_ms": round((time.time() - started) * 1000, 1)}
+    except Exception as e:
+        return {"id": hub_id, "name": hub["name"], "reachable": False, "error": str(e)}
