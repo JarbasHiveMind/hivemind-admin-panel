@@ -82,6 +82,45 @@ async def index() -> FileResponse:
     return FileResponse(index_path)
 
 
+def _tracked_protocol(base, service):
+    """Subclass the hub's listener protocol to feed the admin panel live state.
+
+    Captures the live protocol instance (so ``/connections``, ``/stats`` and the
+    topology become authoritative) and taps connection + message handlers to feed
+    the metrics event/message buffers — entirely panel-side, with no core change.
+    """
+    from hivemind_admin_panel.api import init_injected_objects
+    from hivemind_admin_panel._metrics import METRICS
+
+    class _Tracked(base):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            init_injected_objects(service=service, db=service.db, protocol=self)
+            METRICS.event("hub.ready", "Hub listener protocol online")
+
+        def handle_new_client(self, client):
+            METRICS.event("client.connected", f"{getattr(client, 'peer', '?')} connected")
+            return super().handle_new_client(client)
+
+        def handle_client_disconnected(self, client):
+            METRICS.event("client.disconnected", f"{getattr(client, 'peer', '?')} disconnected")
+            return super().handle_client_disconnected(client)
+
+        def handle_message(self, message, client):
+            try:
+                METRICS.message(str(getattr(message, "msg_type", "?")),
+                                str(getattr(client, "peer", "?")))
+            except Exception:
+                pass
+            return super().handle_message(message, client)
+
+        def handle_invalid_key_connected(self, client):
+            METRICS.event("auth.rejected", f"invalid key from {getattr(client, 'peer', '?')}")
+            return super().handle_invalid_key_connected(client)
+
+    return _Tracked
+
+
 def launch_core():
     """Construct an in-process HiveMind hub and inject it into the admin API.
 
@@ -103,6 +142,9 @@ def launch_core():
 
         service = HiveMindService()
         init_injected_objects(service=service, db=service.db, protocol=None)
+        # Wrap the listener protocol so the panel gets the LIVE protocol instance
+        # (authoritative connections) and a tap on every HiveMessage — no core change.
+        service.hm_protocol = _tracked_protocol(service.hm_protocol, service)
         LOG.info("HiveMind hub constructed; will run in-process")
         return service
     except Exception as error:

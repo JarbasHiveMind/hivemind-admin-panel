@@ -22,9 +22,13 @@ def test_health_reports_clients_with_db(client):
 
 
 def test_health_service_status_is_readable_not_object_repr():
-    # regression: /health must report the status value, not "<ProcessStatus ...>"
+    # regression: /health must report the readable state NAME, mirroring the real
+    # ovos_utils ProcessStatus shape (status.state is a ProcessState enum).
+    class _State:
+        name = "READY"
+
     class _Status:
-        value = "ready"
+        state = _State()
 
     class _Service:
         _status = _Status()
@@ -32,8 +36,26 @@ def test_health_service_status_is_readable_not_object_repr():
     init_injected_objects(service=_Service(), db=None, protocol=None)
     try:
         body = TestClient(app).get("/health").json()
-        assert body["service_status"] == "ready"
+        assert body["service_status"] == "READY"
         assert "object at" not in body["service_status"]
+    finally:
+        init_injected_objects(service=None, db=None, protocol=None)
+
+
+def test_health_and_metrics_with_real_process_status(auth):
+    # use the REAL ovos_utils ProcessStatus (the bug that broke live /health was
+    # hidden by fakes + a None service); this exercises the true object shape.
+    from ovos_utils.process_utils import ProcessStatus
+
+    class _Svc:
+        _status = ProcessStatus("test")
+
+    init_injected_objects(service=_Svc(), db=None, protocol=None)
+    try:
+        c = TestClient(app)
+        assert c.get("/health").json()["service_status"] == "NOT_STARTED"
+        assert c.get("/stats", headers=auth).json()["service_status"] == "NOT_STARTED"
+        assert c.get("/metrics", headers=auth).json()["service_status"] == "NOT_STARTED"
     finally:
         init_injected_objects(service=None, db=None, protocol=None)
 

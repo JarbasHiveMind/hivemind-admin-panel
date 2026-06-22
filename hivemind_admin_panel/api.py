@@ -624,7 +624,7 @@ def health() -> Dict[str, Any]:
     if _service and hasattr(_service, "_status"):
         status = _service._status
         # report the readable state value, not the ProcessStatus object's repr
-        response["service_status"] = str(status.value) if status else "unknown"
+        response["service_status"] = status.state.name if status else "unknown"
 
     if _protocol and hasattr(_protocol, "clients"):
         response["active_connections"] = len(_protocol.clients)
@@ -1389,7 +1389,7 @@ def get_stats() -> Dict[str, Any]:
         stats["active_connections"] = len(_protocol.clients)
 
     if _service and hasattr(_service, "_status"):
-        stats["service_status"] = str(_service._status.value) if _service._status else "unknown"
+        stats["service_status"] = _service._status.state.name if _service._status else "unknown"
 
     return stats
 
@@ -3304,7 +3304,7 @@ def _live_snapshot() -> Dict[str, Any]:
         total = None
     snap["total_clients"] = total
     snap["service_status"] = (
-        str(_service._status.value)
+        _service._status.state.name
         if _service and getattr(_service, "_status", None) else None
     )
     return snap
@@ -3916,3 +3916,15 @@ def setup_status() -> Dict[str, Any]:
         "warnings": (["Default admin credentials are still in use — change "
                       "admin_user/admin_pass in server.json."] if default_creds else []),
     }
+
+
+@app.get("/messages/recent", dependencies=[Depends(verify_credentials)])
+def get_recent_messages(limit: int = 100, msg_type: Optional[str] = None,
+                        peer: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Recent tapped HiveMessages (the live message inspector).
+
+    Populated when the hub runs in-process (the panel taps the listener
+    protocol's ``handle_message``). Filter by ``msg_type`` or ``peer``.
+    """
+    from hivemind_admin_panel._metrics import METRICS
+    return METRICS.recent_messages(limit=limit, msg_type=msg_type, peer=peer)

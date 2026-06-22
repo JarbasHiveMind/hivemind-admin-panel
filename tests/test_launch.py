@@ -14,6 +14,8 @@ from hivemind_admin_panel.__main__ import launch_core
 
 
 class _FakeService:
+    hm_protocol = object  # the launcher wraps this; real HiveMindService has it
+
     def __init__(self):
         self.db = object()
         self.ran = False
