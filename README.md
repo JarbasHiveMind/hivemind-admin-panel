@@ -8,14 +8,20 @@ admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
 
 ## Features
 
-- **Clients & access keys** — create, list, update, revoke; reveal credentials.
+- **Clients & access keys** — create, list, update, revoke; bulk ops; reveal
+  credentials; **QR pairing** for one-tap satellite onboarding.
 - **Per-client ACLs** — allow/blacklist message types, skills, and intents; toggle
   escalate / propagate and admin flags; apply ACL templates.
-- **Live introspection** — connection list and stats when attached to a running hub.
-- **Plugins** — discover and install network/agent/database and OVOS plugins.
-- **Databases** — JSON / SQLite / Redis backends, profiles, connectivity tests, and
-  client migration between backends.
-- **Personas** — manage OVOS personas (create, edit, activate, export, validate).
+- **Monitor** — live metrics, an SSE event feed, hub-log tail, and an audit log.
+- **Security** — session tokens, `admin`/`operator` roles, audit trail; uv installs.
+- **Topology** — interactive mesh graph (hub ↔ satellites) with online status.
+- **Plugins** — discover and install network/agent/database and OVOS plugins (uv).
+- **Databases** — JSON / SQLite / Redis backends, profiles, tests, and migration.
+- **Personas & agents** — manage personas (modern `handlers` schema), **test-chat**
+  a persona live, browse the agent-engine taxonomy and memory plugins.
+- **OVOS servers** — register and health-check external persona/STT/TTS/translate
+  servers.
+- **Ops** — backup/restore, admission-policy editor, self-signed TLS certs.
 
 ## Install
 
@@ -61,6 +67,7 @@ Full docs in [`docs/`](docs/index.md):
   [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md) · [Security](docs/security.md)
 - [API reference](docs/api-reference.md) — every REST endpoint with `curl` examples
+- [Operations](docs/operations.md) — monitor, auth/roles, pairing, servers, backup, policy, certs, topology
 - [Deployment](docs/deployment.md) — Docker / Compose / reverse proxy / systemd
 - [OVOS servers](docs/ovos-servers.md) — persona-server + STT/TTS/translate servers; homelab synergy
 - [Development](docs/development.md) — the end-to-end test suite & contributing

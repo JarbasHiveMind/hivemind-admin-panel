@@ -14,6 +14,7 @@ admin plane; core deployments that don't want one are unaffected.
 |------|----------------|
 | [Getting started](getting-started.md) | Install, first run, opening the UI |
 | [Running](running.md) | In-process hub (default) vs. `--no-core` |
+| [Operations](operations.md) | Monitor, auth/roles, pairing/QR, servers, backup, policy, certs, topology |
 | [Configuration](configuration.md) | `server.json`, admin credentials, database backend |
 | [Architecture](architecture.md) | How the panel couples to core; the injection seam |
 | [Security](security.md) | Auth model, the privileged admin plane, hardening |
