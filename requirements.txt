@@ -1,6 +1,11 @@
-hivemind-core>=4.0.0,<5.0.0
+# Prerelease floors are deliberate: the published stables are stale —
+# hivemind-core 4.0.0 still declares AGPL-3.0 and ships the old stack, and
+# ovos-plugin-manager < 2.6 lacks ovos_plugin_manager.agents.find_chat_plugins
+# (imported by api.py). These alpha floors pull the Apache-licensed, current
+# packages and make pip accept them without --pre.
+hivemind-core>=4.6.1a1,<5.0.0
 hivemind-plugin-manager>=0.7.1a1,<1.0.0
-ovos-plugin-manager>=2.1.0,<3.0.0
+ovos-plugin-manager>=2.6.1a2,<3.0.0
 ovos-utils>=0.3.0,<1.0.0
 fastapi>=0.110.0
 uvicorn>=0.27.0
