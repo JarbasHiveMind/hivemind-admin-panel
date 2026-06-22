@@ -258,11 +258,26 @@ curl -u admin:admin -X POST \
 
 ---
 
+## 4b. Bridges
+
+Convenience over Clients: provision and recognize [chat bridges](bridges.md).
+
+| Method | Path                  | Auth  | Description |
+|--------|-----------------------|-------|-------------|
+| GET    | `/bridges/catalog`    | Yes   | Supported bridges (id, label, repo, pip, what each needs) |
+| POST   | `/bridges/provision`  | Admin | Create a client for a bridge: mint creds, allow `recognizer_loop:utterance`, tag `bridge:<id>`, return the pairing bundle |
+
+`POST /bridges/provision` body: `{"type": "matrix", "name": "matrix-bridge", "host": "<core-ip>"}`.
+Recognized bridges are labelled in `/topology` (node `type: "bridge"`, with a
+`bridge` object) and in `/connections` (`bridge` field on each connection).
+
+---
+
 ## 5. Monitoring
 
 | Method | Path           | Auth | Description |
 |--------|----------------|------|-------------|
-| GET    | `/connections` | Yes  | Active connections (real-time with the in-process hivemind-core, else mock) |
+| GET    | `/connections` | Yes  | Active connections (real-time with the in-process hivemind-core, else mock); each carries a `bridge` field when recognized |
 | GET    | `/stats`       | Yes  | Server statistics |
 
 ### `GET /connections`

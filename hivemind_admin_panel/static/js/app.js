@@ -412,10 +412,13 @@
                 const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
                 const color = n.online ? '#3fb950' : '#6e7681';
                 svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#30363d" stroke-width="1.5"/>`;
+                const centerGlyph = n.bridge ? n.bridge.icon : (n.type === 'admin' ? '★' : '');
+                const sublabel = n.bridge ? `<text x="${x}" y="${y + 50}" text-anchor="middle" font-size="9" fill="var(--text-secondary)">${esc(n.bridge.label)} bridge</text>` : '';
                 svg += `<g style="cursor:pointer;" onclick="pairClient(${n.id.replace('client-','')}, '${esc(n.label)}')">
                           <circle cx="${x}" cy="${y}" r="22" fill="${color}"/>
                           <text x="${x}" y="${y + 38}" text-anchor="middle" font-size="11" fill="currentColor">${esc(n.label)}</text>
-                          ${n.type === 'admin' ? `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11">★</text>` : ''}
+                          ${centerGlyph ? `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="13">${centerGlyph}</text>` : ''}
+                          ${sublabel}
                         </g>`;
             });
             svg += `<circle cx="${cx}" cy="${cy}" r="34" fill="#1f6feb"/>
@@ -982,6 +985,67 @@
                 loadClients();
             } catch (e) {
                 showToast('Failed to add client', 'error');
+            }
+        }
+
+        // ---- Bridge provisioning preset ----------------------------------------------
+        let _bridgeCatalog = [];
+
+        async function showBridgeModal() {
+            const sel = document.getElementById('bridgeType');
+            const result = document.getElementById('bridgeResult');
+            result.classList.add('hidden'); result.innerHTML = '';
+            document.getElementById('bridgeName').value = '';
+            document.getElementById('bridgeProvisionBtn').disabled = false;
+            try { _bridgeCatalog = await apiCall('/bridges/catalog'); }
+            catch (e) { showToast('Could not load bridge catalog', 'error'); return; }
+            sel.innerHTML = _bridgeCatalog.map(b =>
+                `<option value="${esc(b.id)}">${esc(b.icon)} ${esc(b.label)}</option>`).join('');
+            renderBridgeNeeds();
+            document.getElementById('bridgeModal').classList.add('active');
+        }
+
+        function closeBridgeModal() {
+            document.getElementById('bridgeModal').classList.remove('active');
+        }
+
+        function _selectedBridge() {
+            const id = document.getElementById('bridgeType').value;
+            return _bridgeCatalog.find(b => b.id === id);
+        }
+
+        function renderBridgeNeeds() {
+            const b = _selectedBridge();
+            if (!b) return;
+            document.getElementById('bridgeNeeds').innerHTML =
+                `<div style="margin-top:8px;">You'll need (for the bridge process, not stored here): ` +
+                `${b.needs.map(n => `<span style="display:inline-block;background:var(--bg-hover);border:1px solid var(--border-color);border-radius:10px;padding:1px 8px;margin:2px;">${esc(n)}</span>`).join('')}</div>` +
+                `<div style="margin-top:6px;">Docs: <a href="${esc(b.repo)}" target="_blank" rel="noopener">${esc(b.repo)}</a></div>`;
+        }
+
+        async function provisionBridge() {
+            const b = _selectedBridge();
+            if (!b) return;
+            const name = document.getElementById('bridgeName').value.trim() || undefined;
+            const btn = document.getElementById('bridgeProvisionBtn');
+            btn.disabled = true;
+            try {
+                const host = prompt('hivemind-core address the bridge should connect to (LAN IP or hostname):', location.hostname) || undefined;
+                const res = await apiCall('/bridges/provision', 'POST', { type: b.id, name, host });
+                const bundle = res.bundle;
+                const runHint = `pip install ${b.pip}\n# then run the bridge with:\n#   key=${bundle.key}\n#   password=${bundle.password}\n#   crypto_key=${bundle.crypto_key}\n#   host=${bundle.host || '<CORE-IP>'}  port=${bundle.port}`;
+                document.getElementById('bridgeResult').innerHTML =
+                    `<div class="card" style="border-left:4px solid var(--accent-success);">
+                        <strong>✅ ${esc(b.icon)} ${esc(b.label)} bridge client ready</strong>
+                        <div style="font-size:12px;color:var(--text-secondary);margin:6px 0;">Client #${res.client_id}, with <code>recognizer_loop:utterance</code> allowed. Deploy the bridge with these credentials:</div>
+                        <pre style="white-space:pre-wrap;background:var(--bg-hover);padding:10px;border-radius:var(--radius-sm);font-size:11px;overflow:auto;">${esc(runHint)}</pre>
+                     </div>`;
+                document.getElementById('bridgeResult').classList.remove('hidden');
+                showToast(`${b.label} bridge client provisioned`, 'success');
+                loadClients();
+            } catch (e) {
+                showToast('Provisioning failed', 'error');
+                btn.disabled = false;
             }
         }
 

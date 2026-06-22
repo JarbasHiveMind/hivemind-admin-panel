@@ -1370,6 +1370,16 @@ def get_connections() -> Dict[str, Any]:
     """
     if _protocol and hasattr(_protocol, "clients"):
         clients = _protocol.clients
+        # map api_key -> tags so connections can be recognized as bridges
+        tags_by_key: Dict[str, List[str]] = {}
+        try:
+            with ClientDatabase() as db:
+                for c in db:
+                    if getattr(c, "client_id", -1) != -1:
+                        tags_by_key[str(c.api_key)] = (
+                            getattr(c, "metadata", None) or {}).get("tags", [])
+        except Exception:
+            pass
         return {
             "count": len(clients),
             "connections": [
@@ -1378,6 +1388,7 @@ def get_connections() -> Dict[str, Any]:
                     "key": c.key,
                     "session_id": c.sess.session_id if hasattr(c, "sess") else None,
                     "is_authenticated": c.is_authenticated if hasattr(c, "is_authenticated") else None,
+                    "bridge": _match_bridge(c.peer, tags_by_key.get(str(c.key))),
                 }
                 for c in clients.values()
             ],
@@ -3901,10 +3912,13 @@ def get_topology() -> Dict[str, Any]:
                 if revoked:
                     continue
                 nid = f"client-{c.client_id}"
+                tags = (getattr(c, "metadata", None) or {}).get("tags", [])
+                bridge = _match_bridge(c.name, tags)
                 nodes.append({
                     "id": nid,
                     "label": c.name,
-                    "type": "admin" if c.is_admin else "satellite",
+                    "type": "bridge" if bridge else ("admin" if c.is_admin else "satellite"),
+                    "bridge": bridge,
                     "online": str(c.api_key) in online_keys,
                 })
                 edges.append({"from": "core", "to": nid})
@@ -3933,6 +3947,122 @@ def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
                 db.update_item(client)
                 return _client_to_dict(client)
     raise HTTPException(status_code=404, detail="Client not found")
+
+
+# ===================== Bridges (chat-platform satellites) =====================
+#
+# A HiveMind bridge (Matrix, Twitch, ...) is an ordinary client/satellite whose
+# input/output is a chat room instead of a microphone. The panel therefore
+# *provisions* a bridge as a client (key + utterance ACL + a bridge tag) and
+# *recognizes* it in the live views — it does NOT host or run the bridge process
+# (those are independently deployed, with their own platform deps and secrets).
+
+# The message type every bridge sends upstream (whitelist-only core).
+BRIDGE_ALLOW = ["recognizer_loop:utterance"]
+
+# Known bridges. ``match`` holds lowercase substrings tested against a live
+# connection's peer/useragent so bridges provisioned outside the panel are still
+# recognized; provisioned-here bridges also carry a ``bridge:<id>`` client tag.
+_BRIDGES = [
+    {"id": "matrix", "label": "Matrix", "icon": "💬",
+     "repo": "https://github.com/JarbasHiveMind/HiveMind-matrix-bridge",
+     "pip": "git+https://github.com/JarbasHiveMind/HiveMind-matrix-bridge",
+     "match": ["matrixbridge", "hivemindmatrix"],
+     "needs": ["Matrix homeserver URL", "bot access token", "room alias"]},
+    {"id": "twitch", "label": "Twitch", "icon": "🟣",
+     "repo": "https://github.com/JarbasHiveMind/HiveMind-twitch-bridge",
+     "pip": "git+https://github.com/JarbasHiveMind/HiveMind-twitch-bridge",
+     "match": ["twitchbridge", "hivemindtwitch"],
+     "needs": ["Twitch bot account + OAuth token", "channel name"]},
+    {"id": "mattermost", "label": "Mattermost", "icon": "🟦",
+     "repo": "https://github.com/JarbasHiveMind/HiveMind_mattermost_bridge",
+     "pip": "git+https://github.com/JarbasHiveMind/HiveMind_mattermost_bridge",
+     "match": ["mattermostbridge", "hivemindmattermost"],
+     "needs": ["Mattermost server URL", "bot token", "channel/team"]},
+    {"id": "deltachat", "label": "DeltaChat", "icon": "📧",
+     "repo": "https://github.com/JarbasHiveMind/HiveMind-deltachat-bridge",
+     "pip": "git+https://github.com/JarbasHiveMind/HiveMind-deltachat-bridge",
+     "match": ["deltachatbridge", "hiveminddeltachat"],
+     "needs": ["bot e-mail address", "e-mail password"]},
+    {"id": "hackchat", "label": "HackChat", "icon": "💻",
+     "repo": "https://github.com/JarbasHiveMind/HiveMind-HackChatBridge",
+     "pip": "git+https://github.com/JarbasHiveMind/HiveMind-HackChatBridge",
+     "match": ["hackchat"],
+     "needs": ["HackChat channel name", "bot nick"]},
+]
+
+
+def _bridge_meta(bridge_id: str) -> Optional[Dict[str, Any]]:
+    return next((b for b in _BRIDGES if b["id"] == str(bridge_id).lower()), None)
+
+
+def _bridge_public(meta: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: meta[k] for k in ("id", "label", "icon", "repo", "pip", "needs")}
+
+
+def _match_bridge(peer: Optional[str], tags: Optional[List[str]] = None
+                  ) -> Optional[Dict[str, str]]:
+    """Identify a connection as a bridge — by a ``bridge:<id>`` tag first
+    (deterministic, set on provision), else by its peer/useragent (best effort)."""
+    for t in (tags or []):
+        if str(t).lower().startswith("bridge:"):
+            m = _bridge_meta(str(t).split(":", 1)[1])
+            if m:
+                return {"id": m["id"], "label": m["label"], "icon": m["icon"]}
+    p = str(peer or "").lower()
+    for b in _BRIDGES:
+        if any(tok in p for tok in b["match"]):
+            return {"id": b["id"], "label": b["label"], "icon": b["icon"]}
+    return None
+
+
+@app.get("/bridges/catalog", dependencies=[Depends(verify_credentials)])
+def bridges_catalog() -> List[Dict[str, Any]]:
+    """The known HiveMind chat bridges the panel can provision a client for."""
+    return [_bridge_public(b) for b in _BRIDGES]
+
+
+class BridgeProvision(BaseModel):
+    """Provision a client preset for a chat bridge."""
+    type: str
+    name: Optional[str] = None
+    host: Optional[str] = None   # advertised core IP when bound to 0.0.0.0
+
+
+@app.post("/bridges/provision", dependencies=[Depends(require_admin)])
+def provision_bridge(data: BridgeProvision, request: Request) -> Dict[str, Any]:
+    """Create a ready-to-use client for a bridge: mint credentials, grant the
+    utterance ACL, tag it ``bridge:<id>``, and return the connection bundle.
+
+    This is pure convenience over existing primitives (add client + allow-msg +
+    pairing bundle) — the bridge itself is still deployed separately.
+    """
+    meta = _bridge_meta(data.type)
+    if meta is None:
+        raise HTTPException(status_code=404, detail=f"Unknown bridge type '{data.type}'")
+    name = data.name or f"{meta['label']}-bridge"
+    access_key = os.urandom(16).hex()
+    password = os.urandom(16).hex()
+    crypto_key = os.urandom(16).hex()   # 32 chars
+    with ClientDatabase() as db:
+        db.add_client(name, access_key, crypto_key=crypto_key, password=password, admin=False)
+        client = db.get_client_by_api_key(access_key)
+        client.allowed_types = list(BRIDGE_ALLOW)
+        meta_d = dict(getattr(client, "metadata", None) or {})
+        meta_d["tags"] = sorted(set((meta_d.get("tags") or []) + [f"bridge:{meta['id']}"]))
+        client.metadata = meta_d
+        db.update_item(client)
+        cid = client.client_id
+    from hivemind_admin_panel._metrics import METRICS
+    METRICS.event("bridge.provisioned", f"{meta['label']} bridge client '{name}' created",
+                  client_id=cid)
+    audit(_current_user(request), "bridge.provisioned", type=meta["id"], client_id=cid)
+    return {
+        "client_id": cid,
+        "bridge": _bridge_public(meta),
+        "allow": list(BRIDGE_ALLOW),
+        "bundle": get_client_pairing(cid, host=data.host),
+    }
 
 
 def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:

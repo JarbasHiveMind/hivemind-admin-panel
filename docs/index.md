@@ -35,6 +35,8 @@ Start here if you've never run HiveMind. No prior knowledge assumed.
 6. **[Deployment](deployment.md)** — Docker, Compose, reverse proxy, systemd.
 7. **[OVOS servers](ovos-servers.md)** — persona/STT/TTS/translate servers and the
    homelab topology.
+8. **[Chat bridges](bridges.md)** — bring Matrix/Twitch/Mattermost/DeltaChat/HackChat
+   rooms into your hub.
 
 ## 🟣 Hack on it (advanced developers)
 

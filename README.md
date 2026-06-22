@@ -22,6 +22,8 @@ admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
   a persona live, browse the agent-engine taxonomy and memory plugins.
 - **OVOS servers** — register and health-check external persona/STT/TTS/translate
   servers.
+- **Chat bridges** — provision a ready client for Matrix/Twitch/Mattermost/DeltaChat/
+  HackChat bridges and see them labelled in the topology.
 - **Ops** — backup/restore, admission-policy editor, self-signed TLS certs.
 
 ## Install
@@ -72,7 +74,7 @@ reference track for advanced devs.
 **Operate:** [Running](docs/running.md) · [CLI](docs/cli.md) ·
 [Configuration](docs/configuration.md) · [Operations](docs/operations.md) ·
 [Security](docs/security.md) · [Deployment](docs/deployment.md) ·
-[OVOS servers](docs/ovos-servers.md)
+[OVOS servers](docs/ovos-servers.md) · [Chat bridges](docs/bridges.md)
 
 **Develop:** [Architecture](docs/architecture.md) · [Extending](docs/extending.md) ·
 [API reference](docs/api-reference.md) · [Development](docs/development.md) ·
