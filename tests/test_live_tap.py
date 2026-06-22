@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Unit: the protocol tap injects the live protocol + records messages.
 
-Uses a fake base protocol so no real hub is started.
+Uses a fake base protocol so no real hivemind-core is started.
 """
 import hivemind_admin_panel.api as api
 from hivemind_admin_panel._metrics import METRICS

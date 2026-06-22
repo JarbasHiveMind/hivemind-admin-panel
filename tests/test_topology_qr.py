@@ -5,13 +5,13 @@
 from tests.conftest import ADMIN_USER, ADMIN_PASS
 
 
-def test_topology_includes_hub_and_clients(client, auth, make_client):
+def test_topology_includes_core_and_clients(client, auth, make_client):
     make_client(name="topo-sat")
     g = client.get("/topology", headers=auth).json()
-    assert any(n["id"] == "hub" for n in g["nodes"])
+    assert any(n["id"] == "core" for n in g["nodes"])
     assert any(n["label"] == "topo-sat" for n in g["nodes"])
-    # every client node is linked to the hub
-    client_nodes = [n for n in g["nodes"] if n["type"] != "hub"]
+    # every client node is linked to hivemind-core
+    client_nodes = [n for n in g["nodes"] if n["type"] != "core"]
     assert len(g["edges"]) == len(client_nodes)
 
 

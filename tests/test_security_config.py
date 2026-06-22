@@ -1,7 +1,7 @@
 # hivemind-admin-panel
 # Copyright (C) 2026 Casimiro Ferreira
 # SPDX-License-Identifier: Apache-2.0
-"""End-to-end: password hashing/change, config diff, multi-hub fleet."""
+"""End-to-end: password hashing/change, config diff."""
 from hivemind_admin_panel._auth import hash_password, verify_password
 from tests.conftest import ADMIN_USER, ADMIN_PASS
 
@@ -40,14 +40,3 @@ def test_config_diff(client, auth):
     assert diff["has_changes"] is True
     assert "a_new_key" in diff["added"]
     assert "binarize" in diff["changed"]
-
-
-def test_fleet_registry_and_status(client, auth):
-    created = client.post("/fleet", json={"name": "remote-hub", "url": "http://127.0.0.1:9/"}, headers=auth)
-    assert created.status_code == 200
-    hid = created.json()["id"]
-    assert "token" not in created.json()  # tokens never returned
-    # unreachable remote -> reachable False, no crash
-    st = client.get(f"/fleet/{hid}/status", headers=auth).json()
-    assert st["reachable"] is False
-    assert client.delete(f"/fleet/{hid}", headers=auth).status_code == 200

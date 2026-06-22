@@ -1,10 +1,10 @@
 # OVOS servers & homelab synergy
 
-A HiveMind hub rarely runs alone. In a homelab it pairs naturally with the family
+A hivemind-core rarely runs alone. In a homelab it pairs naturally with the family
 of **OVOS network servers** — small HTTP services that host one OVOS capability so
-many devices (and the hub) can share it instead of each satellite running heavy
-models locally. This panel manages the hub and its personas; the servers below
-provide the speech and reasoning that the hub brokers to satellites.
+many devices (and hivemind-core) can share it instead of each satellite running heavy
+models locally. This panel manages hivemind-core and its personas; the servers below
+provide the speech and reasoning that hivemind-core brokers to satellites.
 
 ## The server family
 
@@ -17,7 +17,7 @@ provide the speech and reasoning that the hub brokers to satellites.
 
 Each is "bring your own plugin": you pick the STT/TTS/translation/solver plugin, the
 server exposes it on the network, and every node points at one endpoint. One GPU box
-can serve STT + TTS + an LLM persona to a fleet of low-power satellites.
+can serve STT + TTS + an LLM persona to many low-power satellites.
 
 ## ovos-persona-server ↔ this panel
 
@@ -57,7 +57,7 @@ handlers are optional and can be mixed with factual/tool handlers.
           └───────────────┬─────────────────────────────┘
                           │ HTTP
           ┌───────────────┴───────────────┐
-          │  HiveMind hub (this panel)     │  ← agent/STT/TTS plugins point at the servers
+          │  hivemind-core (this panel)     │  ← agent/STT/TTS plugins point at the servers
           │   hivemind-admin-panel  :8100  │
           └───────────────┬───────────────┘
                           │ encrypted mesh (websocket :5678)
@@ -65,14 +65,14 @@ handlers are optional and can be mixed with factual/tool handlers.
      satellite         satellite           relay → more satellites
 ```
 
-The hub's agent protocol (persona) and the satellites' STT/TTS can all be pointed at
+hivemind-core's agent protocol (persona) and the satellites' STT/TTS can all be pointed at
 the networked servers, so the satellites stay thin. The panel is where you provision
 satellite clients + ACLs, author the persona the persona-server hosts, and pick which
-agent/STT/TTS/database plugins the hub uses.
+agent/STT/TTS/database plugins hivemind-core uses.
 
 ## See also
 
 - [Configuration → Personas](configuration.md#personas) — the persona schema this panel writes
-- [Deployment](deployment.md) — running the hub + panel (and the Compose stack)
+- [Deployment](deployment.md) — running hivemind-core + panel (and the Compose stack)
 - The broader OVOS server list also includes `ovos-bus-server`, `ovos-ww-server`,
   and `ovos-opendata-server`.

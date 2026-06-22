@@ -20,7 +20,7 @@ Installing the panel also installs `hivemind-core`.
 hivemind-admin-panel --host 127.0.0.1 --port 8100
 ```
 
-This launches a HiveMind hub **in-process** and serves the admin panel — you do
+This launches a hivemind-core **in-process** and serves the admin panel — you do
 not run `hivemind-core` separately. Open <http://127.0.0.1:8100>; you will be
 prompted for HTTP Basic credentials.
 
@@ -37,9 +37,9 @@ panel.** See [Configuration](configuration.md).
 }
 ```
 
-## Panel only (no in-process hub)
+## Panel only (no in-process hivemind-core)
 
-To manage on-disk state without starting a hub (or when a hub is managed
+To manage on-disk state without starting a hivemind-core instance (or when a hivemind-core instance is managed
 elsewhere on the host), use `--no-core`:
 
 ```bash

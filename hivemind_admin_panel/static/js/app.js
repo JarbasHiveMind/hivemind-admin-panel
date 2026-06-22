@@ -244,7 +244,7 @@
         async function loadTopologyPage() {
             let g;
             try { g = await apiCall('/topology'); } catch (e) { return; }
-            const sats = g.nodes.filter(n => n.type !== 'hub');
+            const sats = g.nodes.filter(n => n.type !== 'core');
             const W = 600, H = 420, cx = W / 2, cy = H / 2, R = 150;
             let svg = `<svg viewBox="0 0 ${W} ${H}" style="max-width:100%;height:auto;">`;
             sats.forEach((n, i) => {
@@ -259,14 +259,14 @@
                         </g>`;
             });
             svg += `<circle cx="${cx}" cy="${cy}" r="34" fill="#1f6feb"/>
-                    <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" fill="#fff">HUB</text></svg>
+                    <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10" fill="#fff">core</text></svg>
                     <div style="color:var(--text-secondary);margin-top:8px;">${sats.length} satellite(s), ${g.online_count} online</div>`;
             document.getElementById('topologyContainer').innerHTML = svg;
         }
 
         async function pairClient(id, name) {
             document.getElementById('pairName').textContent = name || ('#' + id);
-            const host = prompt('Hub address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
+            const host = prompt('hivemind-core address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
             try {
                 const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
                 const tok = (await apiCall('/auth/login', 'POST',

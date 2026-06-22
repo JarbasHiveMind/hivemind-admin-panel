@@ -7,7 +7,7 @@ This module provides a web-based administration interface for HiveMind-core,
 allowing management of clients, permissions, and server configuration via
 a REST API and web UI.
 
-When launched with the in-process hub (the default), this module gets
+When launched with the in-process hivemind-core (the default), this module gets
 direct access to internal HiveMind-core objects for real-time monitoring.
 """
 

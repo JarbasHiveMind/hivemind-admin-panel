@@ -18,7 +18,7 @@ as `/clients` is served at `http://host:port/api/clients`, and the UI is at `/`.
 ## The coupling seam to core
 
 The panel depends on `hivemind-core` (for `ClientDatabase`, config, and the plugin
-factories), but its coupling to a *running* hub is deliberately tiny — a single
+factories), but its coupling to a *running* hivemind-core is deliberately tiny — a single
 function:
 
 ```python
@@ -36,15 +36,15 @@ It stores the live objects in module globals that the endpoints read:
 
 By default the panel is the launcher: `launch_core()` (in `__main__.py`)
 constructs a `HiveMindService`, calls `init_injected_objects(service, db)`, and
-runs the hub in a daemon thread — then uvicorn serves the panel in the main
-thread. So the panel holds the live hub reference directly; there is no separate
+runs hivemind-core in a daemon thread — then uvicorn serves the panel in the main
+thread. So the panel holds the live hivemind-core reference directly; there is no separate
 `hivemind-core` process and no `--with-admin` flag in core.
 
 In `--no-core` mode none of the globals are injected; endpoints that need a live
-hub degrade gracefully (placeholder connections, restart returns an error) while
+hivemind-core degrade gracefully (placeholder connections, restart returns an error) while
 everything DB/config/filesystem-backed works by opening the same on-disk state.
 
-If the hub raises during construction, `launch_core()` injects the exception as
+If hivemind-core raises during construction, `launch_core()` injects the exception as
 `_startup_error` and the panel still serves, surfacing the error at
 `GET /api/startup-error`.
 

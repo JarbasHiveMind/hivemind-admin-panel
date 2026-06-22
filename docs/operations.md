@@ -10,9 +10,9 @@ The **Monitor** page surfaces live state:
 - **Metrics** — uptime, active connections, total clients, service status, and
   action counters (`GET /metrics`). Tick **live** to stream updates over
   Server-Sent Events (`GET /events`).
-- **Event feed** — recent hub/admin events from an in-process ring buffer
+- **Event feed** — recent hivemind-core/admin events from an in-process ring buffer
   (`GET /events/recent`); the SSE stream pushes new ones as they happen.
-- **Hub log** — tail of `core.log` with optional level filter (`GET /logs`).
+- **hivemind-core log** — tail of `core.log` with optional level filter (`GET /logs`).
 - **Audit log** — every mutating admin request, with the acting user
   (`GET /audit`).
 
@@ -41,11 +41,11 @@ The **Monitor** page surfaces live state:
 
 ## Satellite onboarding (pairing)
 
-The **Topology** page draws the hub and its satellites; click a satellite to open
+The **Topology** page draws hivemind-core and its satellites; click a satellite to open
 a **pairing modal** with a scannable **QR code** and the full bundle:
 
-- `GET /clients/{id}/pairing` — credentials + hub websocket endpoint + a QR JSON
-  payload. Pass `?host=<LAN-IP>` when the hub binds `0.0.0.0`.
+- `GET /clients/{id}/pairing` — credentials + hivemind-core websocket endpoint + a QR JSON
+  payload. Pass `?host=<LAN-IP>` when hivemind-core binds `0.0.0.0`.
 - `GET /clients/{id}/pairing/qr.svg` — the bundle rendered as a QR SVG.
 - `POST /clients/bulk` — batch `delete` / `make_admin` / `revoke_admin` /
   `apply_template` over many clients.
@@ -77,7 +77,7 @@ servers](ovos-servers.md) and health-checks them:
 
 ## Mesh topology
 
-`GET /topology` returns graph data (hub + client nodes, edges, live `online`
+`GET /topology` returns graph data (hivemind-core + client nodes, edges, live `online`
 flags) — rendered as an interactive SVG on the Topology page.
 
 ## API docs
@@ -85,16 +85,13 @@ flags) — rendered as an interactive SVG on the Topology page.
 FastAPI's interactive Swagger UI is served at **`/api/docs`** (OpenAPI schema at
 `/api/openapi.json`).
 
-## Live monitoring, message inspector & fleet
+## Live monitoring & message inspector
 
-When the hub runs **in-process** (the default), the panel taps the listener
+When hivemind-core runs **in-process** (the default), the panel taps the listener
 protocol, so `/connections`, `/stats`, the topology `online` flags, and the
 **message inspector** (`GET /messages/recent`, filter by `msg_type`/`peer`) are
 authoritative — no hivemind-core change required. In `--no-core` mode they degrade
 gracefully.
-
-**Multi-hub fleet** — register other hubs' admin URLs (with a token) via `/fleet`
-and aggregate their health/metrics with `GET /fleet/{id}/status`.
 
 ## Security notes
 

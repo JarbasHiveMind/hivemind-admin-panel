@@ -1,7 +1,7 @@
 # HiveMind Admin Panel
 
 Web-based administration panel for [HiveMind-core](https://github.com/JarbasHiveMind/HiveMind-core)
-— a FastAPI backend and single-page web UI for managing a HiveMind hub.
+— a FastAPI backend and single-page web UI for managing hivemind-core.
 
 It ships as a **standalone, optional package**: install it only where you want an
 admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
@@ -12,9 +12,9 @@ admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
   credentials; **QR pairing** for one-tap satellite onboarding.
 - **Per-client ACLs** — allow/blacklist message types, skills, and intents; toggle
   escalate / propagate and admin flags; apply ACL templates.
-- **Monitor** — live metrics, an SSE event feed, hub-log tail, and an audit log.
+- **Monitor** — live metrics, an SSE event feed, the hivemind-core log tail, and an audit log.
 - **Security** — session tokens, `admin`/`operator` roles, audit trail; uv installs.
-- **Topology** — interactive mesh graph (hub ↔ satellites) with online status.
+- **Topology** — interactive mesh graph (hivemind-core ↔ satellites) with online status.
 - **Plugins** — discover and install network/agent/database and OVOS plugins (uv).
 - **Databases** — JSON / SQLite / Redis backends, profiles, tests, and migration.
 - **Personas & agents** — manage personas (modern `handlers` schema), **test-chat**
@@ -31,7 +31,7 @@ pip install hivemind-admin-panel
 
 ## Quickstart
 
-`hivemind-admin-panel` is the single launcher — it starts a HiveMind hub
+`hivemind-admin-panel` is the single launcher — it starts hivemind-core
 in-process and serves the admin UI. You do **not** run `hivemind-core` separately.
 
 ```bash
@@ -39,13 +39,13 @@ hivemind-admin-panel --host 127.0.0.1 --port 8100
 # open http://127.0.0.1:8100
 ```
 
-**Panel only** (manage on-disk config/database without starting a hub):
+**Panel only** (manage on-disk config/database without starting a hivemind-core instance):
 
 ```bash
 hivemind-admin-panel --no-core --host 127.0.0.1 --port 8100
 ```
 
-**Docker Compose** (hub + admin panel + Redis):
+**Docker Compose** (hivemind-core + admin panel + Redis):
 
 ```bash
 docker compose up --build
@@ -61,22 +61,27 @@ the panel** — it can install packages and migrate databases. Keep it on
 
 ## Documentation
 
-Full docs in [`docs/`](docs/index.md):
+Full docs in [`docs/`](docs/index.md) — a zero-to-hero path for newcomers and a
+reference track for advanced devs.
 
-- [Getting started](docs/getting-started.md) · [Running](docs/running.md) ·
-  [Configuration](docs/configuration.md)
-- [Architecture](docs/architecture.md) · [Security](docs/security.md)
-- [API reference](docs/api-reference.md) — every REST endpoint with `curl` examples
-- [Operations](docs/operations.md) — monitor, auth/roles, pairing, servers, backup, policy, certs, topology
-- [Deployment](docs/deployment.md) — Docker / Compose / reverse proxy / systemd
-- [OVOS servers](docs/ovos-servers.md) — persona-server + STT/TTS/translate servers; homelab synergy
-- [Development](docs/development.md) — the end-to-end test suite & contributing
+**Newcomers:** [Concepts](docs/concepts.md) · [Getting started](docs/getting-started.md) ·
+[Tutorial](docs/tutorial.md) · [Glossary](docs/glossary.md) ·
+[Troubleshooting](docs/troubleshooting.md)
+
+**Operate:** [Running](docs/running.md) · [CLI](docs/cli.md) ·
+[Configuration](docs/configuration.md) · [Operations](docs/operations.md) ·
+[Security](docs/security.md) · [Deployment](docs/deployment.md) ·
+[OVOS servers](docs/ovos-servers.md)
+
+**Develop:** [Architecture](docs/architecture.md) · [Extending](docs/extending.md) ·
+[API reference](docs/api-reference.md) · [Development](docs/development.md) ·
+[Roadmap](docs/roadmap.md)
 
 ## Relationship to HiveMind-core
 
 The panel was extracted from core so it has its own release cadence and stays an
 optional, separately-deployable admin plane. It is the launcher: it starts a
-`hivemind-core` hub in-process and keeps a live reference to it, so core needs no
+`hivemind-core` in-process and keeps a live reference to it, so core needs no
 admin-specific code. See [docs/architecture.md](docs/architecture.md).
 
 ## License

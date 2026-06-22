@@ -27,7 +27,7 @@ access on the host.
 | `POST /plugins/install` | runs `pip install <package>` in the server's interpreter |
 | `POST /database/migrate`, `/database/{module}/clear` | move or delete client records |
 | `POST /clients`, `/clients/{id}/credentials` | mint / reveal access keys and crypto keys |
-| `POST /config`, `/config/restart` | rewrite `server.json`, restart the hub |
+| `POST /config`, `/config/restart` | rewrite `server.json`, restart hivemind-core |
 
 ## Current hardening gaps
 

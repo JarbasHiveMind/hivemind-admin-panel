@@ -25,7 +25,6 @@ as gated.
 | Live | **Authoritative** connections + live protocol | `_tracked_protocol` injects the live protocol in `launch_core` |
 | Live | **Message inspector** (taps every HiveMessage) | `/messages/recent` (filter by type/peer) |
 | Scale | Topology graph | `/topology` · Topology page (SVG) |
-| Scale | Multi-hub fleet | `/fleet`, `/fleet/{id}/status` |
 | Security | Password hashing + change | PBKDF2 in `_auth.py`, `POST /auth/password` |
 | Ops | Config dry-run diff | `/config/diff` |
 | Polish | i18n scaffold (en/es/pt) + language selector | `static/js/i18n.js`, `data-i18n` |
@@ -35,10 +34,10 @@ as gated.
 ## How "live" works without a core change
 
 `/connections`, `/stats`, `/topology` online flags, and the message inspector are
-authoritative when the hub runs **in-process** (the default). `launch_core()`
-subclasses the hub's listener protocol (`_tracked_protocol`) to capture the live
+authoritative when hivemind-core runs **in-process** (the default). `launch_core()`
+subclasses hivemind-core's listener protocol (`_tracked_protocol`) to capture the live
 instance and tap `handle_message` / connect / disconnect / invalid-key — no change
-to hivemind-core. In `--no-core` mode these degrade gracefully (no live hub to tap).
+to hivemind-core. In `--no-core` mode these degrade gracefully (no live hivemind-core to tap).
 
 ## Remaining / notes
 

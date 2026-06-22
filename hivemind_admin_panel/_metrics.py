@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Thread-safe metrics registry + a bounded event ring buffer.
 
-The hub runs on the main thread while the admin server (uvicorn) runs in a daemon
+hivemind-core runs on the main thread while the admin server (uvicorn) runs in a daemon
 thread, so all shared state here is guarded by a lock. Counters are incremented
 from request handlers (admin actions) and can be polled by the /metrics endpoint
 and streamed by the SSE /events endpoint.

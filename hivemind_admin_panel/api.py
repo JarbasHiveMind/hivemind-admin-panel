@@ -7,7 +7,7 @@ This module provides REST API endpoints for managing HiveMind-core clients,
 permissions, and server configuration. All endpoints except /api/health
 require HTTP Basic Authentication.
 
-When the in-process hub is running (the default launcher), this module has
+When the in-process hivemind-core is running (the default launcher), this module has
 direct access to internal HiveMind-core objects for real-time data.
 
 Endpoints:
@@ -91,7 +91,7 @@ def init_injected_objects(
 ) -> None:
     """Initialize admin with direct access to core objects.
 
-    Called by the panel launcher (launch_core) with the live hub objects.
+    Called by the panel launcher (launch_core) with the live hivemind-core objects.
 
     Args:
         service: HiveMindService instance for direct access.
@@ -722,7 +722,7 @@ def restart_service(background_tasks: BackgroundTasks) -> RestartResult:
 
     Note:
         This will only work when the admin UI is running integrated
-        with the in-process hub. In --no-core
+        with the in-process hivemind-core. In --no-core
         mode, this returns an error.
     """
     global _service
@@ -1324,7 +1324,7 @@ def _modify_flag(client_id: int, flag: str, value: bool) -> Dict[str, Any]:
 def get_connections() -> Dict[str, Any]:
     """Get active connections from HiveMind protocol.
 
-    When the in-process hub is running, returns real-time data from
+    When the in-process hivemind-core is running, returns real-time data from
     HiveMindListenerProtocol.clients. Otherwise returns mock data.
 
     Returns:
@@ -1347,7 +1347,7 @@ def get_connections() -> Dict[str, Any]:
     return {
         "count": 0,
         "connections": [],
-        "note": "Live hub not attached; run hivemind-admin-panel (in-process hub on by default) for real-time data",
+        "note": "Live hivemind-core not attached; run hivemind-admin-panel (in-process hivemind-core on by default) for real-time data",
     }
 
 
@@ -1355,7 +1355,7 @@ def get_connections() -> Dict[str, Any]:
 def get_stats() -> Dict[str, Any]:
     """Get server statistics.
 
-    When the in-process hub is running, returns real-time stats from
+    When the in-process hivemind-core is running, returns real-time stats from
     the running HiveMindService. Otherwise returns basic config info.
 
     Returns:
@@ -3287,7 +3287,7 @@ from hivemind_admin_panel._metrics import METRICS
 
 
 def _live_snapshot() -> Dict[str, Any]:
-    """Combine process metrics with live counts from the injected hub objects."""
+    """Combine process metrics with live counts from the injected hivemind-core objects."""
     snap = METRICS.snapshot()
     active = None
     if _protocol is not None and hasattr(_protocol, "clients"):
@@ -3312,13 +3312,13 @@ def _live_snapshot() -> Dict[str, Any]:
 
 @app.get("/metrics", dependencies=[Depends(verify_credentials)])
 def get_metrics() -> Dict[str, Any]:
-    """Process + hub metrics: uptime, counters, gauges, live connection/client counts."""
+    """Process + hivemind-core metrics: uptime, counters, gauges, live connection/client counts."""
     return _live_snapshot()
 
 
 @app.get("/events/recent", dependencies=[Depends(verify_credentials)])
 def get_recent_events(limit: int = 100, since: Optional[float] = None) -> List[Dict[str, Any]]:
-    """Recent admin/hub events from the in-process ring buffer."""
+    """Recent admin/hivemind-core events from the in-process ring buffer."""
     return METRICS.recent_events(limit=limit, since=since)
 
 
@@ -3350,7 +3350,7 @@ async def stream_events(interval: float = 2.0, limit: int = 0) -> StreamingRespo
 
 @app.get("/logs", dependencies=[Depends(verify_credentials)])
 def get_logs(lines: int = 200, level: Optional[str] = None) -> Dict[str, Any]:
-    """Tail the hub log file (core.log), optionally filtered by level substring."""
+    """Tail hivemind-core log file (core.log), optionally filtered by level substring."""
     base = getattr(LOG, "base_path", None)
     path = None
     if base and base != "stdout":
@@ -3434,7 +3434,7 @@ async def _audit_mutations(request: Request, call_next):
 # ===================== Onboarding: pairing + bulk client ops =====================
 
 def _ws_endpoint() -> Dict[str, Any]:
-    """Resolve the hub's websocket transport host/port/ssl from server config."""
+    """Resolve hivemind-core's websocket transport host/port/ssl from server config."""
     net = get_server_config().get("network_protocol", {}) or {}
     for key in ("hivemind-websocket-plugin", "hivemind-websocket-protocol"):
         c = net.get(key)
@@ -3450,9 +3450,9 @@ def _ws_endpoint() -> Dict[str, Any]:
 
 @app.get("/clients/{client_id}/pairing", dependencies=[Depends(verify_credentials)])
 def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, Any]:
-    """Return a satellite pairing bundle (credentials + hub endpoint + QR payload).
+    """Return a satellite pairing bundle (credentials + hivemind-core endpoint + QR payload).
 
-    `host` overrides the advertised hub address (use the hub's LAN IP when it binds
+    `host` overrides the advertised hivemind-core address (use hivemind-core's LAN IP when it binds
     0.0.0.0). The `qr` field is a self-contained JSON payload to render as a QR code.
     """
     with ClientDatabase() as db:
@@ -3460,7 +3460,7 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
             if c.client_id == client_id:
                 ep = _ws_endpoint()
                 advertise = host or (ep["host"] if ep["host"] not in ("0.0.0.0", "") else None)
-                hoststr = advertise or "<HUB-IP>"
+                hoststr = advertise or "<CORE-IP>"
                 scheme = "wss" if ep["ssl"] else "ws"
                 bundle = {
                     "client_id": c.client_id,
@@ -3478,7 +3478,7 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
                     "host": hoststr, "port": ep["port"], "ssl": ep["ssl"],
                 })
                 if not advertise:
-                    bundle["note"] = ("Hub bound to 0.0.0.0; pass ?host=<LAN-IP> "
+                    bundle["note"] = ("hivemind-core bound to 0.0.0.0; pass ?host=<LAN-IP> "
                                       "before sharing the bundle.")
                 return bundle
     raise HTTPException(status_code=404, detail="Client not found")
@@ -3840,7 +3840,7 @@ def get_pairing_qr(client_id: int, host: Optional[str] = None) -> Response:
 
 @app.get("/topology", dependencies=[Depends(verify_credentials)])
 def get_topology() -> Dict[str, Any]:
-    """Graph data for the hub mesh: the hub node plus each client, with live status.
+    """Graph data for hivemind-core mesh: hivemind-core node plus each client, with live status.
 
     Nodes carry an ``online`` flag derived from the live protocol's connected
     sessions when available (best-effort in --no-core mode).
@@ -3852,7 +3852,7 @@ def get_topology() -> Dict[str, Any]:
         except Exception:
             online_keys = set()
 
-    nodes = [{"id": "hub", "label": "HiveMind Hub", "type": "hub", "online": True}]
+    nodes = [{"id": "core", "label": "hivemind-core", "type": "core", "online": True}]
     edges = []
     try:
         with ClientDatabase() as db:
@@ -3869,11 +3869,11 @@ def get_topology() -> Dict[str, Any]:
                     "type": "admin" if c.is_admin else "satellite",
                     "online": str(c.api_key) in online_keys,
                 })
-                edges.append({"from": "hub", "to": nid})
+                edges.append({"from": "core", "to": nid})
     except Exception as e:
         LOG.error(f"topology: {e}")
     return {"nodes": nodes, "edges": edges,
-            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "hub")}
+            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "core")}
 
 
 # ===================== Client tags + first-run hint =====================
@@ -3923,14 +3923,14 @@ def get_recent_messages(limit: int = 100, msg_type: Optional[str] = None,
                         peer: Optional[str] = None) -> List[Dict[str, Any]]:
     """Recent tapped HiveMessages (the live message inspector).
 
-    Populated when the hub runs in-process (the panel taps the listener
+    Populated when hivemind-core runs in-process (the panel taps the listener
     protocol's ``handle_message``). Filter by ``msg_type`` or ``peer``.
     """
     from hivemind_admin_panel._metrics import METRICS
     return METRICS.recent_messages(limit=limit, msg_type=msg_type, peer=peer)
 
 
-# ===================== Password change, config diff, multi-hub fleet =====================
+# ===================== Password change + config diff =====================
 
 class PasswordChange(BaseModel):
     """Change the current user's password."""
@@ -3972,77 +3972,3 @@ def config_diff(data: ConfigUpdate) -> Dict[str, Any]:
     return {"added": added, "removed": removed, "changed": changed,
             "has_changes": bool(added or removed or changed)}
 
-
-def _fleet_path() -> Path:
-    base = Path(xdg_config_home()) / "hivemind-admin"
-    base.mkdir(parents=True, exist_ok=True)
-    return base / "fleet.json"
-
-
-def _load_fleet() -> List[Dict[str, Any]]:
-    p = _fleet_path()
-    if not p.exists():
-        return []
-    try:
-        return json.loads(p.read_text())
-    except Exception:
-        return []
-
-
-def _save_fleet(hubs: List[Dict[str, Any]]) -> None:
-    _fleet_path().write_text(json.dumps(hubs, indent=2))
-
-
-class FleetHubCreate(BaseModel):
-    """Register a remote HiveMind hub (its admin-panel URL) for fleet management."""
-    name: str
-    url: str
-    token: Optional[str] = None
-
-
-@app.get("/fleet", dependencies=[Depends(verify_credentials)])
-def list_fleet() -> List[Dict[str, Any]]:
-    """List registered remote hubs (tokens are not returned)."""
-    return [{k: v for k, v in h.items() if k != "token"} for h in _load_fleet()]
-
-
-@app.post("/fleet", dependencies=[Depends(require_admin)])
-def add_fleet_hub(data: FleetHubCreate) -> Dict[str, Any]:
-    """Register a remote hub. Admin only."""
-    import uuid
-    hubs = _load_fleet()
-    entry = {"id": uuid.uuid4().hex[:8], "name": data.name,
-             "url": data.url.rstrip("/"), "token": data.token}
-    hubs.append(entry)
-    _save_fleet(hubs)
-    return {k: v for k, v in entry.items() if k != "token"}
-
-
-@app.delete("/fleet/{hub_id}", dependencies=[Depends(require_admin)])
-def delete_fleet_hub(hub_id: str) -> Dict[str, str]:
-    """Remove a registered remote hub. Admin only."""
-    hubs = _load_fleet()
-    kept = [h for h in hubs if h.get("id") != hub_id]
-    if len(kept) == len(hubs):
-        raise HTTPException(status_code=404, detail="Hub not found")
-    _save_fleet(kept)
-    return {"status": "ok"}
-
-
-@app.get("/fleet/{hub_id}/status", dependencies=[Depends(verify_credentials)])
-def fleet_hub_status(hub_id: str) -> Dict[str, Any]:
-    """Fetch a remote hub's health/metrics for an aggregate fleet view."""
-    hub = next((h for h in _load_fleet() if h.get("id") == hub_id), None)
-    if not hub:
-        raise HTTPException(status_code=404, detail="Hub not found")
-    import requests
-    headers = {"Authorization": f"Bearer {hub['token']}"} if hub.get("token") else {}
-    started = time.time()
-    try:
-        resp = requests.get(hub["url"] + "/api/health", headers=headers, timeout=4)
-        return {"id": hub_id, "name": hub["name"], "reachable": True,
-                "status_code": resp.status_code,
-                "health": resp.json() if resp.ok else None,
-                "latency_ms": round((time.time() - started) * 1000, 1)}
-    except Exception as e:
-        return {"id": hub_id, "name": hub["name"], "reachable": False, "error": str(e)}

@@ -2,8 +2,8 @@
 
 ## Docker (single container)
 
-The image runs `hivemind-admin-panel`, which starts the hub in-process, so one
-container serves the hub (websocket transport) and the admin panel.
+The image runs `hivemind-admin-panel`, which starts hivemind-core in-process, so one
+container serves hivemind-core (websocket transport) and the admin panel.
 
 ```bash
 docker build -t hivemind-admin-panel .
@@ -24,7 +24,7 @@ Exposed ports: `5678` (websocket transport), `5679` (http transport), `8100`
 
 ## Docker Compose (full stack)
 
-The bundled `docker-compose.yml` brings up the hub + admin panel backed by Redis:
+The bundled `docker-compose.yml` brings up hivemind-core + admin panel backed by Redis:
 
 ```bash
 docker compose up --build
@@ -33,7 +33,7 @@ docker compose up --build
 It defines two services:
 
 - **redis** — the client-database backend (persisted to a named volume);
-- **hivemind** — the hub + admin panel, configured by `docker/server.json` (which
+- **hivemind** — hivemind-core + admin panel, configured by `docker/server.json` (which
   selects the Redis backend and the admin credentials).
 
 Before exposing anything, edit `docker/server.json` and change `admin_pass`. The
@@ -45,7 +45,7 @@ Volumes:
 |--------|-------|
 | `redis-data` | the Redis client database |
 | `hivemind-config` | identity keys + `server.json` |
-| `hivemind-data` | hub runtime state |
+| `hivemind-data` | hivemind-core runtime state |
 
 ## Behind a reverse proxy (TLS)
 
@@ -90,5 +90,5 @@ WantedBy=multi-user.target
 sudo systemctl enable --now hivemind-admin-panel
 ```
 
-This single unit runs the hub and the panel together. Add `--no-core` to the
-`ExecStart` line if the hub is managed by a separate service on the host.
+This single unit runs hivemind-core and the panel together. Add `--no-core` to the
+`ExecStart` line if hivemind-core is managed by a separate service on the host.

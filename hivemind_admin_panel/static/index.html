@@ -336,7 +336,7 @@
                                                 <div>
                                                     <strong>Can Escalate</strong>
                                                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                                        Allows this client to send messages <strong>upstream</strong> to parent nodes. In a mesh network, this lets satellites send voice commands to their hub for processing. Without this, the client can only receive messages.
+                                                        Allows this client to send messages <strong>upstream</strong> to parent nodes. In a mesh network, this lets satellites send voice commands to their hivemind-core for processing. Without this, the client can only receive messages.
                                                     </p>
                                                 </div>
                                             </label>
@@ -345,7 +345,7 @@
                                                 <div>
                                                     <strong>Can Propagate</strong>
                                                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                                        Allows this client to <strong>forward</strong> messages to sibling nodes. This enables peer-to-peer communication where one satellite can relay messages to another without going through the hub. Used for distributed coordination.
+                                                        Allows this client to <strong>forward</strong> messages to sibling nodes. This enables peer-to-peer communication where one satellite can relay messages to another without going through hivemind-core. Used for distributed coordination.
                                                     </p>
                                                 </div>
                                             </label>
@@ -786,7 +786,7 @@
                         <div class="card-body"><div id="eventsContainer">Loading…</div></div>
                     </div>
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>📜 Hub log</h3>
+                        <div class="card-header"><h3>📜 hivemind-core log</h3>
                             <button class="btn btn-secondary btn-sm" onclick="loadLogs()">Refresh</button></div>
                         <div class="card-body"><pre id="logsContainer" style="max-height:320px;overflow:auto;font-size:12px;"></pre></div>
                     </div>
@@ -803,7 +803,7 @@
                         <div class="card-body">
                             <p style="color:var(--text-secondary);margin-bottom:12px;">
                                 Register external <a href="https://github.com/OpenVoiceOS/ovos-persona-server" target="_blank">persona</a> /
-                                STT / TTS / translate servers so the hub and homelab can share them.</p>
+                                STT / TTS / translate servers so hivemind-core and homelab can share them.</p>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                 <input id="serverName" placeholder="Name" style="flex:1;min-width:140px;padding:8px;">
                                 <select id="serverType" style="padding:8px;">
