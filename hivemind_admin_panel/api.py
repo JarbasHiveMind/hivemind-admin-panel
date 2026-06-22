@@ -3098,16 +3098,13 @@ def test_persona(name: str) -> Dict[str, Any]:
 
     # Check if solvers are installed
     solver_warnings = []
-    solvers = persona.get("solvers") or persona.get("handlers") or []
+    solvers = persona.get("handlers") or persona.get("solvers") or []
 
     try:
-        # Get all available solver entry points
-        all_solvers = {}
-        all_solvers.update(find_question_solver_plugins())
-        all_solvers.update(find_chat_solver_plugins())
-        all_solvers.update(find_chat_plugins())
+        # Available handler entry points (modern chat engines + legacy solvers)
+        all_solvers = _discover_chat_engines()
 
-        # Check if each solver in persona is available (by entry point)
+        # Check if each handler in the persona is available (by entry point)
         for solver in solvers:
             # Check if solver entry point exists in available plugins
             if solver not in all_solvers:

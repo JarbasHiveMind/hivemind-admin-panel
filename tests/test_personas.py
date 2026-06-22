@@ -61,3 +61,16 @@ def test_memory_plugins_endpoint(client, auth):
     resp = client.get("/plugins/memory", headers=auth)
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+
+def test_persona_test_endpoint_runs_handler_discovery(client, auth):
+    # regression: /personas/{name}/test discovers handlers; must not 500 (it
+    # previously referenced solver finders that are no longer imported).
+    r = client.post("/personas", json={"name": "probe", "handlers": ["ovos-solver-failure-plugin"]},
+                    headers=auth)
+    if r.status_code != 200:
+        return
+    tested = client.post("/personas/probe/test", headers=auth)
+    assert tested.status_code == 200, tested.text
+    assert "valid" in tested.json()
+    client.delete("/personas/probe", headers=auth)
