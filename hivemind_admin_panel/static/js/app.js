@@ -226,7 +226,7 @@
             if (page === 'dashboard') loadDashboard();
             if (page === 'clients') { currentPage = 1; loadClients(); }
             if (page === 'acl') loadACLPage();
-            if (page === 'personas') loadPersonasPage();
+            if (page === 'personas') { loadPersonasPage(); fillChatPersonas(); }
             if (page === 'agents') loadAgentProtocolsPage();
             if (page === 'database') loadDatabasePage();
             if (page === 'network') loadNetworkPage();
@@ -278,6 +278,28 @@
             } catch (e) { alert('Pairing failed: ' + e.message); }
         }
         function closePairModal() { document.getElementById('pairModal').style.display = 'none'; }
+
+        // ===================== Persona test chat =====================
+        async function fillChatPersonas() {
+            try {
+                const personas = await apiCall('/personas');
+                const sel = document.getElementById('chatPersona');
+                if (!sel) return;
+                sel.innerHTML = personas.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('')
+                    || '<option value="">(no personas)</option>';
+            } catch (e) {}
+        }
+        async function sendPersonaChat() {
+            const name = document.getElementById('chatPersona').value;
+            const message = document.getElementById('chatMessage').value.trim();
+            const out = document.getElementById('chatReply');
+            if (!name || !message) return;
+            out.textContent = '…thinking…';
+            try {
+                const r = await apiCall(`/personas/${encodeURIComponent(name)}/chat`, 'POST', { message });
+                out.textContent = r.error ? ('⚠️ ' + r.error) : (r.reply || '(empty reply)');
+            } catch (e) { out.textContent = '⚠️ ' + e.message; }
+        }
 
         // ===================== Monitor =====================
         let monitorEventSource = null;

@@ -418,6 +418,19 @@
 
                 <!-- Personas Page -->
                 <div id="personasPage" class="page">
+                    <!-- Persona test chat -->
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header"><h3>💬 Test a persona</h3></div>
+                        <div class="card-body">
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                                <select id="chatPersona" style="padding:8px;min-width:160px;"></select>
+                                <input id="chatMessage" placeholder="Ask the persona something…" style="flex:1;min-width:200px;padding:8px;"
+                                       onkeydown="if(event.key==='Enter')sendPersonaChat()">
+                                <button class="btn btn-primary btn-sm" onclick="sendPersonaChat()">Send</button>
+                            </div>
+                            <div id="chatReply" style="color:var(--text-secondary);font-size:13px;white-space:pre-wrap;"></div>
+                        </div>
+                    </div>
                     <!-- Persona List -->
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
