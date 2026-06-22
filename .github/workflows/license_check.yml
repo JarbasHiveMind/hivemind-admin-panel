@@ -8,8 +8,3 @@ on:
 jobs:
   license_check:
     uses: OpenVoiceOS/gh-automations/.github/workflows/license-check.yml@dev
-    with:
-      # This package is intentionally AGPL-3.0 (a network-served admin UI).
-      # Exclude it from its own dependency audit so its declared license is
-      # not flagged as a forbidden NetworkCopyleft dependency.
-      exclude_packages: '^hivemind-admin-panel$'

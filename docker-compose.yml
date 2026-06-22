@@ -1,0 +1,38 @@
+# Full HiveMind stack: the hub + admin panel (one container) backed by Redis.
+#
+#   docker compose up --build
+#
+# Then open the admin panel at http://127.0.0.1:8100 (default creds admin /
+# the password in docker/server.json — change it before exposing the port).
+name: hivemind-admin-panel
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: hivemind-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1"]
+    volumes:
+      - redis-data:/data
+    # not published on the host by default; reachable as `redis` on the compose network
+
+  hivemind:
+    build: .
+    image: ghcr.io/jarbashivemind/hivemind-admin-panel:latest
+    container_name: hivemind
+    restart: unless-stopped
+    depends_on:
+      - redis
+    ports:
+      - "5678:5678"   # websocket transport (satellites connect here)
+      - "8100:8100"   # admin panel web UI
+    volumes:
+      # server config + admin credentials + DB backend selection
+      - ./docker/server.json:/home/hivemind/.config/hivemind-core/server.json:ro
+      - hivemind-config:/home/hivemind/.config/hivemind-core
+      - hivemind-data:/home/hivemind/.local/share/hivemind-core
+
+volumes:
+  redis-data:
+  hivemind-config:
+  hivemind-data:

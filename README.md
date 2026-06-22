@@ -1,57 +1,78 @@
 # HiveMind Admin Panel
 
-Web-based administration UI for [HiveMind-core](https://github.com/JarbasHiveMind/HiveMind-core).
+Web-based administration panel for [HiveMind-core](https://github.com/JarbasHiveMind/HiveMind-core)
+— a FastAPI backend and single-page web UI for managing a HiveMind hub.
 
-A FastAPI backend + single-page web UI for managing a HiveMind hub: clients and
-access keys, per-client ACLs (allowed/blacklisted message types, skills, intents,
-escalate/propagate, admin flags), live connection/stats introspection, plugin
-discovery and installation, database backends/profiles/migration, and persona
-management.
+It ships as a **standalone, optional package**: install it only where you want an
+admin plane. It depends on `hivemind-core`; without it, core runs unchanged.
 
-This was previously developed inside `hivemind-core`; it now ships as a standalone,
-optional package so it has its own release cadence, its own (AGPL-3.0) license
-boundary, and is not present in core deployments that don't want an admin plane.
+## Features
+
+- **Clients & access keys** — create, list, update, revoke; reveal credentials.
+- **Per-client ACLs** — allow/blacklist message types, skills, and intents; toggle
+  escalate / propagate and admin flags; apply ACL templates.
+- **Live introspection** — connection list and stats when attached to a running hub.
+- **Plugins** — discover and install network/agent/database and OVOS plugins.
+- **Databases** — JSON / SQLite / Redis backends, profiles, connectivity tests, and
+  client migration between backends.
+- **Personas** — manage OVOS personas (create, edit, activate, export, validate).
 
 ## Install
 
 ```bash
 pip install hivemind-admin-panel
+# or, starting from core:
+pip install hivemind-core[admin]
 ```
 
-It depends on `hivemind-core`; installing it pulls core in.
+## Quickstart
 
-## Usage
-
-### Standalone
-
-Run the panel on its own (it reads the same on-disk config and database that
-`hivemind-core` uses on the host):
+**Standalone** (manage a host's config/database directly):
 
 ```bash
 hivemind-admin-panel --host 127.0.0.1 --port 8000
+# open http://127.0.0.1:8000
 ```
 
-Live connection/stats and service-restart features require an in-process handle
-to a running core and are unavailable in standalone mode; everything backed by the
-database, config files, and plugin entry points works.
-
-### Integrated with a running core
-
-`hivemind-core` exposes an optional launcher that, when the panel is installed,
-hands it direct references to the live service/database/protocol objects for
-real-time introspection:
+**Integrated** with a running hub (adds live connection/stats + restart):
 
 ```bash
 hivemind-core --with-admin --admin-host 127.0.0.1 --admin-port 8100
+# open http://127.0.0.1:8100
 ```
 
-## Authentication
+**Docker Compose** (hub + admin panel + Redis):
 
-The panel is guarded by HTTP Basic auth. Credentials live in
-`~/.config/hivemind-core/server.json` (`admin_user`, `admin_pass`). Bind to
-`127.0.0.1` (the default) unless it sits behind a trusted reverse proxy — the admin
-plane can install packages and migrate databases.
+```bash
+docker compose up --build
+# open http://127.0.0.1:8100  (edit docker/server.json to set admin_pass first)
+```
+
+## Credentials
+
+HTTP Basic auth, read from `~/.config/hivemind-core/server.json`
+(`admin_user` / `admin_pass`, both default `admin`). **Change them before exposing
+the panel** — it can install packages and migrate databases. Keep it on
+`127.0.0.1` or behind a trusted reverse proxy. See [docs/security.md](docs/security.md).
+
+## Documentation
+
+Full docs in [`docs/`](docs/index.md):
+
+- [Getting started](docs/getting-started.md) · [Running](docs/running.md) ·
+  [Configuration](docs/configuration.md)
+- [Architecture](docs/architecture.md) · [Security](docs/security.md)
+- [API reference](docs/api-reference.md) — every REST endpoint with `curl` examples
+- [Deployment](docs/deployment.md) — Docker / Compose / reverse proxy / systemd
+- [Development](docs/development.md) — the end-to-end test suite & contributing
+
+## Relationship to HiveMind-core
+
+The panel was extracted from core so it has its own release cadence and stays an
+optional, separately-deployable admin plane. Core keeps only a thin `--with-admin`
+launcher that lazily imports the panel and injects live objects — it has no hard
+dependency on it. See [docs/architecture.md](docs/architecture.md).
 
 ## License
 
-AGPL-3.0-or-later. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE).

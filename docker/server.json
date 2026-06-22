@@ -1,0 +1,27 @@
+{
+  "admin_user": "admin",
+  "admin_pass": "change-me-before-exposing",
+  "binarize": false,
+  "database": {
+    "module": "hivemind-redis-database",
+    "hivemind-redis-database": {
+      "host": "redis",
+      "port": 6379,
+      "password": null
+    }
+  },
+  "agent_protocol": {
+    "module": "hivemind-ovos-agent-plugin",
+    "hivemind-ovos-agent-plugin": {
+      "host": "127.0.0.1",
+      "port": 8181
+    }
+  },
+  "network_protocol": {
+    "hivemind-websocket-plugin": {
+      "host": "0.0.0.0",
+      "port": 5678,
+      "ssl": false
+    }
+  }
+}
