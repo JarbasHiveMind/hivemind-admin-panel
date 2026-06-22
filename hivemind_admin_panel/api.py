@@ -3419,3 +3419,89 @@ async def _audit_mutations(request: Request, call_next):
             METRICS.event("admin.action", f"{user}: {request.method} {path}",
                           status=response.status_code)
     return response
+
+
+# ===================== Onboarding: pairing + bulk client ops =====================
+
+def _ws_endpoint() -> Dict[str, Any]:
+    """Resolve the hub's websocket transport host/port/ssl from server config."""
+    net = get_server_config().get("network_protocol", {}) or {}
+    for key in ("hivemind-websocket-plugin", "hivemind-websocket-protocol"):
+        c = net.get(key)
+        if isinstance(c, dict):
+            return {"host": c.get("host", "0.0.0.0"), "port": c.get("port", 5678),
+                    "ssl": bool(c.get("ssl", False))}
+    for c in net.values():
+        if isinstance(c, dict) and "port" in c:
+            return {"host": c.get("host", "0.0.0.0"), "port": c.get("port", 5678),
+                    "ssl": bool(c.get("ssl", False))}
+    return {"host": "0.0.0.0", "port": 5678, "ssl": False}
+
+
+@app.get("/clients/{client_id}/pairing", dependencies=[Depends(verify_credentials)])
+def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, Any]:
+    """Return a satellite pairing bundle (credentials + hub endpoint + QR payload).
+
+    `host` overrides the advertised hub address (use the hub's LAN IP when it binds
+    0.0.0.0). The `qr` field is a self-contained JSON payload to render as a QR code.
+    """
+    with ClientDatabase() as db:
+        for c in db:
+            if c.client_id == client_id:
+                ep = _ws_endpoint()
+                advertise = host or (ep["host"] if ep["host"] not in ("0.0.0.0", "") else None)
+                hoststr = advertise or "<HUB-IP>"
+                scheme = "wss" if ep["ssl"] else "ws"
+                bundle = {
+                    "client_id": c.client_id,
+                    "name": c.name,
+                    "key": c.api_key,
+                    "password": c.password,
+                    "crypto_key": c.crypto_key,
+                    "host": advertise,
+                    "port": ep["port"],
+                    "ssl": ep["ssl"],
+                    "connect_url": f"{scheme}://{hoststr}:{ep['port']}",
+                }
+                bundle["qr"] = _json.dumps({
+                    "key": c.api_key, "password": c.password, "crypto_key": c.crypto_key,
+                    "host": hoststr, "port": ep["port"], "ssl": ep["ssl"],
+                })
+                if not advertise:
+                    bundle["note"] = ("Hub bound to 0.0.0.0; pass ?host=<LAN-IP> "
+                                      "before sharing the bundle.")
+                return bundle
+    raise HTTPException(status_code=404, detail="Client not found")
+
+
+class BulkClientRequest(BaseModel):
+    """Batch operation over multiple clients."""
+    action: str  # delete | make_admin | revoke_admin | apply_template
+    client_ids: List[int]
+    template_name: Optional[str] = None
+
+
+@app.post("/clients/bulk", dependencies=[Depends(verify_credentials)])
+def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
+    """Apply one action to many clients; returns a per-client result list."""
+    results = []
+    for cid in data.client_ids:
+        try:
+            if data.action == "delete":
+                delete_client(cid)
+            elif data.action == "make_admin":
+                _modify_flag(cid, "is_admin", True)
+            elif data.action == "revoke_admin":
+                _modify_flag(cid, "is_admin", False)
+            elif data.action == "apply_template":
+                if not data.template_name:
+                    raise HTTPException(status_code=400, detail="template_name required")
+                apply_acl_template(cid, data.template_name)
+            else:
+                raise HTTPException(status_code=400, detail=f"unknown action: {data.action}")
+            results.append({"client_id": cid, "ok": True})
+        except HTTPException as e:
+            results.append({"client_id": cid, "ok": False, "error": e.detail})
+        except Exception as e:  # pragma: no cover - defensive
+            results.append({"client_id": cid, "ok": False, "error": str(e)})
+    return {"action": data.action, "results": results}
