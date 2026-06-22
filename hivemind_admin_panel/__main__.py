@@ -242,7 +242,23 @@ def main() -> None:
     print("Change admin credentials in server.json: admin_user, admin_pass")
 
     if service is not None:
-        service.run()           # main thread; blocks until SIGINT/SIGTERM
+        try:
+            service.run()       # main thread; blocks until SIGINT/SIGTERM
+        except KeyboardInterrupt:
+            pass
+        except Exception as error:
+            # The in-process core failed to start — e.g. its agent backend (an OVOS
+            # messagebus) is unreachable and the agent protocol now fails fast
+            # instead of hanging. Keep the admin UI up in diagnostics mode so the
+            # failure is visible at GET /api/startup-error and on the dashboard,
+            # rather than taking the whole panel down with it.
+            from hivemind_admin_panel.api import init_injected_objects
+            LOG.exception("hivemind-core stopped; admin panel staying up in diagnostics mode")
+            init_injected_objects(service=None, db=getattr(service, "db", None),
+                                  protocol=None, startup_error=error)
+            print(f"hivemind-core failed to start: {error}")
+            print("Admin panel staying up in diagnostics mode — see /api/startup-error")
+            wait_for_exit_signal()
     else:
         wait_for_exit_signal()  # diagnostics mode: keep the panel up
 
