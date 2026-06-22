@@ -212,6 +212,7 @@
                 binary: 'Binary Protocol',
                 encodings: 'Encodings & Ciphers',
                 monitor: 'Monitor',
+                topology: 'Mesh Topology',
                 servers: 'OVOS Servers',
                 ops: 'Operations'
             };
@@ -233,10 +234,50 @@
             if (page === 'binary') loadBinaryPage();
             if (page === 'encodings') loadEncodings();
             if (page === 'monitor') loadMonitorPage();
+            if (page === 'topology') loadTopologyPage();
             if (page === 'servers') loadServersPage();
             if (page === 'ops') loadOpsPage();
             if (page !== 'monitor') stopMonitorLive();
         }
+
+        // ===================== Topology + pairing =====================
+        async function loadTopologyPage() {
+            let g;
+            try { g = await apiCall('/topology'); } catch (e) { return; }
+            const sats = g.nodes.filter(n => n.type !== 'hub');
+            const W = 600, H = 420, cx = W / 2, cy = H / 2, R = 150;
+            let svg = `<svg viewBox="0 0 ${W} ${H}" style="max-width:100%;height:auto;">`;
+            sats.forEach((n, i) => {
+                const a = (2 * Math.PI * i) / Math.max(sats.length, 1);
+                const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+                const color = n.online ? '#3fb950' : '#6e7681';
+                svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#30363d" stroke-width="1.5"/>`;
+                svg += `<g style="cursor:pointer;" onclick="pairClient(${n.id.replace('client-','')}, '${esc(n.label)}')">
+                          <circle cx="${x}" cy="${y}" r="22" fill="${color}"/>
+                          <text x="${x}" y="${y + 38}" text-anchor="middle" font-size="11" fill="currentColor">${esc(n.label)}</text>
+                          ${n.type === 'admin' ? `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11">★</text>` : ''}
+                        </g>`;
+            });
+            svg += `<circle cx="${cx}" cy="${cy}" r="34" fill="#1f6feb"/>
+                    <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" fill="#fff">HUB</text></svg>
+                    <div style="color:var(--text-secondary);margin-top:8px;">${sats.length} satellite(s), ${g.online_count} online</div>`;
+            document.getElementById('topologyContainer').innerHTML = svg;
+        }
+
+        async function pairClient(id, name) {
+            document.getElementById('pairName').textContent = name || ('#' + id);
+            const host = prompt('Hub address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
+            try {
+                const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
+                const tok = (await apiCall('/auth/login', 'POST',
+                    { username: auth.username, password: auth.password })).token;
+                document.getElementById('pairQr').innerHTML =
+                    `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
+                document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
+                document.getElementById('pairModal').style.display = 'flex';
+            } catch (e) { alert('Pairing failed: ' + e.message); }
+        }
+        function closePairModal() { document.getElementById('pairModal').style.display = 'none'; }
 
         // ===================== Monitor =====================
         let monitorEventSource = null;

@@ -85,6 +85,10 @@
                     <span class="nav-icon">📊</span>
                     <span>Monitor</span>
                 </button>
+                <button class="nav-item" onclick="navigate('topology')" data-page="topology">
+                    <span class="nav-icon">🕸️</span>
+                    <span>Topology</span>
+                </button>
                 <button class="nav-item" onclick="navigate('servers')" data-page="servers">
                     <span class="nav-icon">🛰️</span>
                     <span>OVOS Servers</span>
@@ -722,6 +726,28 @@
                                 <!-- Ciphers loaded dynamically -->
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Topology Page -->
+                <div id="topologyPage" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>🕸️ Mesh topology</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadTopologyPage()">Refresh</button></div>
+                        <div class="card-body">
+                            <p style="color:var(--text-secondary);margin-bottom:12px;">Click a satellite to generate its pairing QR.</p>
+                            <div id="topologyContainer" style="text-align:center;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pairing modal -->
+                <div id="pairModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
+                    <div style="background:var(--bg-card,#1c2128);padding:24px;border-radius:12px;max-width:420px;width:90%;text-align:center;">
+                        <h3 style="margin-bottom:12px;">Pair satellite <span id="pairName"></span></h3>
+                        <div id="pairQr" style="background:#fff;padding:12px;border-radius:8px;display:inline-block;"></div>
+                        <pre id="pairBundle" style="text-align:left;font-size:11px;max-height:160px;overflow:auto;margin-top:12px;"></pre>
+                        <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="closePairModal()">Close</button>
                     </div>
                 </div>
 
