@@ -876,6 +876,9 @@ def add_client(data: ClientCreate) -> Dict[str, Any]:
             name, access_key, crypto_key=crypto_key, password=password, admin=admin
         )
         client = db.get_client_by_api_key(access_key)
+        from hivemind_admin_panel._metrics import METRICS
+        METRICS.event("client.created", f"Client '{client.name}' created",
+                      client_id=client.client_id)
         return _client_to_dict(client, include_secrets=True)
 
 
@@ -945,6 +948,9 @@ def delete_client(client_id: int) -> Dict[str, Any]:
         for client in db:
             if client.client_id == client_id:
                 db.delete_client(client.api_key)
+                from hivemind_admin_panel._metrics import METRICS
+                METRICS.event("client.deleted", f"Client {client_id} revoked",
+                              client_id=client_id)
                 return {"status": "ok"}
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -3226,3 +3232,96 @@ def list_installed_hivemind_plugins(plugin_type: str) -> List[str]:
     except Exception as e:
         LOG.error(f"Error finding {plugin_type} plugins: {e}")
         return []
+
+
+# ===================== Observability: metrics / events / logs =====================
+import asyncio as _asyncio
+import json as _json
+from fastapi.responses import StreamingResponse
+from hivemind_admin_panel._metrics import METRICS
+
+
+def _live_snapshot() -> Dict[str, Any]:
+    """Combine process metrics with live counts from the injected hub objects."""
+    snap = METRICS.snapshot()
+    active = None
+    if _protocol is not None and hasattr(_protocol, "clients"):
+        try:
+            active = len(_protocol.clients)
+        except Exception:
+            active = None
+    snap["active_connections"] = active
+    total = None
+    try:
+        db = _db or ClientDatabase()
+        total = len([c for c in db if getattr(c, "client_id", -1) != -1])
+    except Exception:
+        total = None
+    snap["total_clients"] = total
+    snap["service_status"] = (
+        str(_service._status.value)
+        if _service and getattr(_service, "_status", None) else None
+    )
+    return snap
+
+
+@app.get("/metrics", dependencies=[Depends(verify_credentials)])
+def get_metrics() -> Dict[str, Any]:
+    """Process + hub metrics: uptime, counters, gauges, live connection/client counts."""
+    return _live_snapshot()
+
+
+@app.get("/events/recent", dependencies=[Depends(verify_credentials)])
+def get_recent_events(limit: int = 100, since: Optional[float] = None) -> List[Dict[str, Any]]:
+    """Recent admin/hub events from the in-process ring buffer."""
+    return METRICS.recent_events(limit=limit, since=since)
+
+
+@app.get("/events", dependencies=[Depends(verify_credentials)])
+async def stream_events(interval: float = 2.0, limit: int = 0) -> StreamingResponse:
+    """Server-Sent Events: a live snapshot every `interval`s plus new events.
+
+    `limit` bounds the number of SSE messages (0 = unbounded); clients/tests pass
+    a small limit to terminate the stream.
+    """
+    interval = max(0.25, min(interval, 30.0))
+
+    async def gen():
+        last_ts = 0.0
+        count = 0
+        yield f"event: snapshot\ndata: {_json.dumps(_live_snapshot())}\n\n"
+        count += 1
+        while not limit or count < limit:
+            await _asyncio.sleep(interval)
+            for evt in METRICS.recent_events(limit=50, since=last_ts):
+                last_ts = max(last_ts, evt["ts"])
+                yield f"event: event\ndata: {_json.dumps(evt)}\n\n"
+                count += 1
+            yield f"event: snapshot\ndata: {_json.dumps(_live_snapshot())}\n\n"
+            count += 1
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@app.get("/logs", dependencies=[Depends(verify_credentials)])
+def get_logs(lines: int = 200, level: Optional[str] = None) -> Dict[str, Any]:
+    """Tail the hub log file (core.log), optionally filtered by level substring."""
+    base = getattr(LOG, "base_path", None)
+    path = None
+    if base and base != "stdout":
+        candidate = os.path.join(base, "core.log")
+        if os.path.isfile(candidate):
+            path = candidate
+    if not path:
+        return {"path": None, "lines": [],
+                "note": "no log file (logging to stdout or not yet created)"}
+    lines = max(1, min(lines, 5000))
+    try:
+        with open(path, "r", errors="replace") as f:
+            tail = f.readlines()[-lines:]
+    except Exception as e:
+        return {"path": path, "lines": [], "error": str(e)}
+    if level:
+        lvl = level.upper()
+        tail = [ln for ln in tail if lvl in ln]
+    return {"path": path, "lines": [ln.rstrip("\n") for ln in tail]}
