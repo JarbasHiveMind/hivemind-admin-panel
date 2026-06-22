@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hivemind-admin-panel"
+description = "Web-based admin panel for HiveMind-core: manage clients, ACLs, plugins, databases and personas"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "AGPL-3.0-or-later" }
+authors = [
+    { name = "Casimiro Ferreira", email = "jarbasai@mailfence.com" },
+]
+keywords = ["hivemind", "ovos", "admin", "web ui", "fastapi"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dynamic = ["version", "dependencies"]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov", "httpx"]
+dev = ["pytest", "pytest-cov", "httpx"]
+
+[project.urls]
+Homepage = "https://github.com/JarbasHiveMind/hivemind-admin-panel"
+Source = "https://github.com/JarbasHiveMind/hivemind-admin-panel"
+
+[project.scripts]
+hivemind-admin-panel = "hivemind_admin_panel.__main__:main"
+
+[tool.setuptools]
+packages = ["hivemind_admin_panel"]
+
+[tool.setuptools.dynamic]
+version = { attr = "hivemind_admin_panel.version.__version__" }
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.package-data]
+hivemind_admin_panel = [
+    "static/**/*",
+    "*.json",
+]
