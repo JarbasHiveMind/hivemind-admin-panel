@@ -796,6 +796,7 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
         "can_broadcast": bool(getattr(client, 'can_broadcast', True)),
         "last_seen": client.last_seen or 0.0,
         "revoked": is_revoked,
+        "tags": (getattr(client, "metadata", None) or {}).get("tags", []),
     }
     if include_secrets:
         result["password"] = client.password or ""
@@ -3873,3 +3874,45 @@ def get_topology() -> Dict[str, Any]:
         LOG.error(f"topology: {e}")
     return {"nodes": nodes, "edges": edges,
             "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "hub")}
+
+
+# ===================== Client tags + first-run hint =====================
+
+class TagsRequest(BaseModel):
+    """Replace a client's tags."""
+    tags: List[str]
+
+
+@app.put("/clients/{client_id}/tags", dependencies=[Depends(verify_credentials)])
+def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
+    """Set the tag list for a client (stored in client metadata)."""
+    with ClientDatabase() as db:
+        for client in db:
+            if client.client_id == client_id:
+                meta = dict(getattr(client, "metadata", None) or {})
+                meta["tags"] = sorted(set(data.tags))
+                client.metadata = meta
+                db.update_item(client)
+                return _client_to_dict(client)
+    raise HTTPException(status_code=404, detail="Client not found")
+
+
+@app.get("/setup/status", dependencies=[Depends(verify_credentials)])
+def setup_status() -> Dict[str, Any]:
+    """First-run hints: whether default credentials are still in use, etc."""
+    cfg = get_server_config()
+    default_creds = (cfg.get("admin_user", "admin") == "admin"
+                     and cfg.get("admin_pass", "admin") == "admin")
+    clients = 0
+    try:
+        with ClientDatabase() as db:
+            clients = sum(1 for c in db if getattr(c, "client_id", -1) != -1)
+    except Exception:
+        pass
+    return {
+        "default_credentials": default_creds,
+        "has_clients": clients > 0,
+        "client_count": clients,
+        "warnings": (["Default admin credentials are still in use — change "
+                      "admin_user/admin_pass in server.json."] if default_creds else []),
+    }
