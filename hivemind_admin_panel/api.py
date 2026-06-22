@@ -3505,3 +3505,163 @@ def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
         except Exception as e:  # pragma: no cover - defensive
             results.append({"client_id": cid, "ok": False, "error": str(e)})
     return {"action": data.action, "results": results}
+
+
+# ===================== Agent depth: persona chat + engine taxonomy =====================
+
+class PersonaChatRequest(BaseModel):
+    """A single user turn to test a persona."""
+    message: str
+    lang: Optional[str] = "en-US"
+
+
+@app.post("/personas/{name}/chat", dependencies=[Depends(verify_credentials)])
+def chat_with_persona(name: str, data: PersonaChatRequest) -> Dict[str, Any]:
+    """Run one chat turn against a persona (a live "try this persona" probe).
+
+    Loads the persona JSON, instantiates ``ovos_persona.Persona`` and calls its
+    handler chain. Returns ``{reply, error}`` — errors are returned (not raised)
+    so the UI can show them.
+    """
+    path = _get_persona_file_path(name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
+    try:
+        with open(path) as f:
+            config = json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid persona file: {e}")
+
+    try:
+        from ovos_persona import Persona
+        from ovos_plugin_manager.templates.agents import AgentMessage, MessageRole
+        from ovos_bus_client.session import Session
+
+        persona = Persona(name, config)
+        sess = Session(lang=data.lang or "en-US")
+        messages = [AgentMessage(role=MessageRole.USER, content=data.message)]
+        reply = persona.chat(messages, sess)
+        return {"persona": name, "reply": reply, "error": None}
+    except Exception as e:
+        LOG.error(f"persona chat failed for {name}: {e}")
+        return {"persona": name, "reply": None, "error": str(e)}
+
+
+@app.get("/plugins/agents", dependencies=[Depends(verify_credentials)])
+def list_agent_engines() -> Dict[str, List[str]]:
+    """Installed plugins for each modern OVOS agent engine type.
+
+    The agent stack (``ovos_plugin_manager.agents``) is the modern replacement for
+    solver plugins and spans many engine types beyond chat (memory, reranker,
+    retrieval, QA, summarizer, yes/no, multimodal).
+    """
+    from ovos_plugin_manager import agents as _agents
+    finders = {
+        "chat": "find_chat_plugins",
+        "memory": "find_memory_plugins",
+        "summarizer": "find_summarizer_plugins",
+        "reranker": "find_reranker_plugins",
+        "retrieval": "find_retrieval_plugins",
+        "qa": "find_extractive_qa_plugins",
+        "yesno": "find_yesno_plugins",
+        "multimodal_chat": "find_multimodal_chat_plugins",
+        "coreference": "find_coreference_plugins",
+    }
+    out: Dict[str, List[str]] = {}
+    for kind, fn in finders.items():
+        try:
+            out[kind] = sorted(getattr(_agents, fn)().keys())
+        except Exception as e:
+            LOG.debug(f"agent discovery '{kind}' failed: {e}")
+            out[kind] = []
+    return out
+
+
+# ===================== OVOS server registry (persona/stt/tts/translate) =====================
+
+def _servers_path() -> Path:
+    base = Path(xdg_config_home()) / "hivemind-admin"
+    base.mkdir(parents=True, exist_ok=True)
+    return base / "servers.json"
+
+
+def _load_servers() -> List[Dict[str, Any]]:
+    p = _servers_path()
+    if not p.exists():
+        return []
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return []
+
+
+def _save_servers(servers: List[Dict[str, Any]]) -> None:
+    _servers_path().write_text(json.dumps(servers, indent=2))
+
+
+class ServerCreate(BaseModel):
+    """Register an external OVOS network server."""
+    name: str
+    type: str  # persona | stt | tts | translate | other
+    url: str
+
+
+@app.get("/servers", dependencies=[Depends(verify_credentials)])
+def list_servers() -> List[Dict[str, Any]]:
+    """List registered external OVOS servers (persona/stt/tts/translate)."""
+    return _load_servers()
+
+
+@app.post("/servers", dependencies=[Depends(verify_credentials)])
+def add_server(data: ServerCreate) -> Dict[str, Any]:
+    """Register an external OVOS server endpoint."""
+    import uuid
+    servers = _load_servers()
+    entry = {"id": uuid.uuid4().hex[:8], "name": data.name,
+             "type": data.type, "url": data.url.rstrip("/")}
+    servers.append(entry)
+    _save_servers(servers)
+    return entry
+
+
+@app.delete("/servers/{server_id}", dependencies=[Depends(verify_credentials)])
+def delete_server(server_id: str) -> Dict[str, str]:
+    """Remove a registered server."""
+    servers = _load_servers()
+    kept = [s for s in servers if s.get("id") != server_id]
+    if len(kept) == len(servers):
+        raise HTTPException(status_code=404, detail="Server not found")
+    _save_servers(kept)
+    return {"status": "ok"}
+
+
+@app.get("/servers/{server_id}/health", dependencies=[Depends(verify_credentials)])
+def server_health(server_id: str) -> Dict[str, Any]:
+    """Probe a registered server for reachability + latency."""
+    server = next((s for s in _load_servers() if s.get("id") == server_id), None)
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    # type-aware health path; fall back to the base URL
+    probe = {
+        "persona": "/v1/models",
+        "stt": "/status",
+        "tts": "/status",
+        "translate": "/status",
+    }.get(server.get("type"), "")
+    url = server["url"] + probe
+    import requests
+    started = time.time()
+    try:
+        resp = requests.get(url, timeout=3)
+        return {"id": server_id, "url": url, "reachable": True,
+                "status_code": resp.status_code,
+                "latency_ms": round((time.time() - started) * 1000, 1)}
+    except Exception as e:
+        # retry base url once (probe path may not exist)
+        try:
+            resp = requests.get(server["url"], timeout=3)
+            return {"id": server_id, "url": server["url"], "reachable": True,
+                    "status_code": resp.status_code,
+                    "latency_ms": round((time.time() - started) * 1000, 1)}
+        except Exception:
+            return {"id": server_id, "url": url, "reachable": False, "error": str(e)}
