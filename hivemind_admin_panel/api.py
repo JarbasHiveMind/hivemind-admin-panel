@@ -33,6 +33,7 @@ import re
 import socket
 import subprocess
 import sys
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -42,7 +43,21 @@ from fastapi import FastAPI, HTTPException, Depends, status, BackgroundTasks, Re
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from hivemind_admin_panel._auth import authenticate, verify_token, create_token, audit, read_audit
 from hivemind_admin_panel.version import __version__ as admin_version
-from hivemind_core.config import get_server_config, _DEFAULT
+from hivemind_core.config import get_server_config as _get_server_config_raw, _DEFAULT
+
+# hivemind-core's get_server_config() builds a JsonStorageXDG whose ComboLock
+# does a non-atomic create+chmod on a *shared* lock file. Concurrent calls — e.g.
+# the dashboard firing ~9 requests in parallel — race into
+# `FileNotFoundError: .../server.json.lock` and surface as a 500. Serialize
+# construction with a process-local lock; semantics are unchanged (each caller
+# still gets a fresh config object), the races just can't overlap.
+_config_lock = threading.Lock()
+
+
+def get_server_config():
+    """Thread-safe wrapper around hivemind-core's ``get_server_config``."""
+    with _config_lock:
+        return _get_server_config_raw()
 from hivemind_core.database import ClientDatabase
 from hivemind_plugin_manager import AgentProtocolFactory
 from hivemind_plugin_manager import BinaryDataHandlerProtocolFactory

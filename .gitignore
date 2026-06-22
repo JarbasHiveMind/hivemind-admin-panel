@@ -10,3 +10,4 @@ htmlcov/
 .venv/
 node_modules/
 *.log
+.venv-live/
