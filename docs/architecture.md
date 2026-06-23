@@ -4,7 +4,7 @@
 
 ```
 hivemind_admin_panel/
-├── api.py          FastAPI app: ~68 REST endpoints (the whole admin API)
+├── api.py          FastAPI app: ~125 REST endpoints (the whole admin API)
 ├── __main__.py     standalone entrypoint; mounts api under /api + serves the SPA
 ├── __init__.py     public API: start_admin_server, init_injected_objects, get_admin_app
 ├── static/         single-page web UI (index.html, js/app.js, css/style.css)

@@ -4,6 +4,8 @@
 default it **starts hivemind-core in-process** and serves the admin UI; you do not run
 `hivemind-core` separately. A `--no-core` flag serves the panel only.
 
+![Dashboard](img/dashboard.png)
+
 ## Default: hivemind-core + panel together
 
 ```bash

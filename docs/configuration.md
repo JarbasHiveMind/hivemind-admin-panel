@@ -50,13 +50,44 @@ You can switch backends and migrate clients between them from the UI or the
 [API reference](api-reference.md). Database **profiles** are stored separately under
 `~/.config/hivemind-core/database_profiles/*.json`.
 
+![Database backend](img/database.png)
+
+## Plugin slots
+
+`server.json` selects the plugin for each slot, and the panel has a page per slot.
+[Plugin presets](presets.md) make these configs reusable.
+
+### Agent backend (Agent Protocol)
+
+How the hub answers — an OVOS messagebus bridge, a [persona](#personas), or an A2A agent.
+
+![Agent Protocol](img/agent-protocol.png)
+
+### Network protocols
+
+The transports satellites connect over — websocket by default, plus HTTP/MQTT.
+
+![Network protocols](img/network.png)
+
+### Binary protocol (remote audio)
+
+Optional: composes STT/TTS/wake-word/VAD so satellites can stream audio. Author the
+speech configs as [presets](presets.md) and select them here.
+
+![Binary protocol](img/binary-protocol.png)
+
+### Encodings & ciphers
+
+Which serialization encodings and ciphers clients may use — at least one of each must
+stay enabled.
+
+![Encodings &amp; ciphers](img/encodings.png)
+
 ## Other config
 
 `GET /config` returns the full `server.json`; `POST /config` writes it back;
-`GET /config/defaults` returns core's built-in defaults. The same file also holds
-network/agent/binary protocol selection and the policy chain — the panel exposes
-these for editing but they are core concepts; see core's documentation for their
-semantics.
+`GET /config/defaults` returns core's built-in defaults; the policy chain and other
+core concepts are editable here too (see core's docs for their semantics).
 
 ## Personas
 

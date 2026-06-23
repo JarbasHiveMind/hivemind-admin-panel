@@ -23,6 +23,11 @@ network to a central server that does the thinking and talks back.
 - **The admin panel** (this project) — a web UI to run all of the above without
   touching config files or the command line.
 
+The panel visualizes this as a mesh — the hub in the centre, satellites (and
+[chat bridges](bridges.md)) around it:
+
+![Mesh topology](img/topology.png)
+
 > You normally run **one command** — `hivemind-admin-panel` — which starts
 > hivemind-core *and* the web UI together. See [Running](running.md).
 
