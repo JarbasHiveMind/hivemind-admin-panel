@@ -3583,6 +3583,165 @@ def list_installed_hivemind_plugins(plugin_type: str) -> List[str]:
         return []
 
 
+# ===================== Plugin presets =====================
+#
+# A reusable, named {module, config} for any plugin slot — the same idea as the
+# database profiles, generalized. Presets are selected when configuring (e.g. the
+# binary audio protocol picks STT/TTS/WW/VAD presets). A preset's source is either
+# a local ``plugin`` or a registered OVOS ``server``.
+
+_PRESET_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+_PRESET_TYPES = {"stt", "tts", "ww", "vad", "agent", "network"}
+
+
+def _presets_root() -> Path:
+    return Path(xdg_config_home()) / "hivemind-core" / "plugin_presets"
+
+
+def _preset_path(ptype: str, name: str) -> Path:
+    return _presets_root() / ptype / f"{name}.json"
+
+
+def _list_presets(ptype: str) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+    d = _presets_root() / ptype
+    if d.exists():
+        for f in sorted(d.glob("*.json")):
+            try:
+                out[f.stem] = json.loads(f.read_text())
+            except Exception as exc:
+                LOG.warning(f"skipping malformed preset {ptype}/{f.stem}: {exc}")
+    return out
+
+
+def _installed_modules_for(ptype: str) -> set:
+    """Entry-point names installed for a plugin type (for the load-check)."""
+    try:
+        if ptype == "stt":
+            return set(find_stt_plugins().keys())
+        if ptype == "tts":
+            return set(find_tts_plugins().keys())
+        if ptype == "ww":
+            return set(find_wake_word_plugins().keys())
+        if ptype == "vad":
+            return set(find_vad_plugins().keys())
+        if ptype == "agent":
+            return set(find_plugins(HiveMindPluginTypes.AGENT_PROTOCOL).keys())
+        if ptype == "network":
+            return set(find_plugins(HiveMindPluginTypes.NETWORK_PROTOCOL).keys())
+    except Exception as exc:  # noqa: BLE001
+        LOG.warning(f"plugin discovery failed for {ptype}: {exc}")
+    return set()
+
+
+class PresetCreate(BaseModel):
+    """A named, reusable plugin config."""
+    name: str
+    module: str
+    config: Dict[str, Any] = {}
+    source: str = "plugin"            # "plugin" | "server"
+    server_id: Optional[str] = None   # registered OVOS server id, when source == "server"
+
+
+class PresetUpdate(BaseModel):
+    module: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
+    source: Optional[str] = None
+    server_id: Optional[str] = None
+
+
+def _validate_ptype(ptype: str) -> None:
+    if ptype not in _PRESET_TYPES:
+        raise HTTPException(status_code=400,
+                            detail=f"Unknown preset type '{ptype}' (one of {sorted(_PRESET_TYPES)})")
+
+
+@app.get("/presets", dependencies=[Depends(verify_credentials)])
+def list_all_presets() -> Dict[str, Dict[str, Any]]:
+    """All presets grouped by plugin type."""
+    return {t: _list_presets(t) for t in sorted(_PRESET_TYPES)}
+
+
+@app.get("/presets/{ptype}", dependencies=[Depends(verify_credentials)])
+def list_type_presets(ptype: str) -> Dict[str, Any]:
+    """Presets for one plugin type, plus the installed modules to choose from."""
+    _validate_ptype(ptype)
+    return {"presets": _list_presets(ptype), "installed_modules": sorted(_installed_modules_for(ptype))}
+
+
+@app.get("/presets/{ptype}/{name}", dependencies=[Depends(verify_credentials)])
+def get_preset(ptype: str, name: str) -> Dict[str, Any]:
+    _validate_ptype(ptype)
+    p = _preset_path(ptype, name)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Preset not found")
+    return json.loads(p.read_text())
+
+
+@app.post("/presets/{ptype}", dependencies=[Depends(require_admin)])
+def create_preset(ptype: str, data: PresetCreate, request: Request) -> Dict[str, Any]:
+    _validate_ptype(ptype)
+    if not _PRESET_NAME_RE.match(data.name):
+        raise HTTPException(status_code=400, detail="Name must be alphanumeric/_/-")
+    path = _preset_path(ptype, data.name)
+    if path.exists():
+        raise HTTPException(status_code=409, detail="Preset already exists")
+    preset = {"name": data.name, "type": ptype, "module": data.module,
+              "config": data.config or {}, "source": data.source or "plugin",
+              "server_id": data.server_id}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(preset, indent=2))
+    audit(_current_user(request), "preset.create", type=ptype, name=data.name)
+    return preset
+
+
+@app.put("/presets/{ptype}/{name}", dependencies=[Depends(require_admin)])
+def update_preset(ptype: str, name: str, data: PresetUpdate, request: Request) -> Dict[str, Any]:
+    _validate_ptype(ptype)
+    path = _preset_path(ptype, name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Preset not found")
+    preset = json.loads(path.read_text())
+    for field in ("module", "source", "server_id"):
+        val = getattr(data, field)
+        if val is not None:
+            preset[field] = val
+    if data.config is not None:
+        preset["config"] = data.config
+    path.write_text(json.dumps(preset, indent=2))
+    audit(_current_user(request), "preset.update", type=ptype, name=name)
+    return preset
+
+
+@app.delete("/presets/{ptype}/{name}", dependencies=[Depends(require_admin)])
+def delete_preset(ptype: str, name: str, request: Request) -> Dict[str, str]:
+    _validate_ptype(ptype)
+    path = _preset_path(ptype, name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Preset not found")
+    path.unlink()
+    audit(_current_user(request), "preset.delete", type=ptype, name=name)
+    return {"status": "ok"}
+
+
+@app.post("/presets/{ptype}/{name}/test", dependencies=[Depends(verify_credentials)])
+def test_preset(ptype: str, name: str) -> Dict[str, Any]:
+    """Lightweight check: the preset's module is installed for its type (no model load)."""
+    _validate_ptype(ptype)
+    path = _preset_path(ptype, name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Preset not found")
+    preset = json.loads(path.read_text())
+    module = preset.get("module", "")
+    if preset.get("source") == "server":
+        return {"ok": True, "message": "server-backed preset (health-check the server on the Servers page)"}
+    installed = _installed_modules_for(ptype)
+    ok = module in installed
+    return {"ok": ok,
+            "message": (f"'{module}' is installed" if ok
+                        else f"'{module}' is not installed for {ptype} — install it first")}
+
+
 # ===================== Observability: metrics / events / logs =====================
 import asyncio as _asyncio
 import json as _json
