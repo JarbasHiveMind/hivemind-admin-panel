@@ -3742,6 +3742,42 @@ def test_preset(ptype: str, name: str) -> Dict[str, Any]:
                         else f"'{module}' is not installed for {ptype} — install it first")}
 
 
+@app.post("/presets/{ptype}/{name}/apply", dependencies=[Depends(require_admin)])
+def apply_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
+    """Activate an ``agent``/``network`` preset into ``server.json`` (snapshots first).
+
+    STT/TTS/WW/VAD presets are *selected* when configuring the Binary Protocol (its
+    nested config shape), not applied standalone — so apply is for the top-level
+    slots only.
+    """
+    _validate_ptype(ptype)
+    if ptype not in ("agent", "network"):
+        raise HTTPException(status_code=400, detail=(
+            f"'{ptype}' presets are selected in the Binary Protocol config, not applied "
+            "directly; only agent/network presets map to a top-level slot."))
+    path = _preset_path(ptype, name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Preset not found")
+    preset = json.loads(path.read_text())
+    module, pconfig = preset.get("module", ""), preset.get("config", {}) or {}
+    if not module:
+        raise HTTPException(status_code=400, detail="Preset has no module to apply")
+    _snapshot_config()
+    cfg = get_server_config()
+    if ptype == "agent":
+        ap = cfg.get("agent_protocol", {}) or {}
+        ap["module"] = module
+        ap[module] = pconfig
+        cfg["agent_protocol"] = ap
+    else:  # network
+        net = cfg.get("network_protocol", {}) or {}
+        net[module] = pconfig or {"host": "0.0.0.0", "port": 5678, "ssl": False}
+        cfg["network_protocol"] = net
+    cfg.store()
+    audit(_current_user(request), "preset.apply", type=ptype, name=name, module=module)
+    return {"status": "ok", "applied": f"{ptype}/{name}", "module": module}
+
+
 # ===================== Observability: metrics / events / logs =====================
 import asyncio as _asyncio
 import json as _json

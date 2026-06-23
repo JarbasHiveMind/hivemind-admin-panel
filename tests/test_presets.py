@@ -49,6 +49,25 @@ def test_preset_validation(client, auth):
     assert client.post("/presets/tts", json={"name": "dup", "module": "m"}, headers=auth).status_code == 409
 
 
+def test_preset_apply_agent_writes_slot(client, auth):
+    installed = client.get("/presets/agent", headers=auth).json()["installed_modules"]
+    assert installed, "expected an installed agent protocol"
+    client.post("/presets/agent", json={"name": "a1", "module": installed[0],
+                                         "config": {"host": "127.0.0.1", "port": 8181}}, headers=auth)
+    r = client.post("/presets/agent/a1/apply", headers=auth)
+    assert r.status_code == 200 and r.json()["module"] == installed[0]
+    from hivemind_core.config import get_server_config
+    cfg = get_server_config()
+    assert cfg["agent_protocol"]["module"] == installed[0]
+    assert cfg["agent_protocol"][installed[0]]["port"] == 8181
+
+
+def test_preset_apply_speech_rejected(client, auth):
+    client.post("/presets/stt", json={"name": "s1", "module": "x"}, headers=auth)
+    r = client.post("/presets/stt/s1/apply", headers=auth)
+    assert r.status_code == 400 and "Binary Protocol" in r.json()["detail"]
+
+
 def test_preset_writes_are_admin_only(client):
     from hivemind_core.config import get_server_config
     cfg = get_server_config()

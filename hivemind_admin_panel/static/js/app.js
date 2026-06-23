@@ -1185,6 +1185,7 @@
                         <div style="min-width:0;"><strong>${esc(n)}</strong> <span style="font-size:11px;color:var(--text-secondary);">${summ}</span>
                             <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;"><code>${esc(JSON.stringify(p.config || {}))}</code></div></div>
                         <div style="display:flex;gap:6px;flex-shrink:0;">
+                            ${(_presetType==='agent'||_presetType==='network') ? `<button class="btn btn-primary btn-sm" onclick="applyPreset('${_presetType}','${esc(n)}')" title="Activate in server.json">Apply</button>` : ''}
                             <button class="btn btn-secondary btn-sm" onclick="testPreset('${_presetType}','${esc(n)}')">Test</button>
                             <button class="btn btn-secondary btn-sm" onclick="showPresetModal('${_presetType}','${esc(n)}')">Edit</button>
                             <button class="btn btn-danger btn-sm" onclick="deletePreset('${_presetType}','${esc(n)}')">✕</button>
@@ -1261,6 +1262,14 @@
             if (!confirm('Delete preset ' + name + '?')) return;
             try { await apiCall('/presets/' + type + '/' + encodeURIComponent(name), 'DELETE'); loadPresetsPage(); }
             catch (e) { showToast('Delete failed', 'error'); }
+        }
+        async function applyPreset(type, name) {
+            if (!confirm('Apply preset "' + name + '" to the live ' + type + ' config?')) return;
+            try {
+                const r = await apiCall('/presets/' + type + '/' + encodeURIComponent(name) + '/apply', 'POST');
+                showToast('Applied ' + r.module, 'success');
+                showRestartRequiredModal();
+            } catch (e) { showToast('Apply failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error'); }
         }
 
         // ---- Bridge provisioning preset ----------------------------------------------

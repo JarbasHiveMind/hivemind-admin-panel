@@ -138,4 +138,4 @@ gracefully.
 <!-- nav-footer -->
 |  |  |  |
 |:--|:-:|--:|
-| ← [Configuration](configuration.md) | [📖 Docs home](index.md) | [Security](security.md) → |
+| ← [Plugin presets](presets.md) | [📖 Docs home](index.md) | [Security](security.md) → |

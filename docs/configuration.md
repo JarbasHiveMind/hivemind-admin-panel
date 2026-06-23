@@ -122,4 +122,4 @@ The same persona JSON can be hosted over an OpenAI/Ollama HTTP API by
 <!-- nav-footer -->
 |  |  |  |
 |:--|:-:|--:|
-| ← [CLI](cli.md) | [📖 Docs home](index.md) | [Operations](operations.md) → |
+| ← [CLI](cli.md) | [📖 Docs home](index.md) | [Plugin presets](presets.md) → |

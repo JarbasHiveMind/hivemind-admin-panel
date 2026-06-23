@@ -29,6 +29,8 @@ get a hub plus a place to administer it.
   pre-activation validation; browse the agent-engine taxonomy.
 - **Plugin lifecycle** — install, **upgrade**, and **uninstall** plugins (with an
   active-module guard) and see installed versions.
+- **Plugin presets** — named, reusable `{module, config}` for STT/TTS/WW/VAD/agent/
+  network (local plugin or OVOS-server pointer); author once, test, and select.
 - **Config safety** — `server.json` is snapshotted before every change; diff and
   one-click **revert** from the Operations page.
 - **OVOS servers** — register and health-check external persona/STT/TTS/translate servers.
@@ -100,7 +102,7 @@ reference track for advanced devs.
 [Configuration](docs/configuration.md) · [Operations](docs/operations.md) ·
 [Security](docs/security.md) · [Deployment](docs/deployment.md) ·
 [OVOS servers](docs/ovos-servers.md) · [Chat bridges](docs/bridges.md) ·
-[Test Chat](docs/test-chat.md)
+[Test Chat](docs/test-chat.md) · [Plugin presets](docs/presets.md)
 
 **Develop:** [Architecture](docs/architecture.md) · [Extending](docs/extending.md) ·
 [API reference](docs/api-reference.md) · [Development](docs/development.md) ·

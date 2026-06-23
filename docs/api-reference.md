@@ -378,6 +378,20 @@ a flat list of entry-point strings. **Side effect: HiveMind plugin discovery.**
 
 ---
 
+## 6b. Plugin presets
+
+Reusable `{module, config}` per plugin type — see [Plugin presets](presets.md).
+Types: `stt`/`tts`/`ww`/`vad`/`agent`/`network`.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET    | `/presets` · `/presets/{type}` | Yes | All, or one type (+ `installed_modules`) |
+| GET/POST/PUT/DELETE | `/presets/{type}[/{name}]` | read Yes / write Admin | CRUD |
+| POST   | `/presets/{type}/{name}/test`  | Yes   | Load-check (module installed) |
+| POST   | `/presets/{type}/{name}/apply` | Admin | Activate an agent/network preset into `server.json` (snapshots first) |
+
+---
+
 ## 7. Database profiles
 
 Named, reusable DB backend configs stored as JSON files in

@@ -31,7 +31,8 @@ Start here if you've never run HiveMind. No prior knowledge assumed.
 2. **[CLI reference](cli.md)** — every command-line flag.
 3. **[Configuration](configuration.md)** — `server.json`, credentials, database
    backends, personas.
-4. **[Operations](operations.md)** — monitoring, sessions & roles, pairing,
+4. **[Plugin presets](presets.md)** — reusable STT/TTS/WW/VAD/agent/network configs.
+5. **[Operations](operations.md)** — monitoring, sessions & roles, pairing,
    backup/restore, policy, TLS.
 5. **[Security](security.md)** — the auth model and how to harden it.
 6. **[Deployment](deployment.md)** — Docker, Compose, reverse proxy, systemd.
