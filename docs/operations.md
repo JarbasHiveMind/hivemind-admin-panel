@@ -106,3 +106,10 @@ gracefully.
   (Basic/Bearer), not cookies, so it is not exposed to cross-site request forgery.
 - **Config dry-run** — `POST /config/diff` previews added/removed/changed keys
   before you apply a config.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Configuration](configuration.md) | [📖 Docs home](index.md) | [Security](security.md) → |

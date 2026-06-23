@@ -68,3 +68,10 @@ read-only status/control seam (a localhost query or a bus message) that the pane
 consumes, which would also let the panel run fully **out-of-process or remote**
 rather than only in-process. Until then, treat `/connections` live data as
 advisory and rely on the database-backed views for authoritative state.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Test Chat](test-chat.md) | [📖 Docs home](index.md) | [Extending](extending.md) → |

@@ -770,3 +770,10 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 > `POST /clients/{client_id}/rename` (`{"name": ...}`), `POST /database/test`
 > (`{"module": ..., "config": ...}`), `PUT /persona/config`, and
 > `PUT /personas/{name}`.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Extending](extending.md) | [📖 Docs home](index.md) | [Development](development.md) → |

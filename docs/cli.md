@@ -81,3 +81,10 @@ configured in `~/.config/hivemind-core/server.json`, **not** via CLI flags. See
 Press `Ctrl-C` (SIGINT) to shut down cleanly. In the default hivemind-core + panel mode the
 hivemind-core runs on the main thread and installs the SIGINT/SIGTERM handlers, so the signal
 is handled there and both hivemind-core and panel stop together.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Running](running.md) | [📖 Docs home](index.md) | [Configuration](configuration.md) → |

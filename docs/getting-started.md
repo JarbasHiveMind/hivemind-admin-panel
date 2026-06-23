@@ -61,3 +61,10 @@ See [Running](running.md) for the difference between the two modes.
 - [Configuration](configuration.md) — credentials and the database backend.
 - [API reference](api-reference.md) — drive everything over REST.
 - [Deployment](deployment.md) — Docker / Compose / reverse proxy.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Concepts](concepts.md) | [📖 Docs home](index.md) | [Tutorial](tutorial.md) → |

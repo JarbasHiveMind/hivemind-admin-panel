@@ -70,3 +70,10 @@ These are known and worth accounting for when deploying:
    reverse proxy.
 3. Network-isolate the host; the panel and the OVOS bus it can reach are trusted
    surfaces.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Operations](operations.md) | [📖 Docs home](index.md) | [Deployment](deployment.md) → |

@@ -93,3 +93,10 @@ persona built only from factual/scripted handlers needs no GPU.
 
 The same persona JSON can be hosted over an OpenAI/Ollama HTTP API by
 **ovos-persona-server** — see [OVOS servers & homelab synergy](ovos-servers.md).
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [CLI](cli.md) | [📖 Docs home](index.md) | [Operations](operations.md) → |

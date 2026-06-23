@@ -78,3 +78,10 @@ agent/STT/TTS/database plugins hivemind-core uses.
 - [Deployment](deployment.md) — running hivemind-core + panel (and the Compose stack)
 - The broader OVOS server list also includes `ovos-bus-server`, `ovos-ww-server`,
   and `ovos-opendata-server`.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Deployment](deployment.md) | [📖 Docs home](index.md) | [Chat bridges](bridges.md) → |

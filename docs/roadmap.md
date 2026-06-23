@@ -48,3 +48,10 @@ to hivemind-core. In `--no-core` mode these degrade gracefully (no live hivemind
   coverage is extended progressively via `data-i18n` tags.
 - Passwords now support PBKDF2 hashes (`pbkdf2_sha256$…`) while still accepting
   legacy plaintext for back-compat; change one via `POST /auth/password`.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Development](development.md) | [📖 Docs home](index.md) | &nbsp; |

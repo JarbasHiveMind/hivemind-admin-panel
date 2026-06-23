@@ -68,3 +68,10 @@ or an [OVOS server](ovos-servers.md), or run your OVOS skills.
 | DELETE | `/chat/sessions/{sid}` | End the session |
 
 See the [API reference](api-reference.md) for details.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Chat bridges](bridges.md) | [📖 Docs home](index.md) | [Architecture](architecture.md) → |

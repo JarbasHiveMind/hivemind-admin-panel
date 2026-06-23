@@ -103,3 +103,10 @@ You now know the vocabulary. Next:
 - **[Getting started](getting-started.md)** — install and launch.
 - **[Tutorial](tutorial.md)** — do it all end-to-end.
 - **[Glossary](glossary.md)** — any term, defined.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Documentation home](index.md) | [📖 Docs home](index.md) | [Getting started](getting-started.md) → |

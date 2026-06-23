@@ -73,3 +73,10 @@ The end-to-end suite runs in `build-tests` and `coverage` on every PR.
 - Branch model: work on a feature branch → PR into `dev`; releases flow `dev` →
   `master`. `dev` is the default branch.
 - License: Apache-2.0; keep the SPDX header on new source files.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [API reference](api-reference.md) | [📖 Docs home](index.md) | [Roadmap](roadmap.md) → |

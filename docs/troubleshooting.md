@@ -216,3 +216,10 @@ GGUF) are optional and can be mixed in. See [Configuration](configuration.md).
 No — one panel instance manages exactly one hivemind-core (the one it launches,
 or the on-disk state it reads in `--no-core` mode). Run a separate panel per
 hivemind-core instance.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Glossary](glossary.md) | [📖 Docs home](index.md) | [Running](running.md) → |

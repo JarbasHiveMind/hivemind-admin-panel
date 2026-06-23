@@ -92,3 +92,10 @@ sudo systemctl enable --now hivemind-admin-panel
 
 This single unit runs hivemind-core and the panel together. Add `--no-core` to the
 `ExecStart` line if hivemind-core is managed by a separate service on the host.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Security](security.md) | [📖 Docs home](index.md) | [OVOS servers](ovos-servers.md) → |

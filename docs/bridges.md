@@ -71,3 +71,10 @@ you can revoke it like any other client (which immediately drops it).
   [OVOS server](ovos-servers.md) so the bridge has something to answer with.
 - Give bridges a recognizable client name; the `bridge:<platform>` tag is what
   the panel uses to label them, so keep it if you edit tags.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [OVOS servers](ovos-servers.md) | [📖 Docs home](index.md) | [Test Chat](test-chat.md) → |

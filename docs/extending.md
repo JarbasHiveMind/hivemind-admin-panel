@@ -108,3 +108,10 @@ Conventions: one test file per domain; Apache-2.0 SPDX header on new files; neve
 hand-edit `version.py`; work on a feature branch and let CI (the gh-automations
 workflows) run build-tests/coverage/lint/license-check. See
 [Development](development.md).
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Architecture](architecture.md) | [📖 Docs home](index.md) | [API reference](api-reference.md) → |

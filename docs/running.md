@@ -60,3 +60,10 @@ hivemind-admin-panel --no-core --reload
 | `--no-core` | off | serve the panel only; do not start a hivemind-core instance |
 | `--reload` | off | dev auto-reload (implies `--no-core`) |
 | `--log-level` | `INFO` | log level for the in-process hivemind-core |
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Troubleshooting](troubleshooting.md) | [📖 Docs home](index.md) | [CLI](cli.md) → |

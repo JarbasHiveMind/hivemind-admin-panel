@@ -150,3 +150,10 @@ persona, and monitored it live. Where to go next:
   for a homelab.
 - **[Configuration](configuration.md)** — every `server.json` knob.
 - **[Troubleshooting](troubleshooting.md)** — if anything misbehaved.
+
+---
+
+<!-- nav-footer -->
+|  |  |  |
+|:--|:-:|--:|
+| ← [Getting started](getting-started.md) | [📖 Docs home](index.md) | [Glossary](glossary.md) → |
