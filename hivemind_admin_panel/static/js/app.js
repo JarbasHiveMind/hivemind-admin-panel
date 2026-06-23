@@ -587,7 +587,51 @@
         }
 
         // ===================== Operations =====================
-        async function loadOpsPage() { await loadCerts(); await loadPolicy(); }
+        async function loadOpsPage() { await loadCerts(); await loadPolicy(); await loadConfigBackups(); }
+
+        async function loadConfigBackups() {
+            const el = document.getElementById('configBackups');
+            if (!el) return;
+            try {
+                const snaps = await apiCall('/config/backups');
+                if (!snaps.length) { el.innerHTML = '<span style="color:var(--text-secondary);">No snapshots yet.</span>'; return; }
+                el.innerHTML = snaps.map(s => `
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
+                        <div><code>${esc(s.file)}</code>
+                            <span style="color:var(--text-secondary);font-size:11px;margin-left:8px;">${new Date(s.mtime*1000).toLocaleString()} · ${(s.size/1024).toFixed(1)} KB</span></div>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-secondary btn-sm" onclick="diffConfigBackup('${esc(s.file)}')">Diff</button>
+                            <button class="btn btn-danger btn-sm" onclick="revertConfigBackup('${esc(s.file)}')">Revert</button>
+                        </div>
+                    </div>`).join('');
+            } catch (e) { el.textContent = 'Failed to load history'; }
+        }
+
+        async function snapshotConfig() {
+            try { await apiCall('/config/backups', 'POST'); showToast('Snapshot saved'); loadConfigBackups(); }
+            catch (e) { showToast('Snapshot failed', 'error'); }
+        }
+
+        async function diffConfigBackup(file) {
+            try {
+                const d = await apiCall('/config/backups/diff?file=' + encodeURIComponent(file));
+                const keys = o => Object.keys(o || {});
+                alert(`Reverting to ${file} would change:\n\n` +
+                      `added: ${keys(d.added).join(', ') || '—'}\n` +
+                      `removed: ${keys(d.removed).join(', ') || '—'}\n` +
+                      `changed: ${keys(d.changed).join(', ') || '—'}`);
+            } catch (e) { showToast('Diff unavailable', 'error'); }
+        }
+
+        async function revertConfigBackup(file) {
+            if (!confirm(`Revert server.json to ${file}? Your current config is snapshotted first.`)) return;
+            try {
+                await apiCall('/config/backups/restore', 'POST', { file });
+                showToast('Config reverted', 'success');
+                loadConfigBackups();
+                showRestartRequiredModal();
+            } catch (e) { showToast('Revert failed: ' + (e.message || ''), 'error'); }
+        }
         async function downloadBackup() {
             const data = await apiCall('/backup');
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

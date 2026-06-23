@@ -900,12 +900,24 @@
                             <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="generateCerts()">Generate self-signed</button>
                         </div>
                     </div>
-                    <div class="card">
+                    <div class="card" style="margin-bottom:24px;">
                         <div class="card-header"><h3>⚖️ Admission policy chain</h3>
                             <button class="btn btn-primary btn-sm" onclick="savePolicy()">Save</button></div>
                         <div class="card-body">
                             <p style="color:var(--text-secondary);margin-bottom:8px;">JSON list of policy modules evaluated for every client message.</p>
                             <textarea id="policyEditor" style="width:100%;height:140px;font-family:monospace;font-size:12px;"></textarea>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>🕗 Config history</h3>
+                            <div style="display:flex;gap:8px;">
+                                <button class="btn btn-secondary btn-sm" onclick="snapshotConfig()">Snapshot now</button>
+                                <button class="btn btn-secondary btn-sm" onclick="loadConfigBackups()">Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="color:var(--text-secondary);margin-bottom:8px;">server.json is snapshotted automatically before every config/plugin change. Revert to any point.</p>
+                            <div id="configBackups" style="font-size:13px;">Loading…</div>
                         </div>
                     </div>
                 </div>

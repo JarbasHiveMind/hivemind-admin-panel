@@ -731,11 +731,128 @@ def set_config(data: ConfigUpdate) -> Dict[str, Any]:
     Returns:
         Dict with status field on success.
     """
+    _snapshot_config()
     cfg = get_server_config()
     for key, value in data.config.items():
         cfg[key] = value
     cfg.store()
     return {"status": "ok"}
+
+
+# ===================== Config snapshots / rollback =====================
+
+def _server_json_path() -> Path:
+    """Path to hivemind-core's server.json."""
+    return Path(xdg_config_home()) / "hivemind-core" / "server.json"
+
+
+def _config_backups_dir() -> Path:
+    return _server_json_path().parent / "config_backups"
+
+
+def _snapshot_config(keep: int = 20) -> Optional[str]:
+    """Copy the current server.json into config_backups/ before a mutation.
+
+    Returns the snapshot filename, or None if there was nothing to snapshot.
+    Best-effort: never raises into the caller.
+    """
+    try:
+        src = _server_json_path()
+        if not src.exists():
+            return None
+        backups = _config_backups_dir()
+        backups.mkdir(parents=True, exist_ok=True)
+        ts = time.strftime("%Y%m%d-%H%M%S")
+        dst = backups / f"server-{ts}.json"
+        i = 1
+        while dst.exists():
+            dst = backups / f"server-{ts}-{i}.json"
+            i += 1
+        dst.write_bytes(src.read_bytes())
+        snaps = sorted(backups.glob("server-*.json"), key=lambda p: p.stat().st_mtime)
+        for old in snaps[:-keep]:
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        return dst.name
+    except Exception as e:  # noqa: BLE001
+        LOG.warning(f"config snapshot failed: {e}")
+        return None
+
+
+class ConfigRestoreRequest(BaseModel):
+    """Restore server.json from a named snapshot."""
+    file: str
+
+
+@app.get("/config/backups", dependencies=[Depends(verify_credentials)])
+def list_config_backups() -> List[Dict[str, Any]]:
+    """List server.json snapshots (newest first)."""
+    backups = _config_backups_dir()
+    out: List[Dict[str, Any]] = []
+    if backups.exists():
+        for p in sorted(backups.glob("server-*.json"),
+                        key=lambda p: p.stat().st_mtime, reverse=True):
+            st = p.stat()
+            out.append({"file": p.name, "size": st.st_size, "mtime": st.st_mtime})
+    return out
+
+
+@app.post("/config/backups", dependencies=[Depends(require_admin)])
+def create_config_backup(request: Request) -> Dict[str, str]:
+    """Take a manual snapshot of the current config."""
+    name = _snapshot_config()
+    if not name:
+        raise HTTPException(status_code=500, detail="Nothing to snapshot")
+    audit(_current_user(request), "config.snapshot", file=name)
+    return {"status": "ok", "file": name}
+
+
+@app.post("/config/backups/restore", dependencies=[Depends(require_admin)])
+def restore_config_backup(data: ConfigRestoreRequest, request: Request) -> Dict[str, Any]:
+    """Revert server.json to a snapshot (snapshots the current state first)."""
+    # path-traversal guard: only a bare filename inside the backups dir
+    if data.file != Path(data.file).name:
+        raise HTTPException(status_code=400, detail="Invalid backup name")
+    src = _config_backups_dir() / data.file
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="Backup not found")
+    try:
+        restored = json.loads(src.read_text())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Corrupt backup: {e}")
+    _snapshot_config()   # so a revert is itself reversible
+    cfg = get_server_config()
+    try:
+        cfg.clear()
+    except Exception:
+        for k in list(cfg.keys()):
+            cfg.pop(k, None)
+    cfg.update(restored)
+    cfg.store()
+    audit(_current_user(request), "config.restore", file=data.file)
+    return {"status": "ok", "restored": data.file}
+
+
+@app.get("/config/backups/diff", dependencies=[Depends(verify_credentials)])
+def diff_config_backup(file: str) -> Dict[str, Any]:
+    """Preview what reverting to a snapshot would change vs the current config."""
+    if file != Path(file).name:
+        raise HTTPException(status_code=400, detail="Invalid backup name")
+    src = _config_backups_dir() / file
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="Backup not found")
+    try:
+        snapshot = json.loads(src.read_text())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Corrupt backup: {e}")
+    current = dict(get_server_config())
+    added = {k: snapshot[k] for k in snapshot if k not in current}
+    removed = {k: current[k] for k in current if k not in snapshot}
+    changed = {k: {"from": current[k], "to": snapshot[k]}
+               for k in snapshot if k in current and current[k] != snapshot[k]}
+    return {"file": file, "added": added, "removed": removed, "changed": changed}
 
 
 @app.post("/config/validate", dependencies=[Depends(verify_credentials)])
@@ -1654,6 +1771,7 @@ def enable_plugin(data: ConfigUpdateRequest) -> PluginInstallResult:
 
     LOG.info(f"Plugin enable/disable: type={data.plugin_type} module={data.module} enabled={data.enabled}")
 
+    _snapshot_config()
     cfg = get_server_config()
     config_updated = False
 
@@ -3345,17 +3463,22 @@ def export_persona(name: str) -> Dict[str, Any]:
 
 
 @app.post("/personas/{name}/activate", dependencies=[Depends(verify_credentials)])
-def activate_persona(name: str) -> Dict[str, Any]:
-    """Activate a persona by setting it as the default.
-    
+def activate_persona(name: str, force: bool = False) -> Dict[str, Any]:
+    """Activate a persona as the agent backend.
+
+    Validates the persona before activating: a persona with config errors or
+    handler plugins that aren't installed is rejected with 409 unless
+    ``?force=true`` is passed (so you don't activate a hub that can't answer).
+
     Args:
         name: Persona name.
-        
+        force: Activate even if validation fails.
+
     Returns:
         Activation status.
-        
+
     Raises:
-        HTTPException: 404 if persona not found.
+        HTTPException: 404 if not found, 409 if not ready (and not forced).
     """
     # Verify persona exists
     personas = _load_persona_files()
@@ -3374,10 +3497,30 @@ def activate_persona(name: str) -> Dict[str, Any]:
     if not persona_path:
         raise HTTPException(status_code=500, detail=f"Persona '{name}' has no associated file path")
 
+    # Pre-activation validation — don't activate a persona that can't answer.
+    if not force:
+        is_valid, errors = _validate_persona_config(persona_data)
+        missing: List[str] = []
+        try:
+            available = _discover_chat_engines()
+            for handler in (persona_data.get("handlers") or persona_data.get("solvers") or []):
+                if handler not in available:
+                    missing.append(handler)
+        except ImportError:
+            pass
+        if not is_valid or missing:
+            raise HTTPException(status_code=409, detail={
+                "message": f"Persona '{name}' is not ready to activate",
+                "errors": errors,
+                "missing_handlers": missing,
+                "hint": "Install the missing handler plugins, or retry with ?force=true.",
+            })
+
     # Get full path to persona file
     full_path = str(Path(xdg_config_home()) / "ovos_persona" / persona_path)
 
     # Update hivemind config to set active persona
+    _snapshot_config()
     config = get_server_config()
 
     if "agent_protocol" not in config:
@@ -3875,6 +4018,7 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
     if data.servers is not None:
         _save_servers(data.servers)
     if data.restore_config and data.config:
+        _snapshot_config()
         cfg = get_server_config()
         for k, v in data.config.items():
             cfg[k] = v
@@ -3897,6 +4041,7 @@ def get_policy() -> Dict[str, Any]:
 @app.put("/policy", dependencies=[Depends(require_admin)])
 def set_policy(data: PolicyUpdate) -> Dict[str, Any]:
     """Replace the admission policy chain. Admin only."""
+    _snapshot_config()
     cfg = get_server_config()
     policy = cfg.get("policy", {}) or {}
     policy["chain"] = data.chain
