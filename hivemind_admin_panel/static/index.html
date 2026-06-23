@@ -77,6 +77,10 @@
                     <span class="nav-icon">👤</span>
                     <span data-i18n="personas">Personas</span>
                 </button>
+                <button class="nav-item" onclick="navigate('chat')" data-page="chat">
+                    <span class="nav-icon">💬</span>
+                    <span data-i18n="chat">Test Chat</span>
+                </button>
                 <button class="nav-item" onclick="navigate('agents')" data-page="agents">
                     <span class="nav-icon">🤖</span>
                     <span data-i18n="agents">Agent Protocol</span>
@@ -772,6 +776,35 @@
                 </div>
 
                 <!-- Topology Page -->
+                <!-- Test Chat (impersonate a client) -->
+                <div id="chatPage" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>💬 Test Chat — impersonate a client</h3></div>
+                        <div class="card-body">
+                            <p style="font-size:12px;color:var(--text-secondary);margin-top:0;">
+                                Pick any registered client and chat through the hub <strong>as that client</strong>.
+                                The panel opens a real connection with its credentials, so this exercises the
+                                genuine path — its ACL, routing, and whatever agent (OVOS / persona) is behind the hub.
+                                Requires a running hub (in-process by default).
+                            </p>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+                                <select id="impersonateClient" style="padding:8px;min-width:200px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select>
+                                <button id="impersonateBtn" class="btn btn-primary btn-sm" onclick="startImpersonation()">Start chat</button>
+                                <button id="endImpersonateBtn" class="btn btn-secondary btn-sm hidden" onclick="endImpersonation()">End</button>
+                                <span id="impersonateStatus" style="font-size:12px;color:var(--text-secondary);"></span>
+                            </div>
+                            <div id="chatTranscript" style="border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-secondary);min-height:280px;max-height:50vh;overflow-y:auto;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
+                                <div style="color:var(--text-secondary);font-size:13px;margin:auto;">Start a chat to impersonate a client.</div>
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <input id="chatInput" placeholder="Type an utterance…" disabled style="flex:1;padding:10px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"
+                                       onkeydown="if(event.key==='Enter')sendImpersonationMessage()">
+                                <button id="chatSendBtn" class="btn btn-primary" onclick="sendImpersonationMessage()" disabled>Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="topologyPage" class="page">
                     <div class="card">
                         <div class="card-header"><h3>🕸️ Mesh topology</h3>

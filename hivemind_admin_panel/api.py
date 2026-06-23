@@ -4065,6 +4065,96 @@ def provision_bridge(data: BridgeProvision, request: Request) -> Dict[str, Any]:
     }
 
 
+# ===================== Client impersonation chat =====================
+#
+# Chat through the hub *as* any registered client. The panel opens a real bus
+# client with that client's credentials (server-side), so this exercises the
+# genuine path — ACLs, routing, the agent backend — like a built-in webchat that
+# can wear any client's identity. Requires a reachable hub (in-process by default).
+
+class ChatStart(BaseModel):
+    """Begin impersonating a client."""
+    client_id: int
+
+
+class ChatSay(BaseModel):
+    """Send one utterance on the impersonated client's behalf."""
+    utterance: str
+    lang: Optional[str] = "en-us"
+
+
+def _impersonation_endpoint() -> Dict[str, Any]:
+    """Where to reach the hub for impersonation — loopback to the in-process core."""
+    ep = _ws_endpoint()
+    host = ep["host"]
+    if host in ("0.0.0.0", "", None):
+        host = "127.0.0.1"
+    return {"host": host, "port": ep["port"]}
+
+
+@app.post("/chat/sessions", dependencies=[Depends(require_admin)])
+def chat_start(data: ChatStart, request: Request) -> Dict[str, Any]:
+    """Open an impersonation chat session for a client (admin only)."""
+    from hivemind_admin_panel._chat import CHAT
+    with ClientDatabase() as db:
+        client = next((c for c in db if getattr(c, "client_id", -1) == data.client_id), None)
+        if client is None:
+            raise HTTPException(status_code=404, detail="Client not found")
+        key, password = client.api_key, client.password
+        crypto_key, name = client.crypto_key, client.name
+    if str(key).upper() == "REVOKED":
+        raise HTTPException(status_code=400, detail="Client is revoked")
+    ep = _impersonation_endpoint()
+    sess = CHAT.create(data.client_id, name, key, password, crypto_key, ep["host"], ep["port"])
+    if sess.error:
+        CHAT.close(sess.id)
+        raise HTTPException(status_code=502,
+                            detail=f"Could not impersonate '{name}': {sess.error}")
+    audit(_current_user(request), "chat.impersonate.start", client_id=data.client_id)
+    return {"session_id": sess.id, "client_id": data.client_id, "name": name,
+            "endpoint": f"{ep['host']}:{ep['port']}"}
+
+
+@app.post("/chat/sessions/{sid}/say", dependencies=[Depends(require_admin)])
+def chat_say(sid: str, data: ChatSay) -> Dict[str, str]:
+    """Send an utterance as the impersonated client; replies arrive asynchronously."""
+    from hivemind_admin_panel._chat import CHAT
+    sess = CHAT.get(sid)
+    if sess is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    if not (data.utterance or "").strip():
+        raise HTTPException(status_code=400, detail="Empty utterance")
+    sess.say(data.utterance.strip(), data.lang or "en-us")
+    return {"status": "ok"}
+
+
+@app.get("/chat/sessions/{sid}/messages", dependencies=[Depends(verify_credentials)])
+def chat_messages(sid: str, since: int = 0) -> Dict[str, Any]:
+    """Poll the transcript; ``since`` is the count already seen by the client."""
+    from hivemind_admin_panel._chat import CHAT
+    sess = CHAT.get(sid)
+    if sess is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    msgs, total = sess.messages(since)
+    return {"messages": msgs, "total": total}
+
+
+@app.get("/chat/sessions", dependencies=[Depends(verify_credentials)])
+def chat_list() -> List[Dict[str, Any]]:
+    """Active impersonation sessions."""
+    from hivemind_admin_panel._chat import CHAT
+    return CHAT.list_active()
+
+
+@app.delete("/chat/sessions/{sid}", dependencies=[Depends(require_admin)])
+def chat_end(sid: str, request: Request) -> Dict[str, str]:
+    """End an impersonation session (disconnects the bus client)."""
+    from hivemind_admin_panel._chat import CHAT
+    CHAT.close(sid)
+    audit(_current_user(request), "chat.impersonate.end", session=sid)
+    return {"status": "ok"}
+
+
 def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Build the security self-check list shown on the dashboard.
 

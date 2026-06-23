@@ -365,6 +365,7 @@
                 clients: 'Client Management',
                 acl: 'Access Control Lists',
                 personas: 'Personas',
+                chat: 'Test Chat',
                 agents: 'Agent Protocol',
                 database: 'Database Backend',
                 network: 'Network Protocols',
@@ -387,6 +388,7 @@
             if (page === 'clients') { currentPage = 1; loadClients(); }
             if (page === 'acl') loadACLPage();
             if (page === 'personas') { loadPersonasPage(); fillChatPersonas(); }
+            if (page === 'chat') loadChatPage();
             if (page === 'agents') loadAgentProtocolsPage();
             if (page === 'database') loadDatabasePage();
             if (page === 'network') loadNetworkPage();
@@ -987,6 +989,99 @@
                 showToast('Failed to add client', 'error');
             }
         }
+
+        // ---- Test Chat: impersonate a client -----------------------------------------
+        let _chatSession = null;     // {session_id, name}
+        let _chatSeen = 0;           // transcript messages already rendered
+        let _chatPoll = null;
+
+        async function loadChatPage() {
+            const sel = document.getElementById('impersonateClient');
+            try {
+                const clients = await apiCall('/clients');
+                sel.innerHTML = clients
+                    .filter(c => String(c.api_key).toUpperCase() !== 'REVOKED')
+                    .map(c => `<option value="${c.client_id}">${esc(c.name)} (#${c.client_id})${c.is_admin ? ' ★' : ''}</option>`).join('')
+                    || '<option value="">no clients — create one first</option>';
+            } catch (e) { showToast('Could not load clients', 'error'); }
+        }
+
+        function _chatBubble(m) {
+            const mine = m.role === 'user';
+            const sys = m.role === 'system';
+            const align = mine ? 'flex-end' : 'flex-start';
+            const bg = mine ? 'var(--accent-primary)' : (sys ? 'transparent' : 'var(--bg-hover)');
+            const color = mine ? '#fff' : (sys ? 'var(--text-secondary)' : 'var(--text-primary)');
+            const border = sys ? 'border:1px dashed var(--border-color);' : '';
+            const who = mine ? 'you (as client)' : (sys ? 'system' : 'hub');
+            return `<div style="align-self:${align};max-width:80%;">
+                      <div style="font-size:10px;color:var(--text-secondary);margin:0 4px 2px;text-align:${mine?'right':'left'};">${who}</div>
+                      <div style="background:${bg};color:${color};${border}padding:8px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;">${esc(m.text)}</div>
+                    </div>`;
+        }
+
+        async function startImpersonation() {
+            const cid = document.getElementById('impersonateClient').value;
+            if (!cid) return;
+            const btn = document.getElementById('impersonateBtn');
+            btn.disabled = true;
+            document.getElementById('impersonateStatus').textContent = 'connecting…';
+            try {
+                _chatSession = await apiCall('/chat/sessions', 'POST', { client_id: Number(cid) });
+                _chatSeen = 0;
+                document.getElementById('chatTranscript').innerHTML = '';
+                document.getElementById('impersonateStatus').textContent =
+                    `impersonating ${_chatSession.name} → ${_chatSession.endpoint}`;
+                document.getElementById('chatInput').disabled = false;
+                document.getElementById('chatSendBtn').disabled = false;
+                document.getElementById('endImpersonateBtn').classList.remove('hidden');
+                document.getElementById('impersonateClient').disabled = true;
+                document.getElementById('chatInput').focus();
+                _startChatPolling();
+            } catch (e) {
+                document.getElementById('impersonateStatus').textContent = '';
+                showToast('Impersonation failed: ' + (e.message || ''), 'error');
+            } finally { btn.disabled = false; }
+        }
+
+        async function endImpersonation() {
+            _stopChatPolling();
+            if (_chatSession) { try { await apiCall('/chat/sessions/' + _chatSession.session_id, 'DELETE'); } catch (e) {} }
+            _chatSession = null;
+            document.getElementById('impersonateStatus').textContent = '';
+            document.getElementById('chatInput').disabled = true;
+            document.getElementById('chatSendBtn').disabled = true;
+            document.getElementById('endImpersonateBtn').classList.add('hidden');
+            document.getElementById('impersonateClient').disabled = false;
+        }
+
+        async function sendImpersonationMessage() {
+            if (!_chatSession) return;
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            try {
+                await apiCall('/chat/sessions/' + _chatSession.session_id + '/say', 'POST', { utterance: text });
+                _pollChatOnce();
+            } catch (e) { showToast('Send failed', 'error'); }
+        }
+
+        async function _pollChatOnce() {
+            if (!_chatSession) return;
+            try {
+                const r = await apiCall('/chat/sessions/' + _chatSession.session_id + '/messages?since=' + _chatSeen);
+                if (r.messages && r.messages.length) {
+                    const box = document.getElementById('chatTranscript');
+                    r.messages.forEach(m => box.insertAdjacentHTML('beforeend', _chatBubble(m)));
+                    _chatSeen = r.total;
+                    box.scrollTop = box.scrollHeight;
+                }
+            } catch (e) {}
+        }
+
+        function _startChatPolling() { _stopChatPolling(); _chatPoll = setInterval(_pollChatOnce, 1200); }
+        function _stopChatPolling() { if (_chatPoll) { clearInterval(_chatPoll); _chatPoll = null; } }
 
         // ---- Bridge provisioning preset ----------------------------------------------
         let _bridgeCatalog = [];

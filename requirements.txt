@@ -4,6 +4,8 @@
 # (imported by api.py). These alpha floors pull the Apache-licensed, current
 # packages and make pip accept them without --pre.
 hivemind-core>=4.6.1a1,<5.0.0
+# used directly for the client-impersonation chat (server-side bus client)
+hivemind-bus-client>=0.9.0,<1.0.0
 hivemind-plugin-manager>=0.7.1a1,<1.0.0
 ovos-plugin-manager>=2.6.1a2,<3.0.0
 ovos-utils>=0.3.0,<1.0.0
