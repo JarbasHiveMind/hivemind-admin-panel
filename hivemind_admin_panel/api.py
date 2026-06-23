@@ -76,7 +76,7 @@ from ovos_plugin_manager.vad import find_vad_plugins
 from ovos_plugin_manager.wakewords import find_wake_word_plugins
 from ovos_utils.log import LOG
 from ovos_utils.xdg_utils import xdg_config_home
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from websocket import create_connection
 
 if TYPE_CHECKING:
@@ -3199,14 +3199,21 @@ def _check_persona_models(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class PersonaCreate(BaseModel):
-    """Request model for creating a persona."""
+    """Request model for creating a persona.
+
+    Per-handler and per-memory-module config arrive as **extra** fields keyed by
+    entry point (e.g. ``{"ovos-solver-openai-plugin": {...}, "memory_module":
+    "ovos-agents-short-term-memory-plugin", "ovos-agents-short-term-memory-plugin":
+    {...}}``) — ``extra="allow"`` keeps them so they're persisted on create, the
+    same way ``ovos_persona.Persona`` reads ``config.get(<entry_point>)``.
+    """
+    model_config = ConfigDict(extra="allow")
 
     name: str
     description: Optional[str] = None
     handlers: Optional[List[str]] = None  # modern: persona response engines (chat/agent plugins)
     solvers: List[str] = []  # deprecated alias for handlers (legacy solver plugins)
     memory_module: Optional[str] = "ovos-agents-short-term-memory-plugin"
-    # Per-handler config goes in extra fields keyed by entry point
 
 
 @app.get("/personas", dependencies=[Depends(verify_credentials)])
@@ -3292,6 +3299,14 @@ def create_persona(data: PersonaCreate) -> Dict[str, Any]:
     # Memory module
     if data.memory_module:
         config["memory_module"] = data.memory_module
+
+    # Per-entry-point config (handler config + memory-module config) arrives as
+    # extra fields; persist them so create matches edit (and ovos-persona reads
+    # config under each entry-point key).
+    reserved = {"name", "description", "handlers", "solvers", "memory_module", "status", "path"}
+    for key, value in (data.__pydantic_extra__ or {}).items():
+        if key not in reserved:
+            config[key] = value
 
     # Validate
     is_valid, errors = _validate_persona_config(config)
@@ -3844,6 +3859,66 @@ def chat_with_persona(name: str, data: PersonaChatRequest) -> Dict[str, Any]:
     except Exception as e:
         LOG.error(f"persona chat failed for {name}: {e}")
         return {"persona": name, "reply": None, "error": str(e)}
+
+
+# ----- Multi-turn persona chat (persistent Persona, memory accumulates) -----
+
+class PersonaChatSay(BaseModel):
+    """One turn in a multi-turn persona chat session."""
+    message: str
+    lang: Optional[str] = "en-US"
+
+
+@app.post("/personas/{name}/chat/sessions", dependencies=[Depends(require_admin)])
+def persona_chat_start(name: str, request: Request) -> Dict[str, Any]:
+    """Open a multi-turn chat session against a persona (keeps memory across turns)."""
+    path = _get_persona_file_path(name)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
+    try:
+        config = json.loads(path.read_text())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid persona file: {e}")
+    from hivemind_admin_panel._persona_chat import PERSONA_CHAT
+    sess = PERSONA_CHAT.create(name, config)
+    if sess.error:
+        PERSONA_CHAT.close(sess.id)
+        raise HTTPException(status_code=502, detail=f"Could not load persona '{name}': {sess.error}")
+    audit(_current_user(request), "persona.chat.start", persona=name)
+    return {"session_id": sess.id, "name": name}
+
+
+@app.post("/personas/chat/sessions/{sid}/say", dependencies=[Depends(require_admin)])
+def persona_chat_say(sid: str, data: PersonaChatSay) -> Dict[str, str]:
+    """Send a turn; the reply is appended to the transcript synchronously."""
+    from hivemind_admin_panel._persona_chat import PERSONA_CHAT
+    sess = PERSONA_CHAT.get(sid)
+    if sess is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    if not (data.message or "").strip():
+        raise HTTPException(status_code=400, detail="Empty message")
+    sess.say(data.message.strip(), data.lang or "en-US")
+    return {"status": "ok"}
+
+
+@app.get("/personas/chat/sessions/{sid}/messages", dependencies=[Depends(verify_credentials)])
+def persona_chat_messages(sid: str, since: int = 0) -> Dict[str, Any]:
+    """Poll the transcript (``since`` = count already seen)."""
+    from hivemind_admin_panel._persona_chat import PERSONA_CHAT
+    sess = PERSONA_CHAT.get(sid)
+    if sess is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    msgs, total = sess.messages(since)
+    return {"messages": msgs, "total": total}
+
+
+@app.delete("/personas/chat/sessions/{sid}", dependencies=[Depends(require_admin)])
+def persona_chat_end(sid: str, request: Request) -> Dict[str, str]:
+    """End a persona chat session (drops the Persona instance / its memory)."""
+    from hivemind_admin_panel._persona_chat import PERSONA_CHAT
+    PERSONA_CHAT.close(sid)
+    audit(_current_user(request), "persona.chat.end", session=sid)
+    return {"status": "ok"}
 
 
 @app.get("/plugins/agents", dependencies=[Depends(verify_credentials)])

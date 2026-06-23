@@ -454,16 +454,47 @@
                     || '<option value="">(no personas)</option>';
             } catch (e) {}
         }
-        async function sendPersonaChat() {
+        // ---- Multi-turn persona test chat -------------------------------------------
+        let _personaChatSid = null;
+        let _personaChatSeen = 0;
+
+        async function startPersonaChat() {
             const name = document.getElementById('chatPersona').value;
-            const message = document.getElementById('chatMessage').value.trim();
-            const out = document.getElementById('chatReply');
-            if (!name || !message) return;
-            out.textContent = '…thinking…';
+            if (!name) { showToast('Pick a persona first', 'error'); return; }
+            const status = document.getElementById('personaChatStatus');
+            status.textContent = 'loading persona…';
             try {
-                const r = await apiCall(`/personas/${encodeURIComponent(name)}/chat`, 'POST', { message });
-                out.textContent = r.error ? ('⚠️ ' + r.error) : (r.reply || '(empty reply)');
-            } catch (e) { out.textContent = '⚠️ ' + e.message; }
+                // drop any previous session (fresh instance = cleared memory)
+                if (_personaChatSid) { try { await apiCall('/personas/chat/sessions/' + _personaChatSid, 'DELETE'); } catch (e) {} }
+                const r = await apiCall(`/personas/${encodeURIComponent(name)}/chat/sessions`, 'POST');
+                _personaChatSid = r.session_id; _personaChatSeen = 0;
+                document.getElementById('personaChatTranscript').innerHTML = '';
+                status.textContent = `chatting with ${name} (memory live)`;
+                document.getElementById('chatMessage').disabled = false;
+                document.getElementById('personaChatSendBtn').disabled = false;
+                document.getElementById('personaChatNewBtn').classList.remove('hidden');
+                document.getElementById('chatMessage').focus();
+            } catch (e) {
+                status.textContent = '';
+                showToast('Could not start: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
+            }
+        }
+
+        async function sendPersonaChat() {
+            if (!_personaChatSid) { return startPersonaChat(); }
+            const input = document.getElementById('chatMessage');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            const box = document.getElementById('personaChatTranscript');
+            try {
+                await apiCall('/personas/chat/sessions/' + _personaChatSid + '/say', 'POST', { message: text });
+                const r = await apiCall('/personas/chat/sessions/' + _personaChatSid + '/messages?since=' + _personaChatSeen);
+                const labels = { user: 'you', assistant: 'persona', system: 'system' };
+                (r.messages || []).forEach(m => box.insertAdjacentHTML('beforeend', _chatBubble(m, labels)));
+                _personaChatSeen = r.total;
+                box.scrollTop = box.scrollHeight;
+            } catch (e) { showToast('Send failed', 'error'); }
         }
 
         // ===================== Monitor =====================
@@ -1050,14 +1081,15 @@
             } catch (e) { showToast('Could not load clients', 'error'); }
         }
 
-        function _chatBubble(m) {
+        function _chatBubble(m, labels) {
+            labels = labels || { user: 'you (as client)', assistant: 'hub', system: 'system' };
             const mine = m.role === 'user';
             const sys = m.role === 'system';
             const align = mine ? 'flex-end' : 'flex-start';
             const bg = mine ? 'var(--accent-primary)' : (sys ? 'transparent' : 'var(--bg-hover)');
             const color = mine ? '#fff' : (sys ? 'var(--text-secondary)' : 'var(--text-primary)');
             const border = sys ? 'border:1px dashed var(--border-color);' : '';
-            const who = mine ? 'you (as client)' : (sys ? 'system' : 'hub');
+            const who = mine ? labels.user : (sys ? labels.system : labels.assistant);
             return `<div style="align-self:${align};max-width:80%;">
                       <div style="font-size:10px;color:var(--text-secondary);margin:0 4px 2px;text-align:${mine?'right':'left'};">${who}</div>
                       <div style="background:${bg};color:${color};${border}padding:8px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;">${esc(m.text)}</div>
@@ -2110,13 +2142,44 @@
             document.getElementById('editPersonaName').value = '';
             document.getElementById('personaName').value = '';
             document.getElementById('personaDescription').value = '';
-            document.getElementById('personaMemoryModule').value = 'ovos-agents-short-term-memory-plugin';
+            document.getElementById('personaMemoryConfig').value = '';
             document.getElementById('createPersonaStatus').classList.add('hidden');
             document.getElementById('personaSolverConfigContainer').innerHTML = '';
             document.getElementById('createPersonaModal').classList.add('active');
             selectedSolvers = [];
             _solverConfigs = {};
+            loadMemoryModules('ovos-agents-short-term-memory-plugin');
             loadSolverPluginsForPersona();
+        }
+
+        // Populate the memory-module dropdown from installed memory plugins
+        async function loadMemoryModules(selected) {
+            const sel = document.getElementById('personaMemoryModule');
+            if (!sel) return;
+            let installed = [];
+            try { installed = await apiCall('/plugins/memory'); } catch (e) {}
+            const want = selected != null ? selected : sel.value;
+            const opts = ['<option value="">None (disable memory)</option>'];
+            const seen = new Set();
+            for (const m of installed) { seen.add(m); opts.push(`<option value="${esc(m)}">${esc(m)}</option>`); }
+            // keep the selected value even if discovery didn't list it (e.g. not installed yet)
+            if (want && !seen.has(want)) opts.push(`<option value="${esc(want)}">${esc(want)} (not installed)</option>`);
+            sel.innerHTML = opts.join('');
+            sel.value = want || '';
+            onMemoryModuleChange();
+        }
+
+        function onMemoryModuleChange() {
+            const mod = document.getElementById('personaMemoryModule').value;
+            document.getElementById('personaMemoryConfigWrap').style.display = mod ? 'block' : 'none';
+        }
+
+        async function installMemoryPlugin() {
+            const pkg = document.getElementById('personaMemoryInstall').value.trim();
+            if (!pkg) return;
+            await installPluginWithProgress(pkg, false);
+            document.getElementById('personaMemoryInstall').value = '';
+            loadMemoryModules(document.getElementById('personaMemoryModule').value);
         }
 
         function closeCreatePersonaModal() {
@@ -2467,6 +2530,16 @@
                     personaConfig[ep] = cfg;
                 }
             }
+            // Memory-module config (ovos-persona reads it under the module's entry-point key)
+            if (memoryModule) {
+                const raw = document.getElementById('personaMemoryConfig').value.trim();
+                if (raw) {
+                    let memCfg;
+                    try { memCfg = JSON.parse(raw); }
+                    catch (e) { showToast('Memory config is not valid JSON', 'error'); return; }
+                    if (memCfg && Object.keys(memCfg).length > 0) personaConfig[memoryModule] = memCfg;
+                }
+            }
 
             try {
                 statusDiv.classList.remove('hidden');
@@ -2500,7 +2573,10 @@
                 document.getElementById('editPersonaName').value = persona.name;
                 document.getElementById('personaName').value = persona.name;
                 document.getElementById('personaDescription').value = persona.description || '';
-                document.getElementById('personaMemoryModule').value = persona.memory_module || 'ovos-agents-short-term-memory-plugin';
+                const memMod = persona.memory_module || 'ovos-agents-short-term-memory-plugin';
+                await loadMemoryModules(memMod);
+                const memCfg = (memMod && persona[memMod] && typeof persona[memMod] === 'object') ? persona[memMod] : null;
+                document.getElementById('personaMemoryConfig').value = memCfg ? JSON.stringify(memCfg, null, 2) : '';
                 document.getElementById('createPersonaStatus').classList.add('hidden');
                 document.getElementById('personaSolverConfigContainer').innerHTML = '';
                 document.getElementById('createPersonaModal').classList.add('active');
@@ -2509,9 +2585,10 @@
                 await loadSolverPluginsForPersona();
                 const solvers = persona.solvers || persona.handlers || [];
 
-                // Restore per-solver configs from the saved persona
+                // Restore per-solver configs from the saved persona (exclude the memory
+                // module's config key so it isn't mistaken for a handler config)
                 _solverConfigs = {};
-                const reservedKeys = new Set(['name', 'description', 'solvers', 'handlers', 'memory_module']);
+                const reservedKeys = new Set(['name', 'description', 'solvers', 'handlers', 'memory_module', memMod]);
                 for (const [k, v] of Object.entries(persona)) {
                     if (!reservedKeys.has(k) && typeof v === 'object' && v !== null) {
                         _solverConfigs[k] = v;
