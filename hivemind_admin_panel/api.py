@@ -3190,7 +3190,8 @@ def _check_persona_models(config: Dict[str, Any]) -> Dict[str, Any]:
             if solver not in known_solvers:
                 warnings.append(f"Custom plugin may require additional setup or download large model files on launch: {solver}")
 
-        # TODO - check for solvers needing auth keys
+        # (Auth-key requirements are surfaced by the per-handler config schema in
+        # the persona editor rather than guessed here.)
 
     return {
         "download_required": download_required,

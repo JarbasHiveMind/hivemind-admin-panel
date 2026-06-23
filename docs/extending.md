@@ -7,7 +7,7 @@ injection seam and threading model; this page is the practical "how do I add X".
 
 ```
 hivemind_admin_panel/
-├── api.py        the FastAPI app + every REST endpoint (one file, ~100 routes)
+├── api.py        the FastAPI app + every REST endpoint (one file, ~125 routes)
 ├── __main__.py   the launcher: builds the app, starts hivemind-core in-process,
 │                 _tracked_protocol() (live connections + message tap)
 ├── _auth.py      tokens, roles, password hashing, audit log
