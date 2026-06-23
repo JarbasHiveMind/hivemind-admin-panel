@@ -371,6 +371,7 @@
                 network: 'Network Protocols',
                 'voice-plugins': 'Voice Plugins',
                 binary: 'Binary Protocol',
+                presets: 'Plugin Presets',
                 encodings: 'Encodings & Ciphers',
                 monitor: 'Monitor',
                 topology: 'Mesh Topology',
@@ -394,6 +395,7 @@
             if (page === 'network') loadNetworkPage();
             if (page === 'voice-plugins') loadVoicePluginsPage();
             if (page === 'binary') loadBinaryPage();
+            if (page === 'presets') loadPresetsPage();
             if (page === 'encodings') loadEncodings();
             if (page === 'monitor') loadMonitorPage();
             if (page === 'topology') loadTopologyPage();
@@ -1158,6 +1160,108 @@
 
         function _startChatPolling() { _stopChatPolling(); _chatPoll = setInterval(_pollChatOnce, 1200); }
         function _stopChatPolling() { if (_chatPoll) { clearInterval(_chatPoll); _chatPoll = null; } }
+
+        // ---- Plugin presets ----------------------------------------------------------
+        const _PRESET_TYPES = [['stt','STT'],['tts','TTS'],['ww','Wake Word'],['vad','VAD'],['agent','Agent'],['network','Network']];
+        let _presetType = 'stt';
+
+        async function loadPresetsPage() {
+            document.getElementById('presetTypeTabs').innerHTML = _PRESET_TYPES.map(([t,l]) =>
+                `<button class="btn btn-sm ${t===_presetType?'btn-primary':'btn-secondary'}" onclick="selectPresetType('${t}')">${l}</button>`).join('');
+            await renderPresetCards();
+        }
+        function selectPresetType(t){ _presetType = t; loadPresetsPage(); }
+
+        async function renderPresetCards() {
+            const c = document.getElementById('presetsContainer');
+            try {
+                const data = await apiCall('/presets/' + _presetType);
+                const names = Object.keys(data.presets || {});
+                if (!names.length) { c.innerHTML = '<div class="empty-state"><p style="color:var(--text-secondary);">No ' + esc(_presetType) + ' presets yet.</p></div>'; return; }
+                c.innerHTML = names.map(n => {
+                    const p = data.presets[n];
+                    const summ = p.source === 'server' ? ('server: ' + esc(p.server_id || '?')) : esc(p.module);
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-bottom:8px;">
+                        <div style="min-width:0;"><strong>${esc(n)}</strong> <span style="font-size:11px;color:var(--text-secondary);">${summ}</span>
+                            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;"><code>${esc(JSON.stringify(p.config || {}))}</code></div></div>
+                        <div style="display:flex;gap:6px;flex-shrink:0;">
+                            <button class="btn btn-secondary btn-sm" onclick="testPreset('${_presetType}','${esc(n)}')">Test</button>
+                            <button class="btn btn-secondary btn-sm" onclick="showPresetModal('${_presetType}','${esc(n)}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePreset('${_presetType}','${esc(n)}')">✕</button>
+                        </div></div>`;
+                }).join('');
+            } catch (e) { c.textContent = 'Failed to load presets'; }
+        }
+
+        async function showPresetModal(type, name) {
+            document.getElementById('presetModalTitle').textContent = name ? 'Edit preset' : 'New preset';
+            document.getElementById('presetEditName').value = name || '';
+            document.getElementById('presetModalStatus').textContent = '';
+            const typeSel = document.getElementById('presetType');
+            typeSel.innerHTML = _PRESET_TYPES.map(([t,l]) => `<option value="${t}">${l}</option>`).join('');
+            typeSel.value = type || _presetType; typeSel.disabled = !!name;
+            document.getElementById('presetName').value = name || '';
+            document.getElementById('presetName').disabled = !!name;
+            try {
+                const servers = await apiCall('/servers');
+                document.getElementById('presetServer').innerHTML = servers.map(s => `<option value="${esc(s.id || s.name)}">${esc(s.name)} (${esc(s.type)})</option>`).join('') || '<option value="">(no servers registered)</option>';
+            } catch (e) {}
+            await onPresetTypeChange();
+            let preset = { source: 'plugin', config: {} };
+            if (name) { try { preset = await apiCall('/presets/' + type + '/' + encodeURIComponent(name)); } catch (e) {} }
+            document.getElementById('presetSource').value = preset.source || 'plugin';
+            document.getElementById('presetConfig').value = JSON.stringify(preset.config || {}, null, 2);
+            onPresetSourceChange();
+            if (preset.module) document.getElementById('presetModule').value = preset.module;
+            if (preset.server_id) document.getElementById('presetServer').value = preset.server_id;
+            document.getElementById('presetModal').classList.add('active');
+        }
+        function closePresetModal(){ document.getElementById('presetModal').classList.remove('active'); }
+
+        async function onPresetTypeChange() {
+            const t = document.getElementById('presetType').value;
+            try {
+                const data = await apiCall('/presets/' + t);
+                const mods = data.installed_modules || [];
+                document.getElementById('presetModule').innerHTML = mods.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('') || '<option value="">(none installed — install via OVOS Plugins)</option>';
+            } catch (e) {}
+        }
+        function onPresetSourceChange() {
+            const s = document.getElementById('presetSource').value;
+            document.getElementById('presetPluginWrap').style.display = s === 'plugin' ? 'block' : 'none';
+            document.getElementById('presetServerWrap').style.display = s === 'server' ? 'block' : 'none';
+        }
+
+        async function savePreset() {
+            const type = document.getElementById('presetType').value;
+            const editName = document.getElementById('presetEditName').value;
+            const name = document.getElementById('presetName').value.trim();
+            const source = document.getElementById('presetSource').value;
+            const status = document.getElementById('presetModalStatus');
+            if (!name) { status.textContent = 'Name required'; status.style.color = 'var(--accent-danger)'; return; }
+            let config;
+            try { config = JSON.parse(document.getElementById('presetConfig').value || '{}'); }
+            catch (e) { status.textContent = 'Config is not valid JSON'; status.style.color = 'var(--accent-danger)'; return; }
+            const body = { name, source, config,
+                module: source === 'plugin' ? document.getElementById('presetModule').value : '',
+                server_id: source === 'server' ? document.getElementById('presetServer').value : null };
+            try {
+                if (editName) await apiCall('/presets/' + type + '/' + encodeURIComponent(editName), 'PUT', body);
+                else await apiCall('/presets/' + type, 'POST', body);
+                showToast('Preset saved'); closePresetModal(); _presetType = type; loadPresetsPage();
+            } catch (e) { status.textContent = 'Save failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''); status.style.color = 'var(--accent-danger)'; }
+        }
+
+        async function testPreset(type, name) {
+            try { const r = await apiCall('/presets/' + type + '/' + encodeURIComponent(name) + '/test', 'POST');
+                showToast((r.ok ? '✓ ' : '✗ ') + r.message, r.ok ? 'success' : 'error'); }
+            catch (e) { showToast('Test failed', 'error'); }
+        }
+        async function deletePreset(type, name) {
+            if (!confirm('Delete preset ' + name + '?')) return;
+            try { await apiCall('/presets/' + type + '/' + encodeURIComponent(name), 'DELETE'); loadPresetsPage(); }
+            catch (e) { showToast('Delete failed', 'error'); }
+        }
 
         // ---- Bridge provisioning preset ----------------------------------------------
         let _bridgeCatalog = [];
