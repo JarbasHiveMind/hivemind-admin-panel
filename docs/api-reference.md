@@ -103,6 +103,14 @@ return the updated `/setup/status` body. Body for POST: `{"id": "bind_host"}`.
 | POST   | `/config/validate` | Yes  | `ConfigUpdate`  | Validate config without applying |
 | POST   | `/config/restart`  | Yes  | —               | Trigger async service restart |
 | GET    | `/config/defaults` | Yes  | —               | Default config values (`_DEFAULT`) |
+| GET    | `/config/backups`  | Yes   | —              | List `server.json` snapshots (newest first) |
+| POST   | `/config/backups`  | Admin | —              | Take a manual snapshot |
+| GET    | `/config/backups/diff` | Yes | `?file=`     | Diff a snapshot vs current (added/removed/changed) |
+| POST   | `/config/backups/restore` | Admin | `{file}` | Revert to a snapshot (snapshots current first) |
+
+> `server.json` is snapshotted automatically before every mutating config path
+> (`/config`, `/plugins/enable`, `/personas/{name}/activate`, `/policy`, `/restore`);
+> the last 20 are kept under `config_backups/`.
 
 ### `POST /config`
 Merges each key from `config` into the live config and calls `cfg.store()`.
@@ -316,8 +324,10 @@ and — when objects are injected — `client_count`, `total_clients`,
 | Method | Path                                       | Auth | Body                  | Description |
 |--------|--------------------------------------------|------|-----------------------|-------------|
 | GET    | `/plugins`                                 | Yes  | —                     | All known plugins + installed status (from `plugins_config.json`) |
-| POST   | `/plugins/install`                         | Yes  | `PluginInstallRequest`| Install a package via pip |
-| POST   | `/plugins/enable`                          | Yes  | `ConfigUpdateRequest` | Enable/disable a plugin in config |
+| POST   | `/plugins/install`                         | Yes   | `PluginInstallRequest`| Install a package via uv/pip |
+| POST   | `/plugins/upgrade`                         | Admin | `PluginInstallRequest`| `uv pip install --upgrade`; reports before→after version |
+| POST   | `/plugins/uninstall`                       | Admin | `PluginInstallRequest`| `uv pip uninstall`; **400** if the package provides an active module |
+| POST   | `/plugins/enable`                          | Yes   | `ConfigUpdateRequest` | Enable/disable a plugin in config |
 | GET    | `/plugins/solvers`                         | Yes  | —                     | Persona handler plugins (modern chat/agent engines + legacy solvers) with install status |
 | GET    | `/plugins/memory`                          | Yes  | —                     | Installed persona memory plugins (entry points); default `ovos-agents-short-term-memory-plugin` |
 | GET    | `/plugins/installed/ovos/{plugin_type}`    | Yes  | —                     | Installed OVOS plugins (`stt`/`tts`/`ww`/`vad`) |
@@ -525,7 +535,16 @@ persona JSON can be served over OpenAI/Ollama by `ovos-persona-server` (see
 | DELETE | `/personas/{name}`         | Yes  | —               | Delete a persona file |
 | POST   | `/personas/{name}/test`    | Yes  | —               | Validate + check models/solvers |
 | GET    | `/personas/{name}/export`  | Yes  | —               | Export persona JSON |
-| POST   | `/personas/{name}/activate`| Yes  | —               | Set persona as active in config |
+| POST   | `/personas/{name}/activate`| Yes  | `?force=`       | Set persona as active; **409** if invalid/handlers missing (unless `force=true`) |
+| POST   | `/personas/{name}/chat`    | Yes  | `PersonaChatRequest` | One-shot test reply (legacy) |
+| POST   | `/personas/{name}/chat/sessions` | Admin | —          | Open a **multi-turn** session (persistent Persona + memory) → `{session_id}` |
+| POST   | `/personas/chat/sessions/{sid}/say` | Admin | `{message, lang?}` | Send a turn |
+| GET    | `/personas/chat/sessions/{sid}/messages` | Yes | `?since=` | Poll the transcript |
+| DELETE | `/personas/chat/sessions/{sid}` | Admin | —          | End the session (drops the Persona / its memory) |
+
+`POST /personas` and `PUT` persist per-entry-point config (handler **and** memory
+config) under each entry-point key — e.g. `"ovos-agents-short-term-memory-plugin":
+{"max_history": 10}` — matching how `ovos_persona.Persona` reads it.
 
 ### `PUT /persona/config`
 **Side effect: writes `~/.config/ovos_persona/persona.json`.** `500` on write

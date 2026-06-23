@@ -16,8 +16,12 @@ as gated.
 | Onboarding | Pairing bundle + QR | `/clients/{id}/pairing`, `/pairing/qr.svg` · Topology pairing modal |
 | Onboarding | Bulk client ops | `/clients/bulk` |
 | Onboarding | Client tags | `/clients/{id}/tags` |
-| Agents | Persona test-chat | `/personas/{name}/chat` · personas page widget |
+| Agents | Persona test-chat (one-shot + **multi-turn** memory-aware sessions) | `/personas/{name}/chat`, `/personas/{name}/chat/sessions` · personas page |
+| Agents | **Configurable memory module** (config under its entry-point key) + install from editor | persona JSON `memory_module` + keyed config · `/plugins/memory` |
+| Agents | Pre-activation persona validation (handlers installed) | `/personas/{name}/activate` 409 / `?force=` |
 | Agents | Engine taxonomy + memory plugins | `/plugins/agents`, `/plugins/memory` |
+| Plugins | **Lifecycle**: install, **upgrade**, **uninstall** (active-module guarded), version display | `/plugins/install`,`/plugins/upgrade`,`/plugins/uninstall` · plugin cards |
+| Ops | **Config snapshots + rollback** (auto before every change; diff/revert) | `/config/backups`,`/config/backups/diff`,`/config/backups/restore` · Operations page |
 | Agents | OVOS server registry + health | `/servers`, `/servers/{id}/health` · Servers page |
 | Ops | Backup / restore | `/backup`, `/restore` · Operations page |
 | Ops | Admission policy editor | `/policy` · Operations page |

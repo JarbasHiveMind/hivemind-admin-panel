@@ -63,11 +63,30 @@ servers](ovos-servers.md) and health-checks them:
 
 ## Personas & agents
 
-- `POST /personas/{name}/chat` powers the **Test a persona** widget — send a
-  message, get a live reply.
+- **Multi-turn test chat** — `POST /personas/{name}/chat/sessions` opens a session
+  that keeps one live `Persona` (and its memory) across turns; `say`/`messages`
+  drive it; `DELETE` (or "New session") resets. The legacy one-shot
+  `POST /personas/{name}/chat` still works.
+- **Pre-activation validation** — `POST /personas/{name}/activate` rejects (409) a
+  persona with config errors or uninstalled handlers, unless `?force=true`.
 - `GET /plugins/agents` lists installed plugins per modern engine type (chat,
   memory, summarizer, reranker, retrieval, QA, yes/no, multimodal, coreference).
 - `GET /plugins/memory` lists persona memory plugins.
+
+## Plugin lifecycle
+
+Install is no longer one-way. Installed plugins show their **version** and gain
+**⬆ Update** and **✕ Uninstall** buttons (OVOS Plugins page, per tab):
+
+- `POST /plugins/install` / `POST /plugins/upgrade` — `uv pip install [--upgrade]`
+  (pip fallback); upgrade reports the before→after version.
+- `POST /plugins/uninstall` — `uv pip uninstall`; **refused** if the package
+  provides a currently-active module (agent/network/database/binary) — switch
+  modules first.
+- `version` is surfaced on `/plugins`, `/plugins/installed/ovos/{type}`, and
+  `/plugins/solvers`. All lifecycle writes are admin-gated and prompt a restart.
+
+![Plugin lifecycle](img/plugin-lifecycle.png)
 
 ## Backup, policy & TLS (Operations page)
 
@@ -75,6 +94,13 @@ servers](ovos-servers.md) and health-checks them:
 
 - **Backup/restore** — `GET /backup` downloads a config + clients + servers
   bundle; `POST /restore` re-adds missing clients (and optionally config/servers).
+- **Config history** — `server.json` is snapshotted automatically before every
+  config/plugin change (kept: last 20). The **Config history** card lists snapshots
+  with **Diff** (`GET /config/backups/diff`) and **Revert**
+  (`POST /config/backups/restore`, which snapshots the current state first). Manual
+  snapshot: `POST /config/backups`.
+
+![Config history](img/config-history.png)
 - **Policy chain** — `GET/PUT /policy` edits the message admission policy chain.
 - **TLS certs** — `GET /certs` shows certificate status for the websocket
   transport; `POST /certs/generate` creates a self-signed cert.

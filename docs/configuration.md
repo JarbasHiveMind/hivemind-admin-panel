@@ -85,11 +85,34 @@ A persona is a small JSON document with two modern keys:
   guarded fallback to legacy solvers for back-compat.
 - **`memory_module`** — the conversational-memory plugin (default
   `ovos-agents-short-term-memory-plugin`). Installed options are listed by
-  `GET /plugins/memory`.
+  `GET /plugins/memory`; you can **install one from the persona editor**.
+- **memory config** — like handlers, the memory module reads its config from a
+  block keyed by its own entry point (`ovos-persona` does
+  `config.get(memory_module)`). The persona editor exposes a **Memory config
+  (JSON)** field for it:
+
+  ```jsonc
+  {
+    "memory_module": "ovos-agents-short-term-memory-plugin",
+    "ovos-agents-short-term-memory-plugin": { "max_history": 10 }
+  }
+  ```
+
+![Persona memory config](img/persona-memory.png)
 
 Handlers can be LLM engines (OpenAI/Claude/Gemini/local GGUF), factual/tool engines
 (Wolfram Alpha, Wikipedia, DuckDuckGo), or scripted ones (RiveScript) — mix freely; a
 persona built only from factual/scripted handlers needs no GPU.
+
+### Test a persona across turns
+
+The Personas page has a **multi-turn** test chat: it keeps one live `Persona`
+instance (and its memory module) across turns, so you can watch context and memory
+accumulate — **New session** starts a fresh instance, clearing memory. It needs no
+device or hub (the persona runs in-process). See [Test Chat](test-chat.md) for the
+client-impersonation variant that goes through the hub.
+
+![Multi-turn persona chat](img/persona-chat.png)
 
 The same persona JSON can be hosted over an OpenAI/Ollama HTTP API by
 **ovos-persona-server** — see [OVOS servers & homelab synergy](ovos-servers.md).

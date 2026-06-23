@@ -24,8 +24,13 @@ get a hub plus a place to administer it.
   self-check, session tokens, `admin`/`operator` roles, and an audit trail.
 - **Monitor** — live metrics, an SSE event feed, the hub log tail, and the audit log.
 - **Topology** — an interactive mesh graph (hub ↔ satellites) with online status.
-- **Personas & agents** — manage personas (modern `handlers` schema), test-chat a
-  persona, browse the agent-engine taxonomy and memory plugins.
+- **Personas & agents** — manage personas (modern `handlers` schema), a **multi-turn
+  memory-aware** test chat, **configurable + installable memory modules**, and
+  pre-activation validation; browse the agent-engine taxonomy.
+- **Plugin lifecycle** — install, **upgrade**, and **uninstall** plugins (with an
+  active-module guard) and see installed versions.
+- **Config safety** — `server.json` is snapshotted before every change; diff and
+  one-click **revert** from the Operations page.
 - **OVOS servers** — register and health-check external persona/STT/TTS/translate servers.
 - **Plugins & databases** — discover/install network/agent/database & OVOS plugins
   (via uv); JSON / SQLite / Redis backends with profiles, tests, and migration.
