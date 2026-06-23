@@ -3743,19 +3743,45 @@ def test_preset(ptype: str, name: str) -> Dict[str, Any]:
                         else f"'{module}' is not installed for {ptype} — install it first")}
 
 
+def _apply_speech_preset(cfg, slot: str, name: str, module: str, pconfig: Dict[str, Any]) -> None:
+    """Write an STT/TTS/WW/VAD preset into the active binary protocol's config.
+
+    Shape (matches the Binary Protocol page read/write):
+        binary_protocol[<active-module>] = {
+            "stt": {"module": ..., "<module>": {...}},  # also tts, vad
+            "wake_word": "<name>",
+            "hotwords": {"<name>": {"module": ..., ...}},
+        }
+    """
+    bp = cfg.get("binary_protocol", {}) or {}
+    bmod = bp.get("module")
+    if not bmod:
+        raise HTTPException(status_code=400, detail=(
+            "Enable a binary protocol first (Binary Protocol page), then apply "
+            "speech presets to it."))
+    block = bp.get(bmod)
+    if not isinstance(block, dict):
+        block = {}
+    if slot == "ww":
+        block["wake_word"] = name
+        hotwords = block.get("hotwords", {}) or {}
+        hotwords[name] = {"module": module, **(pconfig or {})}
+        block["hotwords"] = hotwords
+    else:  # stt / tts / vad
+        block[slot] = {"module": module, module: pconfig or {}}
+    bp[bmod] = block
+    cfg["binary_protocol"] = bp
+
+
 @app.post("/presets/{ptype}/{name}/apply", dependencies=[Depends(require_admin)])
 def apply_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
-    """Activate an ``agent``/``network`` preset into ``server.json`` (snapshots first).
+    """Activate a preset into ``server.json`` (snapshots first).
 
-    STT/TTS/WW/VAD presets are *selected* when configuring the Binary Protocol (its
-    nested config shape), not applied standalone — so apply is for the top-level
-    slots only.
+    - ``agent``/``network`` → the matching top-level slot.
+    - ``stt``/``tts``/``ww``/``vad`` → the active binary protocol's config (the
+      binary protocol must be enabled first).
     """
     _validate_ptype(ptype)
-    if ptype not in ("agent", "network"):
-        raise HTTPException(status_code=400, detail=(
-            f"'{ptype}' presets are selected in the Binary Protocol config, not applied "
-            "directly; only agent/network presets map to a top-level slot."))
     path = _preset_path(ptype, name)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Preset not found")
@@ -3770,10 +3796,12 @@ def apply_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
         ap["module"] = module
         ap[module] = pconfig
         cfg["agent_protocol"] = ap
-    else:  # network
+    elif ptype == "network":
         net = cfg.get("network_protocol", {}) or {}
         net[module] = pconfig or {"host": "0.0.0.0", "port": 5678, "ssl": False}
         cfg["network_protocol"] = net
+    else:  # stt / tts / ww / vad
+        _apply_speech_preset(cfg, ptype, name, module, pconfig)
     cfg.store()
     audit(_current_user(request), "preset.apply", type=ptype, name=name, module=module)
     return {"status": "ok", "applied": f"{ptype}/{name}", "module": module}

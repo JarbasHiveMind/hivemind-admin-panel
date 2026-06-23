@@ -388,7 +388,7 @@ Types: `stt`/`tts`/`ww`/`vad`/`agent`/`network`.
 | GET    | `/presets` · `/presets/{type}` | Yes | All, or one type (+ `installed_modules`) |
 | GET/POST/PUT/DELETE | `/presets/{type}[/{name}]` | read Yes / write Admin | CRUD |
 | POST   | `/presets/{type}/{name}/test`  | Yes   | Load-check (module installed) |
-| POST   | `/presets/{type}/{name}/apply` | Admin | Activate an agent/network preset into `server.json` (snapshots first) |
+| POST   | `/presets/{type}/{name}/apply` | Admin | Apply: agent/network → slot; stt/tts/ww/vad → active binary protocol (snapshots first) |
 
 ---
 

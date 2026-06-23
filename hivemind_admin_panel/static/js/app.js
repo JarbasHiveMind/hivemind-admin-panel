@@ -1165,6 +1165,92 @@
         const _PRESET_TYPES = [['stt','STT'],['tts','TTS'],['ww','Wake Word'],['vad','VAD'],['agent','Agent'],['network','Network']];
         let _presetType = 'stt';
 
+        // Per-module config schemas (form fields); unknown modules fall back to JSON.
+        const _PRESET_SCHEMAS = {
+            'ovos-stt-plugin-fasterwhisper': [
+                {key:'model', label:'Model', type:'text', placeholder:'large-v3 / small / base'},
+                {key:'device', label:'Device', type:'text', placeholder:'cpu / cuda'},
+                {key:'compute_type', label:'Compute type', type:'text', placeholder:'float16 / int8', optional:true},
+                {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true}],
+            'ovos-stt-plugin-whisper': [
+                {key:'model', label:'Model', type:'text', placeholder:'small'},
+                {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true}],
+            'ovos-stt-plugin-server': [{key:'url', label:'Server URL', type:'text', placeholder:'http://gpu-box:8080'}],
+            'ovos-tts-plugin-piper': [
+                {key:'voice', label:'Voice', type:'text', placeholder:'alan'},
+                {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true}],
+            'ovos-tts-plugin-mimic3': [{key:'voice', label:'Voice', type:'text', placeholder:'en_US/vctk_low'}],
+            'ovos-tts-plugin-server': [{key:'url', label:'Server URL', type:'text', placeholder:'http://gpu-box:9666'}],
+            'ovos-ww-plugin-precise': [
+                {key:'model', label:'Model path', type:'text'},
+                {key:'threshold', label:'Threshold', type:'number', placeholder:'0.5', optional:true}],
+            'ovos-ww-plugin-vosk': [{key:'model', label:'Model', type:'text'}, {key:'rule', label:'Match rule', type:'text', optional:true}],
+            'ovos-ww-plugin-openwakeword': [{key:'model', label:'Model', type:'text'}],
+            'ovos-vad-plugin-silero': [{key:'threshold', label:'Threshold', type:'number', placeholder:'0.2', optional:true}],
+            'ovos-vad-plugin-webrtcvad': [{key:'aggressiveness', label:'Aggressiveness (0-3)', type:'number', placeholder:'3', optional:true}],
+            'hivemind-ovos-agent-plugin': [
+                {key:'host', label:'OVOS bus host', type:'text', placeholder:'127.0.0.1'},
+                {key:'port', label:'OVOS bus port', type:'number', placeholder:'8181'}],
+            'hivemind-persona-agent-plugin': [{key:'persona', label:'Persona file path', type:'text', placeholder:'~/.config/ovos_persona/assistant.json'}],
+            'hivemind-websocket-plugin': [
+                {key:'host', label:'Bind host', type:'text', placeholder:'0.0.0.0'},
+                {key:'port', label:'Port', type:'number', placeholder:'5678'},
+                {key:'ssl', label:'SSL', type:'bool'}],
+        };
+        const _SERVER_SCHEMA = [{key:'url', label:'Server URL', type:'text', placeholder:'http://host:port'}];
+        let _presetJsonMode = false;
+
+        function _presetSchemaFor() {
+            if (document.getElementById('presetSource').value === 'server') return _SERVER_SCHEMA;
+            return _PRESET_SCHEMAS[document.getElementById('presetModule').value] || null;
+        }
+
+        function renderPresetFields(config) {
+            config = config || {};
+            const schema = _presetSchemaFor();
+            const fieldsEl = document.getElementById('presetFields');
+            const jsonEl = document.getElementById('presetConfig');
+            const toggle = document.getElementById('presetJsonToggle');
+            if (!schema || _presetJsonMode) {
+                jsonEl.style.display = 'block'; fieldsEl.style.display = 'none';
+                if (Object.keys(config).length || !jsonEl.value.trim()) jsonEl.value = JSON.stringify(config, null, 2);
+                toggle.textContent = schema ? 'use form' : '';
+                toggle.style.display = schema ? 'inline' : 'none';
+                return;
+            }
+            fieldsEl.style.display = 'grid'; jsonEl.style.display = 'none';
+            toggle.textContent = 'edit as JSON'; toggle.style.display = 'inline';
+            fieldsEl.innerHTML = schema.map(f => {
+                const v = config[f.key];
+                if (f.type === 'bool')
+                    return `<label style="display:flex;gap:8px;align-items:center;font-size:13px;"><input type="checkbox" data-pk="${esc(f.key)}" data-pt="bool" ${v?'checked':''}> ${esc(f.label)}</label>`;
+                return `<div><label style="font-size:12px;color:var(--text-secondary);">${esc(f.label)}${f.optional?' (optional)':''}</label>
+                    <input data-pk="${esc(f.key)}" data-pt="${f.type}" type="${f.type==='number'?'number':'text'}" value="${v!=null?esc(String(v)):''}" placeholder="${esc(f.placeholder||'')}" style="width:100%;padding:8px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></div>`;
+            }).join('');
+        }
+
+        function _collectPresetConfig() {
+            const schema = _presetSchemaFor();
+            if (!schema || _presetJsonMode) return JSON.parse(document.getElementById('presetConfig').value || '{}');
+            const cfg = {};
+            document.querySelectorAll('#presetFields [data-pk]').forEach(el => {
+                const k = el.getAttribute('data-pk'), t = el.getAttribute('data-pt');
+                if (t === 'bool') { cfg[k] = el.checked; return; }
+                const raw = el.value.trim();
+                if (raw === '') return;
+                cfg[k] = (t === 'number') ? Number(raw) : raw;
+            });
+            return cfg;
+        }
+
+        function togglePresetJson() {
+            let cfg = {};
+            try { cfg = _collectPresetConfig(); } catch (e) {}
+            _presetJsonMode = !_presetJsonMode;
+            if (_presetJsonMode) document.getElementById('presetConfig').value = JSON.stringify(cfg, null, 2);
+            renderPresetFields(cfg);
+        }
+
         async function loadPresetsPage() {
             document.getElementById('presetTypeTabs').innerHTML = _PRESET_TYPES.map(([t,l]) =>
                 `<button class="btn btn-sm ${t===_presetType?'btn-primary':'btn-secondary'}" onclick="selectPresetType('${t}')">${l}</button>`).join('');
@@ -1185,7 +1271,7 @@
                         <div style="min-width:0;"><strong>${esc(n)}</strong> <span style="font-size:11px;color:var(--text-secondary);">${summ}</span>
                             <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;"><code>${esc(JSON.stringify(p.config || {}))}</code></div></div>
                         <div style="display:flex;gap:6px;flex-shrink:0;">
-                            ${(_presetType==='agent'||_presetType==='network') ? `<button class="btn btn-primary btn-sm" onclick="applyPreset('${_presetType}','${esc(n)}')" title="Activate in server.json">Apply</button>` : ''}
+                            <button class="btn btn-primary btn-sm" onclick="applyPreset('${_presetType}','${esc(n)}')" title="${(_presetType==='agent'||_presetType==='network')?'Activate in server.json':'Apply to the active binary protocol'}">Apply</button>
                             <button class="btn btn-secondary btn-sm" onclick="testPreset('${_presetType}','${esc(n)}')">Test</button>
                             <button class="btn btn-secondary btn-sm" onclick="showPresetModal('${_presetType}','${esc(n)}')">Edit</button>
                             <button class="btn btn-danger btn-sm" onclick="deletePreset('${_presetType}','${esc(n)}')">✕</button>
@@ -1207,14 +1293,15 @@
                 const servers = await apiCall('/servers');
                 document.getElementById('presetServer').innerHTML = servers.map(s => `<option value="${esc(s.id || s.name)}">${esc(s.name)} (${esc(s.type)})</option>`).join('') || '<option value="">(no servers registered)</option>';
             } catch (e) {}
+            _presetJsonMode = false;
             await onPresetTypeChange();
             let preset = { source: 'plugin', config: {} };
             if (name) { try { preset = await apiCall('/presets/' + type + '/' + encodeURIComponent(name)); } catch (e) {} }
             document.getElementById('presetSource').value = preset.source || 'plugin';
-            document.getElementById('presetConfig').value = JSON.stringify(preset.config || {}, null, 2);
-            onPresetSourceChange();
             if (preset.module) document.getElementById('presetModule').value = preset.module;
             if (preset.server_id) document.getElementById('presetServer').value = preset.server_id;
+            onPresetSourceChange();                  // toggles plugin/server wraps
+            renderPresetFields(preset.config || {}); // schema fields (or JSON fallback)
             document.getElementById('presetModal').classList.add('active');
         }
         function closePresetModal(){ document.getElementById('presetModal').classList.remove('active'); }
@@ -1226,11 +1313,13 @@
                 const mods = data.installed_modules || [];
                 document.getElementById('presetModule').innerHTML = mods.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('') || '<option value="">(none installed — install via OVOS Plugins)</option>';
             } catch (e) {}
+            renderPresetFields();
         }
         function onPresetSourceChange() {
             const s = document.getElementById('presetSource').value;
             document.getElementById('presetPluginWrap').style.display = s === 'plugin' ? 'block' : 'none';
             document.getElementById('presetServerWrap').style.display = s === 'server' ? 'block' : 'none';
+            renderPresetFields();
         }
 
         async function savePreset() {
@@ -1241,7 +1330,7 @@
             const status = document.getElementById('presetModalStatus');
             if (!name) { status.textContent = 'Name required'; status.style.color = 'var(--accent-danger)'; return; }
             let config;
-            try { config = JSON.parse(document.getElementById('presetConfig').value || '{}'); }
+            try { config = _collectPresetConfig(); }
             catch (e) { status.textContent = 'Config is not valid JSON'; status.style.color = 'var(--accent-danger)'; return; }
             const body = { name, source, config,
                 module: source === 'plugin' ? document.getElementById('presetModule').value : '',
@@ -2019,8 +2108,37 @@
                     if (type === 'ww') select.value = currentWWModule;
                     if (type === 'vad') select.value = currentVAD;
                 }
+                loadBinaryPresetPickers();
             } catch (e) {
                 console.error("Failed to populate active binary dropdowns", e);
+            }
+        }
+
+        // Quick-fill: pick a saved STT/TTS/WW/VAD preset to apply into the binary config.
+        async function loadBinaryPresetPickers() {
+            const wrap = document.getElementById('binaryPresetPickers');
+            if (!wrap) return;
+            const types = [['stt','STT'],['tts','TTS'],['ww','Wake word'],['vad','VAD']];
+            let html = `<div style="grid-column:1/-1;font-size:12px;color:var(--text-secondary);">Apply a saved <a href="#" onclick="event.preventDefault();navigate('presets')">preset</a> (module + config) to a slot:</div>`;
+            for (const [t, label] of types) {
+                let names = [];
+                try { names = Object.keys((await apiCall('/presets/' + t)).presets || {}); } catch (e) {}
+                const opts = ['<option value="">' + label + ' preset…</option>']
+                    .concat(names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`)).join('');
+                html += `<select onchange="applyBinaryPreset('${t}', this.value)" style="padding:8px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">${opts}</select>`;
+            }
+            wrap.innerHTML = html;
+        }
+
+        async function applyBinaryPreset(type, name) {
+            if (!name) return;
+            try {
+                await apiCall('/presets/' + type + '/' + encodeURIComponent(name) + '/apply', 'POST');
+                showToast(`Applied ${type} preset “${name}” to the binary protocol`, 'success');
+                loadBinaryPage();           // reflect the new module in the selects
+                showRestartRequiredModal();
+            } catch (e) {
+                showToast('Apply failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
             }
         }
 

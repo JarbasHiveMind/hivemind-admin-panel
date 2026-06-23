@@ -680,7 +680,9 @@
                             <!-- Active Configuration Section (only shown if binary protocol enabled) -->
                             <div id="ovosPluginsSection" class="hidden">
                                 <h4 style="font-size: 15px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">⚙️ Active Voice Configuration</h4>
-                                
+
+                                <div id="binaryPresetPickers" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:18px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);border:1px dashed var(--border-color);"></div>
+
                                 <div id="activeBinaryConfigForm" style="display: grid; gap: 20px;">
                                     <div class="form-group">
                                         <label>STT (Speech-to-Text) Plugin</label>
@@ -820,14 +822,19 @@
                                 </select></div>
                             <div id="presetPluginWrap">
                                 <div class="form-group"><label>Module (installed)</label>
-                                    <select id="presetModule" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
+                                    <select id="presetModule" onchange="renderPresetFields()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div id="presetServerWrap" style="display:none;">
                                 <div class="form-group"><label>OVOS server</label>
                                     <select id="presetServer" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
-                            <div class="form-group"><label>Config (JSON)</label>
-                                <textarea id="presetConfig" placeholder='{ "model": "large-v3", "device": "cuda" }' style="width:100%;height:120px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);padding:8px;"></textarea></div>
+                            <div class="form-group">
+                                <label style="display:flex;justify-content:space-between;align-items:center;">Config
+                                    <a href="#" id="presetJsonToggle" onclick="event.preventDefault();togglePresetJson()" style="font-size:11px;font-weight:normal;color:var(--accent-primary);">edit as JSON</a>
+                                </label>
+                                <div id="presetFields" style="display:grid;gap:10px;"></div>
+                                <textarea id="presetConfig" placeholder='{ "model": "large-v3", "device": "cuda" }' style="display:none;width:100%;height:120px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);padding:8px;"></textarea>
+                            </div>
                             <div id="presetModalStatus" style="font-size:12px;"></div>
                         </div>
                         <div class="modal-footer">

@@ -62,10 +62,33 @@ def test_preset_apply_agent_writes_slot(client, auth):
     assert cfg["agent_protocol"][installed[0]]["port"] == 8181
 
 
-def test_preset_apply_speech_rejected(client, auth):
-    client.post("/presets/stt", json={"name": "s1", "module": "x"}, headers=auth)
+def test_preset_apply_speech_requires_binary(client, auth):
+    from hivemind_core.config import get_server_config
+    cfg = get_server_config()
+    cfg["binary_protocol"] = {"module": None}   # not enabled
+    cfg.store()
+    client.post("/presets/stt", json={"name": "s1", "module": "ovos-stt-x"}, headers=auth)
     r = client.post("/presets/stt/s1/apply", headers=auth)
-    assert r.status_code == 400 and "Binary Protocol" in r.json()["detail"]
+    assert r.status_code == 400 and "binary protocol" in r.json()["detail"].lower()
+
+
+def test_preset_apply_speech_into_binary(client, auth):
+    from hivemind_core.config import get_server_config
+    cfg = get_server_config()
+    cfg["binary_protocol"] = {"module": "hivemind-audio-binary-protocol"}
+    cfg.store()
+    client.post("/presets/stt", json={"name": "whisper", "module": "ovos-stt-plugin-fasterwhisper",
+                                       "config": {"model": "large-v3"}}, headers=auth)
+    client.post("/presets/ww", json={"name": "hey-jarvis", "module": "ovos-ww-plugin-precise",
+                                      "config": {"threshold": 0.5}}, headers=auth)
+    assert client.post("/presets/stt/whisper/apply", headers=auth).status_code == 200
+    assert client.post("/presets/ww/hey-jarvis/apply", headers=auth).status_code == 200
+    block = get_server_config()["binary_protocol"]["hivemind-audio-binary-protocol"]
+    assert block["stt"]["module"] == "ovos-stt-plugin-fasterwhisper"
+    assert block["stt"]["ovos-stt-plugin-fasterwhisper"] == {"model": "large-v3"}
+    assert block["wake_word"] == "hey-jarvis"
+    assert block["hotwords"]["hey-jarvis"]["module"] == "ovos-ww-plugin-precise"
+    assert block["hotwords"]["hey-jarvis"]["threshold"] == 0.5
 
 
 def test_preset_writes_are_admin_only(client):

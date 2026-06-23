@@ -25,18 +25,25 @@ small **library** of known-good configs to pick from, and each can be **tested**
 ## Manage them
 
 Open **🎛️ Presets**, pick a type tab, and **+ New preset**: choose the source
-(local plugin or server), the module (from the installed list), and edit the config
-as JSON. **Test** runs a lightweight load-check (module installed for its type — no
-model download). Edit/Delete from each card.
+(local plugin or server) and the module (from the installed list). Known plugins
+get a **schema-driven form** (typed fields like model / device / voice / port /
+ssl); anything else falls back to a JSON editor — and you can flip between the two
+with **edit as JSON**. **Test** runs a lightweight load-check (module installed for
+its type — no model download). Edit/Delete from each card.
+
+![Schema-driven preset editor](img/preset-fields.png)
 
 ## Use them
 
-- **Agent / Network** presets have an **Apply** button that activates them in
-  `server.json` (snapshotting the current config first, then prompting a restart).
-- **STT / TTS / WW / VAD** presets are authored and tested here, then **selected
-  when you configure the Binary Protocol** (which composes the speech stack for
-  remote-audio satellites). Keeping them as a library means a config like
-  `whisper-large-cuda-float16` is written and verified once.
+Every preset has an **Apply** button (snapshots `server.json` first, then prompts a
+restart):
+
+- **Agent / Network** presets apply into the matching top-level slot.
+- **STT / TTS / WW / VAD** presets apply into the **active binary protocol's**
+  config — so a config like `whisper-large-cuda-float16` is written and verified
+  once, then dropped into the speech stack. You can also pick them from the
+  **Binary Protocol** page's quick-fill row (one dropdown per slot). Enable a
+  binary protocol first; applying a speech preset before that returns a clear error.
 
 ## API
 
@@ -48,7 +55,7 @@ model download). Edit/Delete from each card.
 | PUT    | `/presets/{type}/{name}` | Update (admin) |
 | DELETE | `/presets/{type}/{name}` | Delete (admin) |
 | POST   | `/presets/{type}/{name}/test` | Load-check (module installed) |
-| POST   | `/presets/{type}/{name}/apply` | Activate agent/network preset into `server.json` (admin) |
+| POST   | `/presets/{type}/{name}/apply` | Apply (admin): agent/network → top-level slot; stt/tts/ww/vad → active binary protocol |
 
 Types: `stt` · `tts` · `ww` · `vad` · `agent` · `network`. Stored under
 `~/.config/hivemind-core/plugin_presets/{type}/{name}.json`.
