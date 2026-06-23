@@ -199,9 +199,9 @@
   ],
   "ovos_plugins_tts": [
     {
-      "name": "Piper TTS",
-      "package": "ovos-tts-plugin-piper",
-      "description": "Piper - fast, high-quality neural TTS (recommended)"
+      "name": "Phoonnx TTS",
+      "package": "ovos-tts-plugin-phoonnx",
+      "description": "Phoonnx - next-gen unified ONNX TTS (default; runs Piper/Matxa/NOS voices)"
     },
     {
       "name": "Edge TTS",

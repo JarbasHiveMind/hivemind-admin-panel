@@ -1165,29 +1165,33 @@
         const _PRESET_TYPES = [['stt','STT'],['tts','TTS'],['ww','Wake Word'],['vad','VAD'],['agent','Agent'],['network','Network']];
         let _presetType = 'stt';
 
-        // Per-module config schemas (form fields); unknown modules fall back to JSON.
+        // Per-module config schemas (form fields) for CURRENT plugins only — unknown
+        // (or deprecated) modules fall back to the JSON editor. Deliberately excludes
+        // archived/dead plugins (ovos-tts-plugin-piper → phoonnx, mimic3, Mycroft Precise).
         const _PRESET_SCHEMAS = {
+            // STT
             'ovos-stt-plugin-fasterwhisper': [
                 {key:'model', label:'Model', type:'text', placeholder:'large-v3 / small / base'},
                 {key:'device', label:'Device', type:'text', placeholder:'cpu / cuda'},
                 {key:'compute_type', label:'Compute type', type:'text', placeholder:'float16 / int8', optional:true},
                 {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true}],
-            'ovos-stt-plugin-whisper': [
-                {key:'model', label:'Model', type:'text', placeholder:'small'},
-                {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true}],
             'ovos-stt-plugin-server': [{key:'url', label:'Server URL', type:'text', placeholder:'http://gpu-box:8080'}],
-            'ovos-tts-plugin-piper': [
-                {key:'voice', label:'Voice', type:'text', placeholder:'alan'},
-                {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true}],
-            'ovos-tts-plugin-mimic3': [{key:'voice', label:'Voice', type:'text', placeholder:'en_US/vctk_low'}],
+            // TTS — phoonnx is the next-gen ONNX default (supersedes the archived piper plugin)
+            'ovos-tts-plugin-phoonnx': [
+                {key:'voice', label:'Voice', type:'text', placeholder:'OpenVoiceOS/phoonnx_en-US_…'},
+                {key:'lang', label:'Language', type:'text', placeholder:'en', optional:true},
+                {key:'noise_scale', label:'Noise scale', type:'number', placeholder:'0.667', optional:true},
+                {key:'enable_phonetic_spellings', label:'Phonetic spellings', type:'bool'}],
             'ovos-tts-plugin-server': [{key:'url', label:'Server URL', type:'text', placeholder:'http://gpu-box:9666'}],
-            'ovos-ww-plugin-precise': [
+            // Wake word
+            'ovos-ww-plugin-openWakeWord': [{key:'model', label:'Model', type:'text'}],
+            'ovos-ww-plugin-precise-onnx': [
                 {key:'model', label:'Model path', type:'text'},
                 {key:'threshold', label:'Threshold', type:'number', placeholder:'0.5', optional:true}],
             'ovos-ww-plugin-vosk': [{key:'model', label:'Model', type:'text'}, {key:'rule', label:'Match rule', type:'text', optional:true}],
-            'ovos-ww-plugin-openwakeword': [{key:'model', label:'Model', type:'text'}],
+            // VAD
             'ovos-vad-plugin-silero': [{key:'threshold', label:'Threshold', type:'number', placeholder:'0.2', optional:true}],
-            'ovos-vad-plugin-webrtcvad': [{key:'aggressiveness', label:'Aggressiveness (0-3)', type:'number', placeholder:'3', optional:true}],
+            // Agent / network
             'hivemind-ovos-agent-plugin': [
                 {key:'host', label:'OVOS bus host', type:'text', placeholder:'127.0.0.1'},
                 {key:'port', label:'OVOS bus port', type:'number', placeholder:'8181'}],

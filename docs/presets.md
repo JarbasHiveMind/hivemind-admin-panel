@@ -3,7 +3,7 @@
 A **preset** is a named, reusable `{module, config}` for a plugin slot — the same
 idea as the database backend profiles, generalized to every plugin type
 (STT, TTS, wake word, VAD, agent, network). Author a config once (e.g. a
-`whisper-gpu` STT or a `piper-en` TTS), test it, and reuse it instead of retyping
+`whisper-gpu` STT or a `phoonnx-en` TTS), test it, and reuse it instead of retyping
 config every time you configure something.
 
 ![Plugin presets](img/presets.png)
