@@ -343,6 +343,7 @@ class PluginInfo(BaseModel):
     description: str
     category: str  # 'agent', 'network', 'database', 'binary', 'other'
     installed: bool
+    version: Optional[str] = None
 
 
 class PluginInstallRequest(BaseModel):
@@ -510,13 +511,15 @@ def _get_plugins_from_config() -> List[PluginInfo]:
 
     for config_key, category in category_map.items():
         for item in config.get(config_key, []):
+            pkg = item.get("package", "")
             plugins.append(PluginInfo(
-                name=item.get("name", item.get("package", "")),
-                package=item.get("package", ""),
+                name=item.get("name", pkg),
+                package=pkg,
                 entry_point=item.get("entry_point"),
                 description=item.get("description", ""),
                 category=category,
-                installed=_check_plugin_installed(item.get("package", ""))
+                installed=_check_plugin_installed(pkg),
+                version=_pkg_version(pkg),
             ))
 
     return plugins
@@ -1462,6 +1465,14 @@ def _check_plugin_installed(package_name: str) -> bool:
         return False
 
 
+def _pkg_version(package_name: str) -> Optional[str]:
+    """Installed version of a package, or None if not installed."""
+    try:
+        return importlib.metadata.version(package_name)
+    except Exception:
+        return None
+
+
 @app.get("/plugins", dependencies=[Depends(verify_credentials)])
 def list_plugins() -> List[PluginInfo]:
     """List all known plugins and their installation status.
@@ -1546,6 +1557,88 @@ def install_plugin(data: PluginInstallRequest) -> PluginInstallResult:
             message=f"Installation error: {str(e)}"
         )
 
+
+def _uninstall_command(package: str) -> list:
+    """Prefer `uv pip uninstall`; fall back to pip."""
+    import shutil
+    if shutil.which("uv"):
+        return ["uv", "pip", "uninstall", "--python", sys.executable, package]
+    return [sys.executable, "-m", "pip", "uninstall", "-y", package]
+
+
+def _upgrade_command(package: str) -> list:
+    """Prefer `uv pip install --upgrade`; fall back to pip."""
+    import shutil
+    if shutil.which("uv"):
+        return ["uv", "pip", "install", "--upgrade", "--python", sys.executable, package]
+    return [sys.executable, "-m", "pip", "install", "--upgrade", package]
+
+
+def _run_pip(cmd: list, action: str, package: str, timeout: int = 120) -> PluginInstallResult:
+    """Run a uv/pip subprocess and map the result to PluginInstallResult."""
+    try:
+        LOG.info(f"{action} {package}: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if result.returncode == 0:
+            return PluginInstallResult(success=True, message=f"Successfully {action} {package}")
+        err = (result.stderr or "").strip() or (result.stdout or "").strip() or "Unknown error"
+        return PluginInstallResult(success=False, message=f"{action.capitalize()} failed: {err}")
+    except subprocess.TimeoutExpired:
+        return PluginInstallResult(success=False, message=f"{action.capitalize()} timed out after {timeout}s")
+    except Exception as e:  # noqa: BLE001
+        return PluginInstallResult(success=False, message=f"{action.capitalize()} error: {e}")
+
+
+def _entrypoints_provided_by(package: str) -> set:
+    """Entry-point names a distribution declares (used to protect active modules)."""
+    try:
+        dist = importlib.metadata.distribution(package)
+    except importlib.metadata.PackageNotFoundError:
+        return set()
+    return {ep.name for ep in dist.entry_points}
+
+
+def _active_module_names() -> set:
+    """Module entry-point names currently active in server.json."""
+    cfg = get_server_config()
+    active = set()
+    for slot in ("agent_protocol", "database", "binary_protocol"):
+        module = (cfg.get(slot) or {}).get("module")
+        if module:
+            active.add(module)
+    active.update((cfg.get("network_protocol") or {}).keys())
+    return active
+
+
+@app.post("/plugins/uninstall", dependencies=[Depends(require_admin)])
+def uninstall_plugin(data: PluginInstallRequest, request: Request) -> PluginInstallResult:
+    """Uninstall a plugin package (admin). Refuses if it provides an active module."""
+    package = data.package.strip().lower()
+    conflict = _active_module_names() & _entrypoints_provided_by(package)
+    if conflict:
+        raise HTTPException(
+            status_code=400,
+            detail=(f"'{package}' provides a module that is currently active "
+                    f"({', '.join(sorted(conflict))}). Switch to another module first."))
+    res = _run_pip(_uninstall_command(package), "uninstalled", package)
+    if res.success:
+        audit(_current_user(request), "plugin.uninstall", package=package)
+    return res
+
+
+@app.post("/plugins/upgrade", dependencies=[Depends(require_admin)])
+def upgrade_plugin(data: PluginInstallRequest, request: Request) -> PluginInstallResult:
+    """Upgrade a plugin package to the latest version (admin)."""
+    package = data.package.strip().lower()
+    before = _pkg_version(package)
+    res = _run_pip(_upgrade_command(package), "upgraded", package)
+    if not res.success:
+        return res
+    after = _pkg_version(package)
+    audit(_current_user(request), "plugin.upgrade", package=package, before=before, after=after)
+    msg = (f"{package}: {before or '?'} → {after}" if after and after != before
+           else f"{package} already at the latest version ({after or '?'})")
+    return PluginInstallResult(success=True, message=msg)
 
 
 @app.post("/plugins/enable", dependencies=[Depends(verify_credentials)])
@@ -2646,6 +2739,7 @@ def list_solver_plugins() -> List[Dict[str, Any]]:
             "description": item.get("description", ""),
             "install_status": status,
             "install_package": item.get("package", ""),
+            "version": _pkg_version(item.get("package", "")),
             "error": error
         })
     
@@ -2827,11 +2921,13 @@ def list_installed_ovos_plugins(plugin_type: str) -> List[Dict[str, Any]]:
         # Get all plugins from ovos-plugin-manager (these are already installed)
         plugins_dict = mapping[plugin_type]()
 
-        # Build a map from entry point name to distribution package name
+        # Build maps from entry point name to its distribution package + version
         ep_to_package: Dict[str, str] = {}
+        ep_to_version: Dict[str, str] = {}
         for dist in importlib.metadata.distributions():
             for ep in dist.entry_points:
                 ep_to_package[ep.name] = dist.metadata["Name"]
+                ep_to_version[ep.name] = dist.version
 
         # Return entry points with installed status
         result = []
@@ -2840,6 +2936,7 @@ def list_installed_ovos_plugins(plugin_type: str) -> List[Dict[str, Any]]:
                 "entry_point": entry_point,
                 "install_status": "installed",
                 "package": ep_to_package.get(entry_point, entry_point),
+                "version": ep_to_version.get(entry_point),
                 "error": None
             })
 

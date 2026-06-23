@@ -2736,7 +2736,10 @@
 
                     let actionButton;
                     if (status === 'installed') {
-                        actionButton = '<span class="badge badge-success" style="font-size: 11px;">✓ Installed</span>';
+                        const verBadge = `<span class="badge badge-success" style="font-size: 11px;">✓ ${plugin.version ? esc(plugin.version) : 'Installed'}</span>`;
+                        actionButton = `${verBadge}
+                            <button class="btn btn-secondary btn-sm" onclick="upgradePlugin('${installPackage}')" title="Upgrade to latest">⬆ Update</button>
+                            <button class="btn btn-danger btn-sm" onclick="uninstallPlugin('${installPackage}')" title="Uninstall">✕</button>`;
                     } else if (status === 'failed') {
                         actionButton = `<button class="btn btn-warning btn-sm" onclick="showPluginError('${entryPoint}', '${plugin.error || 'Unknown error'}')" title="${plugin.error || 'Failed to load'}">⚠️ Error</button>`;
                     } else {
@@ -3068,7 +3071,10 @@
                 let actionButton;
                 
                 if (status === 'installed') {
-                    actionButton = '<span class="badge badge-success" style="font-size: 11px;">✓ Installed</span>';
+                    const verBadge = `<span class="badge badge-success" style="font-size: 11px;">✓ ${plugin.version ? esc(plugin.version) : 'Installed'}</span>`;
+                    actionButton = `${verBadge}
+                        <button class="btn btn-secondary btn-sm" onclick="upgradePlugin('${pkgName}')" title="Upgrade to latest">⬆ Update</button>
+                        <button class="btn btn-danger btn-sm" onclick="uninstallPlugin('${pkgName}')" title="Uninstall">✕</button>`;
                 } else if (status === 'failed') {
                     actionButton = `<button class="btn btn-warning btn-sm" onclick="showPluginError('${entryPoint}', '${plugin.error || 'Unknown error'}')" title="${plugin.error || 'Failed to load'}">⚠️ Error</button>`;
                 } else {
@@ -3352,6 +3358,42 @@
                 showToast('Failed to restart: ' + e.message, 'error');
                 // Reset status on error
                 updateHealthStatus();
+            }
+        }
+
+        // ---- Plugin lifecycle: upgrade / uninstall ----------------------------------
+        function _refreshPluginViews() {
+            if (typeof renderSolverPluginsFromAPI === 'function') renderSolverPluginsFromAPI();
+            const active = id => document.getElementById(id)?.classList.contains('active');
+            if (active('voice-pluginsPage') && typeof loadVoicePluginsPage === 'function') loadVoicePluginsPage();
+            if (active('agentsPage') && typeof loadAgentProtocolsPage === 'function') loadAgentProtocolsPage();
+            if (active('databasePage') && typeof loadDatabasePage === 'function') loadDatabasePage();
+        }
+
+        async function upgradePlugin(pkg) {
+            if (!confirm(`Upgrade ${pkg} to the latest version?`)) return;
+            showToast(`Upgrading ${pkg}…`);
+            try {
+                const r = await apiCall('/plugins/upgrade', 'POST', { package: pkg });
+                if (!r.success) throw new Error(r.message);
+                showToast(r.message, 'success');
+                _refreshPluginViews();
+                showRestartRequiredModal();
+            } catch (e) { showToast('Upgrade failed: ' + (e.message || ''), 'error'); }
+        }
+
+        async function uninstallPlugin(pkg) {
+            if (!confirm(`Uninstall ${pkg}? The package will be removed from the environment.`)) return;
+            showToast(`Uninstalling ${pkg}…`);
+            try {
+                const r = await apiCall('/plugins/uninstall', 'POST', { package: pkg });
+                if (!r.success) throw new Error(r.message);
+                showToast(r.message, 'success');
+                _refreshPluginViews();
+                showRestartRequiredModal();
+            } catch (e) {
+                // surface the active-module guard message clearly
+                showToast('Uninstall blocked: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
             }
         }
 
