@@ -66,6 +66,19 @@ Each entry is **symptom → cause → fix**.
   - a bad or missing plugin in `server.json` (agent/network/database module that
     won't load). Validate config with `POST /api/config/validate`.
 
+### Dashboard says "Satellites can't connect yet"
+
+![Core not ready](img/core-not-ready.png)
+
+- **Cause:** The in-process hub started but never reached `READY` — its satellite
+  listener hasn't bound. Almost always it's blocked waiting on its **agent backend**
+  (an OVOS messagebus, default `127.0.0.1:8181`). `GET /api/health` shows
+  `service_status: "STARTED"` with `core_ready: false`, and port `5678` is closed.
+- **Fix:** Start the agent backend (e.g. `ovos-messagebus`, or your OVOS instance),
+  or point the agent protocol at a reachable bus in `server.json`. The banner clears
+  on its own once the hub binds. Until then, clients you create can't connect and
+  [Test Chat](test-chat.md) has no hub to reach.
+
 ### Satellite can't connect to hivemind-core
 
 - **Cause / Fix** (work through these):

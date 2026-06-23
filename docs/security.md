@@ -15,6 +15,8 @@ access on the host.
 
 ## First-run gate & self-check
 
+![First-run security gate](img/first-run-gate.png)
+
 The panel actively pushes you off the defaults rather than just warning:
 
 - **Forced password change.** When you log in while the default password is still

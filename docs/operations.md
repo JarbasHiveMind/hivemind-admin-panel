@@ -5,6 +5,8 @@ real-time, security, onboarding and ops features.
 
 ## Monitor (real-time)
 
+![Monitor](img/monitor.png)
+
 The **Monitor** page surfaces live state:
 
 - **Metrics** — uptime, active connections, total clients, service status, and
@@ -68,6 +70,8 @@ servers](ovos-servers.md) and health-checks them:
 - `GET /plugins/memory` lists persona memory plugins.
 
 ## Backup, policy & TLS (Operations page)
+
+![Operations](img/operations.png)
 
 - **Backup/restore** — `GET /backup` downloads a config + clients + servers
   bundle; `POST /restore` re-adds missing clients (and optionally config/servers).

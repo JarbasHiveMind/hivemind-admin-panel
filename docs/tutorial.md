@@ -34,6 +34,8 @@ login with the default password, a modal blocks the whole UI until you set a new
 one (minimum 8 characters, stored hashed). Type a strong password and continue;
 the dashboard's **Security** card then turns green.
 
+![First-run security gate](img/first-run-gate.png)
+
 You can change it again any time:
 
 - In the UI: the Security card's **Change admin password** button, or
@@ -50,6 +52,8 @@ For a read-only colleague, add an **operator** account in `server.json` (see
 [Security](security.md)).
 
 ## 4. Create your first satellite (client)
+
+![Clients](img/clients.png)
 
 Go to **Clients → + Add**, give it a name like `kitchen-speaker`. The panel mints
 an **access key** and secrets for you. (Via API:)
@@ -74,9 +78,11 @@ The satellite connects over the encrypted websocket transport (port 5678).
 
 ## 6. Give it permissions (ACL)
 
-A fresh client can't do anything until you allow message types. Go to **ACL**,
-pick `kitchen-speaker`, and **allow** `recognizer_loop:utterance` so it can send
-spoken requests. (Via API:)
+![Permissions](img/permissions.png)
+
+A fresh client can't do anything until you allow message types. Go to
+**Permissions**, pick `kitchen-speaker`, and **allow** `recognizer_loop:utterance`
+so it can send spoken requests. (Via API:)
 
 ```bash
 curl -u admin:a-strong-password -X POST \
@@ -88,6 +94,8 @@ curl -u admin:a-strong-password -X POST \
 Tip: save this as a **template** and apply it to future satellites in one click.
 
 ## 7. Give it a personality (persona)
+
+![Personas](img/personas.png)
 
 Go to **Personas → + Create**. A persona is an ordered list of **handlers**. For a
 no-GPU start, use a factual/scripted handler; for an LLM, pick an OpenAI-style
@@ -106,7 +114,15 @@ Then **test it without any device**: use the **Test a persona** box on the
 Personas page (or `POST /api/personas/Assistant/chat`) and chat with it right in
 the browser.
 
-## 8. Watch it live
+## 8. Chat as your satellite
+
+Open **Test Chat**, pick `kitchen-speaker`, and **Start chat**. You're now talking
+to the hub *as that client* — type a message and the agent answers. This proves the
+satellite's ACL and the whole hub→agent path end-to-end, no device required.
+
+![Test Chat](img/test-chat.png)
+
+## 9. Watch it live
 
 Open **Monitor**:
 
@@ -119,7 +135,7 @@ Open **Monitor**:
 
 Open **Topology** again — your paired satellite now shows **online**.
 
-## 9. Back it up
+## 10. Back it up
 
 Before you forget: **Operations → Download backup** saves a bundle (config +
 clients + servers). Restore it any time with **Restore…**.

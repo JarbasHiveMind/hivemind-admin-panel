@@ -24,11 +24,19 @@ This launches a hivemind-core **in-process** and serves the admin panel — you 
 not run `hivemind-core` separately. Open <http://127.0.0.1:8100>; you will be
 prompted for HTTP Basic credentials.
 
+![Login](img/login.png)
+
 ## Set your credentials
 
-Credentials are read from `~/.config/hivemind-core/server.json` (keys `admin_user`
-and `admin_pass`, both defaulting to `admin`). **Change them before exposing the
-panel.** See [Configuration](configuration.md).
+The defaults are `admin` / `admin`. On your **first login with the default
+password the panel forces a change** (and stores it hashed) before you can use
+anything — so the very first thing you'll see is:
+
+![First-run security gate](img/first-run-gate.png)
+
+You can also set credentials directly in `~/.config/hivemind-core/server.json`
+(keys `admin_user` and `admin_pass`). See [Configuration](configuration.md) and
+[Security](security.md).
 
 ```jsonc
 {

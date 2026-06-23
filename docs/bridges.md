@@ -28,6 +28,8 @@ stay out of the panel).
 
 ## Provision a bridge (UI)
 
+![Add a chat bridge](img/add-bridge.png)
+
 1. Open **Clients → 💬 Add Bridge**.
 2. Pick the platform; optionally name the client.
 3. Enter the core address the bridge should reach (LAN IP if core binds `0.0.0.0`).
@@ -58,8 +60,10 @@ repo's README has the exact command and the platform credentials it needs:
 | DeltaChat | <https://github.com/JarbasHiveMind/HiveMind-deltachat-bridge> |
 | HackChat | <https://github.com/JarbasHiveMind/HiveMind-HackChatBridge> |
 
-Once it connects, it appears online on the **Topology** page with its platform
-icon, and you can revoke it like any other client (which immediately drops it).
+Once it connects, it appears on the **Topology** page with its platform icon, and
+you can revoke it like any other client (which immediately drops it).
+
+![Topology with bridges](img/topology.png)
 
 ## Tips
 

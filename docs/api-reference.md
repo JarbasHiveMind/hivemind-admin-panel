@@ -273,6 +273,25 @@ Recognized bridges are labelled in `/topology` (node `type: "bridge"`, with a
 
 ---
 
+## 4c. Test Chat (client impersonation)
+
+Chat through the hub *as* a registered client — see [Test Chat](test-chat.md).
+Server-side: the panel opens a real bus client with the chosen client's credentials.
+
+| Method | Path                              | Auth  | Description |
+|--------|-----------------------------------|-------|-------------|
+| POST   | `/chat/sessions`                  | Admin | Start impersonating `{client_id}` → `{session_id, name, endpoint}` (502 if the hub is unreachable) |
+| POST   | `/chat/sessions/{sid}/say`        | Admin | Send `{utterance, lang?}` as the client |
+| GET    | `/chat/sessions/{sid}/messages`   | Yes   | Poll the transcript; `?since=N` returns messages after index `N` (`{messages, total}`) |
+| GET    | `/chat/sessions`                  | Yes   | List active sessions |
+| DELETE | `/chat/sessions/{sid}`            | Admin | End the session (disconnects the bus client) |
+
+Transcript roles: `user` (you, as the client), `assistant` (the hub's reply),
+`system` (e.g. "no skill/agent handled that utterance"). Requires a reachable hub
+(in-process by default) and an agent backend for replies.
+
+---
+
 ## 5. Monitoring
 
 | Method | Path           | Auth | Description |

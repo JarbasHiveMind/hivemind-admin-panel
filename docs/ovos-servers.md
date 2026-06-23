@@ -6,6 +6,8 @@ many devices (and hivemind-core) can share it instead of each satellite running 
 models locally. This panel manages hivemind-core and its personas; the servers below
 provide the speech and reasoning that hivemind-core brokers to satellites.
 
+![OVOS servers](img/ovos-servers.png)
+
 ## The server family
 
 | Server | Serves | Pairs with |

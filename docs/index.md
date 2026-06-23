@@ -8,6 +8,8 @@ New here? Read **[Concepts](concepts.md)** first, then follow the
 **[Tutorial](tutorial.md)**. Already know HiveMind? Jump to the
 **[CLI](cli.md)** or **[API reference](api-reference.md)**.
 
+![Dashboard](img/dashboard.png)
+
 ---
 
 ## 🟢 Zero → running (newcomers)
@@ -37,6 +39,8 @@ Start here if you've never run HiveMind. No prior knowledge assumed.
    homelab topology.
 8. **[Chat bridges](bridges.md)** — bring Matrix/Twitch/Mattermost/DeltaChat/HackChat
    rooms into your hub.
+9. **[Test Chat](test-chat.md)** — chat through the hub as any client to verify it
+   end-to-end.
 
 ## 🟣 Hack on it (advanced developers)
 
@@ -56,6 +60,8 @@ Start here if you've never run HiveMind. No prior knowledge assumed.
 |------|-----------------|
 | **Clients** | Provision satellites, mint/reveal keys, QR-pair, tag, bulk-edit |
 | **ACLs** | Per-client whitelists of message types, skills, intents; admin/escalate/propagate flags |
+| **Test Chat** | Impersonate any client and chat through the hub to verify it end-to-end |
+| **Bridges** | Provision & recognize Matrix/Twitch/Mattermost/DeltaChat/HackChat bridges |
 | **Agents & personas** | Pick the AI that answers; author personas; live test-chat |
 | **Monitoring** | Live metrics, event feed, message inspector, log tail, audit log |
 | **Databases** | JSON / SQLite / Redis backends, profiles, migration |
