@@ -1,7 +1,7 @@
 # HiveMind Admin Panel — single launcher for a HiveMind deployment.
 # The panel starts hivemind-core in-process, so one container serves the hub
 # (websocket/http transports) plus the admin web UI from a single command.
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Build deps for pycryptodomex / wheels that lack manylinux builds
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,7 +15,7 @@ COPY . /src
 # used by the bundled docker-compose topology, into an isolated prefix.
 RUN pip install --no-cache-dir --prefix=/install . hivemind-redis-database
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/JarbasHiveMind/hivemind-admin-panel" \
       org.opencontainers.image.description="Web-based admin panel for HiveMind-core" \
