@@ -13,7 +13,7 @@ docker run --rm \
   hivemind-admin-panel
 ```
 
-Open <http://127.0.0.1:8100>. The image is published to GHCR by CI:
+Open [http://127.0.0.1:8100](http://127.0.0.1:8100). CI publishes the image to GHCR:
 
 ```bash
 docker pull ghcr.io/jarbashivemind/hivemind-admin-panel:latest
@@ -32,8 +32,8 @@ docker compose up --build
 
 It defines two services:
 
-- **redis** — the client-database backend (persisted to a named volume);
-- **hivemind** — hivemind-core + admin panel, configured by `docker/server.json` (which
+- **redis**: the client-database backend (persisted to a named volume).
+- **hivemind**: hivemind-core and the admin panel, configured by `docker/server.json` (which
   selects the Redis backend and the admin credentials).
 
 Before exposing anything, edit `docker/server.json` and change `admin_pass`. The
@@ -67,7 +67,7 @@ server {
 }
 ```
 
-The panel still enforces its own Basic auth; the proxy can add a second factor.
+The panel still enforces its own Basic auth. The proxy can add a second factor.
 
 ## systemd (standalone panel)
 
@@ -94,8 +94,4 @@ This single unit runs hivemind-core and the panel together. Add `--no-core` to t
 `ExecStart` line if hivemind-core is managed by a separate service on the host.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Security](security.md) | [📖 Docs home](index.md) | [OVOS servers](ovos-servers.md) → |
+[← Security](security.md) · [Home](index.md) · [OVOS servers →](ovos-servers.md)

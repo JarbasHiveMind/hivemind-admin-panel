@@ -1,10 +1,10 @@
 # Chat bridges
 
-A **bridge** connects an external chat platform — Matrix, Twitch, Mattermost,
-DeltaChat, HackChat — to your hivemind-core. It's a HiveMind **satellite** whose
-input and output are a chat room instead of a microphone: messages in the room go
-to the hub as `recognizer_loop:utterance`, and the hub's spoken reply is posted
-back. That turns any HiveMind hub (and the OVOS skills / persona behind it) into a
+A **bridge** connects an external chat platform (Matrix, Twitch, Mattermost,
+DeltaChat, or HackChat) to your hivemind-core. It is a HiveMind **satellite** whose
+input and output are a chat room instead of a microphone. Messages in the room go
+to the hub as `recognizer_loop:utterance`, and the hub posts its spoken reply
+back to the room. This turns any HiveMind hub, and the OVOS skills or persona behind it, into a
 chatbot on those platforms.
 
 ```
@@ -13,27 +13,27 @@ Chat room  ⇄  HiveMind-<platform>-bridge  ⇄  hivemind-core  ⇄  agent (OVOS
 
 ## What the panel does (and doesn't)
 
-A bridge is just a **client** to the panel. So the panel **provisions and watches**
-bridges; it does **not** run them — each bridge is deployed as its own process (it
-has platform-specific dependencies and secrets, e.g. a Matrix access token, that
-stay out of the panel).
+A bridge is just a **client** to the panel. The panel **provisions and watches**
+bridges, but it does **not** run them. Each bridge is deployed as its own process, with
+platform-specific dependencies and secrets (for example, a Matrix access token) that
+stay out of the panel.
 
-- **Provision** — *Clients → 💬 Add Bridge* creates a client with the right
+- **Provision**: *Clients → Add Bridge* creates a client with the right
   permission (`recognizer_loop:utterance`) and a `bridge:<platform>` tag, then
   shows the connection bundle (key, password, crypto key, host, port) to drop into
   the bridge's config.
-- **Recognize** — provisioned bridges (and bridges added via `hivemind-core
-  add-client` that announce a bridge useragent) are labelled with their platform
+- **Recognize**: provisioned bridges, and bridges added through `hivemind-core
+  add-client` that announce a bridge useragent, are labelled with their platform
   icon on the **Topology** page and show up in `/connections`.
 
 ## Provision a bridge (UI)
 
 ![Add a chat bridge](img/add-bridge.png)
 
-1. Open **Clients → 💬 Add Bridge**.
-2. Pick the platform; optionally name the client.
+1. Open **Clients → Add Bridge**.
+2. Pick the platform. Optionally, name the client.
 3. Enter the core address the bridge should reach (LAN IP if core binds `0.0.0.0`).
-4. Copy the bundle — credentials + `pip install` line — into the bridge's setup.
+4. Copy the bundle (credentials and the `pip install` line) into the bridge's setup.
 
 ## Provision a bridge (API)
 
@@ -69,12 +69,8 @@ you can revoke it like any other client (which immediately drops it).
 
 - Pair it with a **persona** ([Personas](configuration.md)) or an
   [OVOS server](ovos-servers.md) so the bridge has something to answer with.
-- Give bridges a recognizable client name; the `bridge:<platform>` tag is what
+- Give bridges a recognizable client name. The `bridge:<platform>` tag is what
   the panel uses to label them, so keep it if you edit tags.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [OVOS servers](ovos-servers.md) | [📖 Docs home](index.md) | [Test Chat](test-chat.md) → |
+[← OVOS servers](ovos-servers.md) · [Home](index.md) · [Test Chat →](test-chat.md)

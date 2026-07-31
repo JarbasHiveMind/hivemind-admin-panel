@@ -68,15 +68,11 @@ The end-to-end suite runs in `build-tests` and `coverage` on every PR.
 
 ## Conventions
 
-- Versions bump automatically from conventional-commit prefixes; **do not edit
+- Versions bump automatically from conventional-commit prefixes. **Do not edit
   `version.py`** by hand.
-- Branch model: work on a feature branch → PR into `dev`; releases flow `dev` →
-  `master`. `dev` is the default branch.
-- License: Apache-2.0; keep the SPDX header on new source files.
+- Branch model: work on a feature branch, then PR into `dev`. Releases flow from `dev`
+  to `master`. `dev` is the default branch.
+- License: Apache-2.0. Keep the SPDX header on new source files.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [API reference](api-reference.md) | [📖 Docs home](index.md) | [Roadmap](roadmap.md) → |
+[← API reference](api-reference.md) · [Home](index.md) · [Roadmap →](roadmap.md)
