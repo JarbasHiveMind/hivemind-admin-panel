@@ -1,7 +1,7 @@
 # Running the panel
 
 `hivemind-admin-panel` is the single launcher for a HiveMind deployment. By
-default it **starts hivemind-core in-process** and serves the admin UI; you do not run
+default it **starts hivemind-core in-process** and serves the admin UI. You do not run
 `hivemind-core` separately. A `--no-core` flag serves the panel only.
 
 ![Dashboard](img/dashboard.png)
@@ -39,11 +39,11 @@ clients, ACLs, plugin install, database profiles/migration, personas, config.
 
 What needs a live hivemind-core and therefore degrades in `--no-core`:
 
-- `GET /connections` returns placeholder data — there is no live socket list
+- `GET /connections` returns placeholder data, since there is no live socket list
 - `GET /stats` still reports DB-derived counts but no live connection count
 - `POST /config/restart` returns an error (no service handle to restart)
 
-Use `--no-core` to provision clients / edit config without touching a running
+Use `--no-core` to provision clients or edit config without touching a running
 service, or on a host where hivemind-core is managed separately.
 
 ## Development
@@ -64,8 +64,4 @@ hivemind-admin-panel --no-core --reload
 | `--log-level` | `INFO` | log level for the in-process hivemind-core |
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Troubleshooting](troubleshooting.md) | [📖 Docs home](index.md) | [CLI](cli.md) → |
+[← Troubleshooting](troubleshooting.md) · [Home](index.md) · [CLI →](cli.md)
