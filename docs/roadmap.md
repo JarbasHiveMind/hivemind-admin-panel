@@ -21,7 +21,7 @@ as gated.
 | Agents | Pre-activation persona validation (handlers installed) | `/personas/{name}/activate` 409 / `?force=` |
 | Agents | Engine taxonomy + memory plugins | `/plugins/agents`, `/plugins/memory` |
 | Plugins | **Lifecycle**: install, **upgrade**, **uninstall** (active-module guarded), version display | `/plugins/install`,`/plugins/upgrade`,`/plugins/uninstall` · plugin cards |
-| Ops | **Config snapshots + rollback** (auto before every change; diff/revert) | `/config/backups`,`/config/backups/diff`,`/config/backups/restore` · Operations page |
+| Ops | **Config snapshots + rollback** (auto before every change, diff/revert) | `/config/backups`,`/config/backups/diff`,`/config/backups/restore` · Operations page |
 | Agents | OVOS server registry + health | `/servers`, `/servers/{id}/health` · Servers page |
 | Ops | Backup / restore | `/backup`, `/restore` · Operations page |
 | Ops | Admission policy editor | `/policy` · Operations page |
@@ -40,7 +40,7 @@ as gated.
 `/connections`, `/stats`, `/topology` online flags, and the message inspector are
 authoritative when hivemind-core runs **in-process** (the default). `launch_core()`
 subclasses hivemind-core's listener protocol (`_tracked_protocol`) to capture the live
-instance and tap `handle_message` / connect / disconnect / invalid-key — no change
+instance and tap `handle_message`, connect, disconnect, and invalid-key events, with no change
 to hivemind-core. In `--no-core` mode these degrade gracefully (no live hivemind-core to tap).
 
 ## Remaining / notes
@@ -48,14 +48,10 @@ to hivemind-core. In `--no-core` mode these degrade gracefully (no live hivemind
 - **CSRF** is **not applicable** to this API: it authenticates via the
   `Authorization` header (Basic or Bearer), not ambient cookies, so cross-site
   requests cannot carry credentials. A cookie-session mode would need CSRF tokens.
-- **i18n** ships a working mechanism (en/es/pt) and a language selector; UI string
-  coverage is extended progressively via `data-i18n` tags.
-- Passwords now support PBKDF2 hashes (`pbkdf2_sha256$…`) while still accepting
-  legacy plaintext for back-compat; change one via `POST /auth/password`.
+- **i18n** ships a working mechanism (en/es/pt) and a language selector. UI string
+  coverage is extended progressively through `data-i18n` tags.
+- Passwords now support PBKDF2 hashes (`pbkdf2_sha256$...`) while still accepting
+  legacy plaintext for back-compat. Change one through `POST /auth/password`.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Development](development.md) | [📖 Docs home](index.md) | &nbsp; |
+[← Development](development.md) · [Home](index.md)
