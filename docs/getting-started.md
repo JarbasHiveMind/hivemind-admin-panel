@@ -20,8 +20,8 @@ Installing the panel also installs `hivemind-core`.
 hivemind-admin-panel --host 127.0.0.1 --port 8100
 ```
 
-This launches a hivemind-core **in-process** and serves the admin panel — you do
-not run `hivemind-core` separately. Open <http://127.0.0.1:8100>; you will be
+This launches a hivemind-core **in-process** and serves the admin panel. You do
+not run `hivemind-core` separately. Open <http://127.0.0.1:8100>. You will be
 prompted for HTTP Basic credentials.
 
 ![Login](img/login.png)
@@ -29,8 +29,8 @@ prompted for HTTP Basic credentials.
 ## Set your credentials
 
 The defaults are `admin` / `admin`. On your **first login with the default
-password the panel forces a change** (and stores it hashed) before you can use
-anything — so the very first thing you'll see is:
+password, the panel forces a change** (and stores it hashed) before you can use
+anything, so the very first thing you see is:
 
 ![First-run security gate](img/first-run-gate.png)
 
@@ -58,13 +58,9 @@ See [Running](running.md) for the difference between the two modes.
 
 ## Next steps
 
-- [Configuration](configuration.md) — credentials and the database backend.
-- [API reference](api-reference.md) — drive everything over REST.
-- [Deployment](deployment.md) — Docker / Compose / reverse proxy.
+- [Configuration](configuration.md): credentials and the database backend.
+- [API reference](api-reference.md): drive everything over REST.
+- [Deployment](deployment.md): Docker, Compose, or reverse proxy.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Concepts](concepts.md) | [📖 Docs home](index.md) | [Tutorial](tutorial.md) → |
+[← Concepts](concepts.md) · [Home](index.md) · [Tutorial →](tutorial.md)

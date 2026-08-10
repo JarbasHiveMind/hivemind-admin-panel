@@ -9,8 +9,8 @@ access on the host.
 
 - **HTTP Basic** (or a Bearer token from `POST /auth/login`) on every endpoint
   except `GET /health`.
-- Credentials come from `server.json` (`admin_user` / `admin_pass`); comparison is
-  timing-safe. New passwords are stored **hashed** (PBKDF2) via `POST /auth/password`.
+- Credentials come from `server.json` (`admin_user` / `admin_pass`). Comparison is
+  timing-safe. New passwords are stored **hashed** (PBKDF2) through `POST /auth/password`.
 - The defaults are `admin` / `admin`.
 
 ## First-run gate & self-check
@@ -27,8 +27,8 @@ The panel actively pushes you off the defaults rather than just warning:
   whether the admin password is still default (critical), whether the panel is
   bound to a non-loopback address (warning), and whether the hivemind-core
   websocket has TLS configured (info). It stays red until criticals clear.
-  A *warning* you've handled deliberately (e.g. binding `0.0.0.0` behind a proxy)
-  can be **dismissed** from the card — criticals cannot, and the dismissal is
+  A *warning* you have handled deliberately (for example binding `0.0.0.0` behind a proxy)
+  can be **dismissed** from the card. Criticals cannot be dismissed, and the dismissal is
   audit-logged.
 - **Run-mode badge.** The top bar shows whether hivemind-core runs **in-process**
   (closing the panel stops the server) or the panel is in **panel-only** mode.
@@ -37,11 +37,11 @@ The panel actively pushes you off the defaults rather than just warning:
 
 - Bind to `127.0.0.1` (the default in both modes) unless the panel sits behind a
   trusted reverse proxy that terminates TLS and adds authentication.
-- `--host 0.0.0.0` (and the Docker image) expose it on all interfaces — only
-  do this behind a proxy / firewall. See [Deployment](deployment.md).
-- The panel speaks plain HTTP; put TLS at the proxy.
+- `--host 0.0.0.0` (and the Docker image) expose it on all interfaces. Only
+  do this behind a proxy or firewall. See [Deployment](deployment.md).
+- The panel speaks plain HTTP. Put TLS at the proxy.
 
-## Powerful endpoints to be aware of
+## Endpoints to watch
 
 | Endpoint | Risk |
 |----------|------|
@@ -54,12 +54,12 @@ The panel actively pushes you off the defaults rather than just warning:
 
 These are known and worth accounting for when deploying:
 
-- **No CSRF protection** on state-changing requests — do not host the panel on a
-  shared origin with untrusted content; keep it on its own host/port behind a proxy.
+- **No CSRF protection** on state-changing requests. Do not host the panel on a
+  shared origin with untrusted content. Keep it on its own host and port behind a proxy.
 - The web UI stores credentials in `sessionStorage` (cleared on tab close) and HTML-
   escapes user-controlled strings, but Basic auth means the browser holds the
   credentials for the session.
-- `POST /plugins/install` installs into the live interpreter; the new package is not
+- `POST /plugins/install` installs into the live interpreter. The new package is not
   importable until the service restarts, and the endpoint trusts the caller to
   supply a sane package name. Restrict who can reach the panel accordingly.
 
@@ -72,8 +72,4 @@ These are known and worth accounting for when deploying:
    surfaces.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Operations](operations.md) | [📖 Docs home](index.md) | [Deployment](deployment.md) → |
+[← Operations](operations.md) · [Home](index.md) · [Deployment →](deployment.md)
