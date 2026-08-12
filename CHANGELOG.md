@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.3a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.2a1...0.1.3a1)
+
+**Merged pull requests:**
+
+- fix: stop the panel reporting and writing things that are not true [\#16](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/16) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.2a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a2...0.1.2a1)
@@ -23,6 +31,18 @@
 **Merged pull requests:**
 
 - Configure Renovate [\#1](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/1) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.1.0](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.0) (2026-06-23)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.0a1...0.1.0)
+
+## [0.1.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.0a1) (2026-06-22)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/d96eb90d833c7aa5f5d6b2422e73affcc19d43a2...0.1.0a1)
+
+**Merged pull requests:**
+
+- feat: Apache-2.0, full docs, e2e tests, docker + container CI [\#2](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/2) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
