@@ -104,6 +104,40 @@
             .replace(/'/g, "\\'"));
         }
 
+        // ---- Modal keyboard handling -------------------------------------------------
+        // Every modal is a div toggled to display:flex (or .active). Without this,
+        // Escape did nothing and focus stayed behind the overlay.
+        let _modalOpener = null;
+
+        function _openModals() {
+            return Array.from(document.querySelectorAll('.modal, [id$="Modal"]'))
+                .filter(el => el.classList.contains('active') ||
+                              getComputedStyle(el).display !== 'none');
+        }
+
+        function closeTopModal() {
+            const open = _openModals();
+            if (!open.length) return false;
+            const top = open[open.length - 1];
+            // the first-run gate is deliberately not dismissable
+            if (top.id === 'firstRunModal') return false;
+            top.style.display = 'none';
+            top.classList.remove('active');
+            if (_modalOpener && document.contains(_modalOpener)) _modalOpener.focus();
+            _modalOpener = null;
+            return true;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (closeTopModal()) e.preventDefault();
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            const el = e.target.closest && e.target.closest('button, a, [onclick]');
+            if (el) _modalOpener = el;
+        }, true);
+
         // Theme
         function loadTheme() {
             const saved = localStorage.getItem('theme') || 'dark';
@@ -353,7 +387,9 @@
                 el.classList.remove('hidden');
             } else if (mode === 'panel-only') {
                 el.textContent = '📂 panel-only';
-                el.title = 'Started with --no-core: editing on-disk config/database; no hivemind-core is running.';
+                el.title = 'Started with --no-core: this panel edits the on-disk config and '
+                         + 'client database. It has no live view of hivemind-core — one may '
+                         + 'well be running as a separate service.';
                 el.classList.remove('hidden');
             } else {
                 el.classList.add('hidden');
@@ -457,6 +493,12 @@
             svg += `<circle cx="${cx}" cy="${cy}" r="34" fill="#1f6feb"/>
                     <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10" fill="#fff">core</text></svg>
                     <div style="color:var(--text-secondary);margin-top:8px;">${sats.length} satellite(s), ${g.online_count} online</div>`;
+            const notes = [g.error, g.note].filter(Boolean);
+            if (notes.length) {
+                svg += notes.map(n =>
+                    `<div style="margin-top:10px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--bg-hover);color:var(--text-secondary);font-size:12px;">${esc(n)}</div>`
+                ).join('');
+            }
             document.getElementById('topologyContainer').innerHTML = svg;
         }
 
@@ -549,9 +591,20 @@
                        ${metricCard('Service', esc(m.service_status ?? '—'))}
                        ${metricCard('Clients created', c['event.client.created'] || 0)}
                        ${metricCard('Admin actions', c['event.admin.action'] || 0)}
-                     </div>`;
+                     </div>` + liveDataNote(m);
             } catch (e) { document.getElementById('metricsContainer').textContent = 'metrics unavailable'; }
         }
+        // Explain the dashes rather than leaving the panel looking merely empty.
+        function liveDataNote(m) {
+            if (m && m.active_connections != null) return '';
+            return `<div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--bg-hover);color:var(--text-secondary);font-size:12px;">
+                      No live hivemind-core is attached to this panel, so connection
+                      and message figures are unavailable. They appear when the panel
+                      runs hivemind-core in-process (the default, without
+                      <code>--no-core</code>).
+                    </div>`;
+        }
+
         function metricCard(label, val) {
             return `<div style="background:var(--bg-hover);padding:12px;border-radius:8px;">
                       <div style="font-size:22px;font-weight:600;">${val}</div>
@@ -803,8 +856,11 @@
                 ]);
 
                 // Update stat cards
-                document.getElementById('statClients').textContent = health.total_clients || 0;
-                document.getElementById('statConnections').textContent = health.active_connections || 0;
+                // `?? '—'`, not `|| 0`: in panel-only mode the panel has no live
+                // protocol and cannot know the connection count. Reporting 0 is a
+                // claim it is not entitled to make.
+                document.getElementById('statClients').textContent = health.total_clients ?? '—';
+                document.getElementById('statConnections').textContent = health.active_connections ?? '—';
                 document.getElementById('statProtocols').textContent = Object.keys(config.network_protocol || {}).length;
                 document.getElementById('statVersion').textContent = health.version || 'Unknown';
 
