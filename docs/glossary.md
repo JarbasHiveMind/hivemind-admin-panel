@@ -18,7 +18,7 @@ Plain-language definitions of the terms a newcomer meets when running or operati
 
 **Agent protocol**: the pluggable layer (selected by the `agent_protocol` block in `server.json`) that decides how hivemind-core turns an incoming utterance into a response, for example by routing it to a local OVOS core or to a [[persona]]. It loads through `AgentProtocolFactory`. The active [[persona]] is recorded here. Compare [[network protocol]] and [[binary protocol]].
 
-**Allowed types (`allowed_types`)**: a per-client **whitelist** of [[message type]]s the [[client]] is permitted to emit. HiveMind is whitelist-only for message types. If a type is not in `allowed_types`, it is rejected. Edit it with the `allow-msg` and `blacklist-msg` endpoints (blacklisting here simply removes the type from the whitelist).
+**Allowed types (`allowed_types`)**: a per-client **whitelist** of [[message type]]s the [[client]] is permitted to emit. HiveMind is whitelist-only for message types. If a type is not in `allowed_types`, it is rejected. Edit it with the `allow-msg` and `deny-msg` endpoints (`blacklist-msg` is a deprecated alias of `deny-msg`).
 
 **Audit log**: an append-only record of every mutating admin request (`POST`, `PUT`, `DELETE`) with the acting user, path, and status, written to `~/.local/share/hivemind-admin/audit.log` and viewable at `GET /audit`. See [Operations](operations.md).
 
@@ -70,7 +70,7 @@ Plain-language definitions of the terms a newcomer meets when running or operati
 
 **Mesh**: the overall graph of connected HiveMind nodes, including hivemind-core instances, satellites, and relays, across which messages [[escalate]], [[propagate]], and [[broadcast]]. It is visualized on the [[topology]] page.
 
-**Message blacklist**: a per-client deny-list of [[message type]]s (`message_blacklist`) that the node may never send or receive, applied on top of the [[allowed_types]] whitelist.
+**Message blacklist**: removed. hivemind-core is whitelist-only, so there is no per-client message deny-list; a type the node may not send is simply absent from [[allowed_types]].
 
 **Message inspector**: a panel feature (`GET /messages/recent`, filterable by `msg_type` or `peer`) that shows recent messages flowing through the live [[in-process hivemind-core]], for debugging mesh traffic. It is authoritative only when hivemind-core runs in-process.
 

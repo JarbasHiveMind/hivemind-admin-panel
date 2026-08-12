@@ -3732,7 +3732,15 @@
             statusEl.className = 'status-indicator status-offline';
             statusEl.innerHTML = '<span class="status-dot"></span><span>Restarting...</span>';
             try {
-                await apiCall('/config/restart', 'POST');
+                // The API answers 200 with {"status":"error"} when there is no
+                // in-process core to restart — do not claim success on that.
+                const res = await apiCall('/config/restart', 'POST');
+                if (res && res.status === 'error') {
+                    showToast(res.message || 'Restart is not available in this mode.', 'error');
+                    statusEl.className = 'status-indicator status-online';
+                    statusEl.innerHTML = '<span class="status-dot"></span><span>Connected</span>';
+                    return;
+                }
                 showToast('Restart initiated. Reconnecting...');
                 setTimeout(() => location.reload(), 3000);
             } catch (e) {
