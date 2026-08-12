@@ -41,7 +41,9 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from fastapi import FastAPI, HTTPException, Depends, status, BackgroundTasks, Response, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from hivemind_admin_panel._auth import authenticate, verify_token, create_token, audit, read_audit
+from hivemind_admin_panel._auth import (authenticate, verify_token, create_token, audit,
+                                        read_audit, using_default_credentials, is_loopback,
+                                        rotate_token_secret, store_config, protect_config_file)
 from hivemind_admin_panel.version import __version__ as admin_version
 from hivemind_core.config import get_server_config as _get_server_config_raw, _DEFAULT
 
@@ -151,6 +153,15 @@ def get_admin_app() -> FastAPI:
     return app
 
 
+#: Paths where a browser cannot set an Authorization header (EventSource, <img>).
+_QUERY_TOKEN_PATHS = ("/events", "/pairing/qr.svg")
+
+
+def _allows_query_token(path: str) -> bool:
+    """True for the endpoints that may authenticate via ``?access_token=``."""
+    return any(path.endswith(sfx) for sfx in _QUERY_TOKEN_PATHS)
+
+
 def _identify(request: Request) -> Optional[tuple]:
     """Return (username, role) for a valid Basic or Bearer request, else None.
 
@@ -159,7 +170,11 @@ def _identify(request: Request) -> Optional[tuple]:
     """
     cfg = get_server_config()
     header = request.headers.get("Authorization", "")
-    qtoken = request.query_params.get("access_token")
+    # A token in the query string leaks into access logs, referrers and browser
+    # history, so it is only accepted on the two endpoints a browser cannot send
+    # headers to: the SSE feed (EventSource) and the QR <img> src.
+    qtoken = (request.query_params.get("access_token")
+              if _allows_query_token(request.url.path) else None)
     if qtoken:
         payload = verify_token(cfg, qtoken)
         if payload:
@@ -191,7 +206,6 @@ def verify_credentials(request: Request) -> bool:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
         )
     return True
 
@@ -203,7 +217,6 @@ def require_admin(request: Request) -> bool:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
         )
     if ident[1] != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -721,7 +734,7 @@ def get_config() -> Dict[str, Any]:
     return dict(cfg)
 
 
-@app.post("/config", dependencies=[Depends(verify_credentials)])
+@app.post("/config", dependencies=[Depends(require_admin)])
 def set_config(data: ConfigUpdate) -> Dict[str, Any]:
     """Update server configuration.
 
@@ -735,7 +748,7 @@ def set_config(data: ConfigUpdate) -> Dict[str, Any]:
     cfg = get_server_config()
     for key, value in data.config.items():
         cfg[key] = value
-    cfg.store()
+    store_config(cfg)
     return {"status": "ok"}
 
 
@@ -830,7 +843,7 @@ def restore_config_backup(data: ConfigRestoreRequest, request: Request) -> Dict[
         for k in list(cfg.keys()):
             cfg.pop(k, None)
     cfg.update(restored)
-    cfg.store()
+    store_config(cfg)
     audit(_current_user(request), "config.restore", file=data.file)
     return {"status": "ok", "restored": data.file}
 
@@ -868,7 +881,7 @@ def validate_config_endpoint(data: ConfigUpdate) -> ConfigValidationResult:
     return validate_config(data.config)
 
 
-@app.post("/config/restart", dependencies=[Depends(verify_credentials)])
+@app.post("/config/restart", dependencies=[Depends(require_admin)])
 def restart_service(background_tasks: BackgroundTasks) -> RestartResult:
     """Restart the HiveMind service.
 
@@ -1014,7 +1027,7 @@ def get_client(client_id: int) -> Dict[str, Any]:
 
 
 @app.get(
-    "/clients/{client_id}/credentials", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/credentials", dependencies=[Depends(require_admin)]
 )
 def get_client_credentials(client_id: int) -> Dict[str, Any]:
     """Get client credentials including password and crypto key.
@@ -1041,7 +1054,7 @@ def get_client_credentials(client_id: int) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.post("/clients", dependencies=[Depends(verify_credentials)])
+@app.post("/clients", dependencies=[Depends(require_admin)])
 def add_client(data: ClientCreate) -> Dict[str, Any]:
     """Add a new client.
 
@@ -1076,7 +1089,7 @@ def add_client(data: ClientCreate) -> Dict[str, Any]:
         return _client_to_dict(client, include_secrets=True)
 
 
-@app.put("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
+@app.put("/clients/{client_id}", dependencies=[Depends(require_admin)])
 def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
     """Update client data.
 
@@ -1125,7 +1138,7 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.delete("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
+@app.delete("/clients/{client_id}", dependencies=[Depends(require_admin)])
 def delete_client(client_id: int) -> Dict[str, Any]:
     """Delete a client.
 
@@ -1149,7 +1162,7 @@ def delete_client(client_id: int) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.post("/clients/{client_id}/rename", dependencies=[Depends(verify_credentials)])
+@app.post("/clients/{client_id}/rename", dependencies=[Depends(require_admin)])
 def rename_client(client_id: int, data: Dict[str, str]) -> Dict[str, Any]:
     """Rename a client.
 
@@ -1177,7 +1190,7 @@ def rename_client(client_id: int, data: Dict[str, str]) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/allow-msg", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/allow-msg", dependencies=[Depends(require_admin)]
 )
 def allow_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
     """Allow a message type for a client.
@@ -1193,7 +1206,7 @@ def allow_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/blacklist-msg", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/blacklist-msg", dependencies=[Depends(require_admin)]
 )
 def blacklist_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
     """Blacklist a message type for a client.
@@ -1237,7 +1250,7 @@ def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, An
 
 
 @app.post(
-    "/clients/{client_id}/allow-skill", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/allow-skill", dependencies=[Depends(require_admin)]
 )
 def allow_skill(client_id: int, data: SkillRequest) -> Dict[str, Any]:
     """Allow a skill for a client.
@@ -1298,7 +1311,7 @@ def _modify_skill(client_id: int, skill_id: str, action: str) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/allow-intent", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/allow-intent", dependencies=[Depends(require_admin)]
 )
 def allow_intent(client_id: int, data: IntentRequest) -> Dict[str, Any]:
     """Allow an intent for a client.
@@ -1423,7 +1436,7 @@ def blacklist_propagate(client_id: int) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/make-admin", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/make-admin", dependencies=[Depends(require_admin)]
 )
 def make_admin(client_id: int) -> Dict[str, Any]:
     """Grant admin privileges to a client.
@@ -1438,7 +1451,7 @@ def make_admin(client_id: int) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/revoke-admin", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/revoke-admin", dependencies=[Depends(require_admin)]
 )
 def revoke_admin(client_id: int) -> Dict[str, Any]:
     """Revoke admin privileges from a client.
@@ -1835,7 +1848,7 @@ def enable_plugin(data: ConfigUpdateRequest) -> PluginInstallResult:
 
     if config_updated:
         LOG.info(f"Saving configuration to: {cfg.config_path if hasattr(cfg, 'config_path') else 'server.json'}")
-        cfg.store()
+        store_config(cfg)
         LOG.info(f"Plugin {data.module} {'enabled' if data.enabled else 'disabled'} and configuration updated")
         return PluginInstallResult(
             success=True,
@@ -2185,7 +2198,7 @@ def list_database_profiles() -> Dict[str, Any]:
     return {"profiles": profiles, "active": active}
 
 
-@app.post("/database/profiles", dependencies=[Depends(verify_credentials)])
+@app.post("/database/profiles", dependencies=[Depends(require_admin)])
 def create_database_profile(data: DatabaseProfileCreate) -> Dict[str, Any]:
     """Create a new named database profile.
 
@@ -2239,7 +2252,7 @@ def get_database_profile(name: str) -> Dict[str, Any]:
     return {"name": name, "module": p.get("module"), "config": p.get("config", {})}
 
 
-@app.put("/database/profiles/{name}", dependencies=[Depends(verify_credentials)])
+@app.put("/database/profiles/{name}", dependencies=[Depends(require_admin)])
 def update_database_profile(name: str, data: DatabaseProfileUpdate) -> Dict[str, Any]:
     """Update an existing database profile.
 
@@ -2280,7 +2293,7 @@ def update_database_profile(name: str, data: DatabaseProfileUpdate) -> Dict[str,
     return {"name": name, "module": profile["module"], "config": profile.get("config", {})}
 
 
-@app.delete("/database/profiles/{name}", dependencies=[Depends(verify_credentials)])
+@app.delete("/database/profiles/{name}", dependencies=[Depends(require_admin)])
 def delete_database_profile(name: str) -> Dict[str, Any]:
     """Delete a database profile file.
 
@@ -2314,7 +2327,7 @@ def delete_database_profile(name: str) -> Dict[str, Any]:
     return {"status": "ok"}
 
 
-@app.post("/database/profiles/{name}/test", dependencies=[Depends(verify_credentials)])
+@app.post("/database/profiles/{name}/test", dependencies=[Depends(require_admin)])
 def test_database_profile(name: str) -> DatabaseTestResult:
     """Test connectivity for a saved database profile.
 
@@ -2334,7 +2347,7 @@ def test_database_profile(name: str) -> DatabaseTestResult:
     return _test_db_connectivity(p.get("module", ""), p.get("config", {}))
 
 
-@app.post("/database/profiles/{name}/activate", dependencies=[Depends(verify_credentials)])
+@app.post("/database/profiles/{name}/activate", dependencies=[Depends(require_admin)])
 def activate_database_profile(name: str, data: ActivateProfileRequest) -> ActivateProfileResult:
     """Activate a database profile.
 
@@ -2385,7 +2398,7 @@ def activate_database_profile(name: str, data: ActivateProfileRequest) -> Activa
     # configured directly — no extra tracking key needed.
     cfg = get_server_config()
     cfg["database"] = _build_db_config_key(target)
-    cfg.store()
+    store_config(cfg)
 
     LOG.info(f"Activated database profile '{name}' ({tgt_module}), migrated {clients_migrated} clients")
     return ActivateProfileResult(
@@ -2463,7 +2476,7 @@ def migrate_database(data: DatabaseMigrationRequest, response: Response) -> Data
             clients_migrated = _migrate_clients(source_module, src_kwargs, target_module, {})
 
         cfg["database"] = {"module": target_module}
-        cfg.store()
+        store_config(cfg)
 
         return DatabaseMigrationResult(
             success=True,
@@ -2552,7 +2565,7 @@ class CopyClientRequest(BaseModel):
     api_key: str
 
 
-@app.post("/database/copy-client", dependencies=[Depends(verify_credentials)])
+@app.post("/database/copy-client", dependencies=[Depends(require_admin)])
 def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
     """Copy a single client from one database to another.
     
@@ -2893,7 +2906,7 @@ def get_client_acl(client_id: int) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail=f"Client {client_id} not found")
 
 
-@app.put("/clients/{client_id}/acl", dependencies=[Depends(verify_credentials)])
+@app.put("/clients/{client_id}/acl", dependencies=[Depends(require_admin)])
 def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
     """Update ACL configuration for a specific client.
 
@@ -2940,7 +2953,7 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.post("/clients/{client_id}/acl/apply-template", dependencies=[Depends(verify_credentials)])
+@app.post("/clients/{client_id}/acl/apply-template", dependencies=[Depends(require_admin)])
 def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
     """Apply an ACL template to a client.
 
@@ -3550,7 +3563,7 @@ def activate_persona(name: str, force: bool = False) -> Dict[str, Any]:
     # Also set the module if not already set
     config["agent_protocol"]["module"] = "hivemind-persona-agent-plugin"
 
-    config.store()
+    store_config(config)
 
     LOG.info(f"Activated persona '{name}' at {full_path}")
     return {"status": "ok", "active_persona": name, "path": full_path}
@@ -3802,7 +3815,7 @@ def apply_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
         cfg["network_protocol"] = net
     else:  # stt / tts / ww / vad
         _apply_speech_preset(cfg, ptype, name, module, pconfig)
-    cfg.store()
+    store_config(cfg)
     audit(_current_user(request), "preset.apply", type=ptype, name=name, module=module)
     return {"status": "ok", "applied": f"{ptype}/{name}", "module": module}
 
@@ -3908,14 +3921,34 @@ class LoginRequest(BaseModel):
     password: str
 
 
+#: Failed-login throttle: {username: [timestamps]}. Passwords in server.json are
+#: operator-chosen and unhashed by default, so unlimited guessing is a real risk.
+_LOGIN_FAILURES: Dict[str, List[float]] = {}
+_LOGIN_WINDOW = 300.0   # seconds
+_LOGIN_MAX_FAILURES = 10
+
+
+def _login_throttled(username: str) -> bool:
+    now = time.time()
+    hits = [t for t in _LOGIN_FAILURES.get(username, []) if now - t < _LOGIN_WINDOW]
+    _LOGIN_FAILURES[username] = hits
+    return len(hits) >= _LOGIN_MAX_FAILURES
+
+
 @app.post("/auth/login")
 def login(data: LoginRequest) -> Dict[str, Any]:
     """Exchange username/password for a signed bearer token (no auth required)."""
     cfg = get_server_config()
+    if _login_throttled(data.username):
+        audit(data.username, "login.throttled")
+        raise HTTPException(status_code=429,
+                            detail="Too many failed logins; wait 5 minutes")
     role = authenticate(cfg, data.username, data.password)
     if not role:
+        _LOGIN_FAILURES.setdefault(data.username, []).append(time.time())
         audit(data.username, "login.failed")
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    _LOGIN_FAILURES.pop(data.username, None)
     token = create_token(cfg, data.username, role)
     audit(data.username, "login.ok", role=role)
     from hivemind_admin_panel._metrics import METRICS
@@ -3957,6 +3990,85 @@ async def _audit_mutations(request: Request, call_next):
             METRICS.event("admin.action", f"{user}: {request.method} {path}",
                           status=response.status_code)
     return response
+
+
+# ===================== Request-level security gates =====================
+#
+# These run as middleware so they cover every route, including any added later.
+# A per-route dependency is not enough: the panel has ~130 routes and a forgotten
+# `Depends(...)` is an open door.
+
+_MUTATING = ("POST", "PUT", "PATCH", "DELETE")
+
+#: Content types an HTML <form> can produce. A cross-site form post is the one
+#: CSRF vector that needs no JavaScript, and it can never send application/json.
+_FORM_CONTENT_TYPES = ("application/x-www-form-urlencoded", "multipart/form-data",
+                       "text/plain")
+
+#: Reachable while the shipped default credentials are still in use. Everything
+#: else is refused, so the "change your password" gate cannot be skipped by
+#: talking to the API directly (the browser UI is not a security boundary).
+_SETUP_GATE_ALLOWED = ("/health", "/auth/login", "/auth/logout", "/auth/me",
+                       "/auth/password", "/setup/status")
+
+
+def _json_error(status_code: int, detail: str) -> "JSONResponse":
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+
+def _is_cross_site(request: Request) -> bool:
+    """True when the request demonstrably comes from another origin."""
+    fetch_site = request.headers.get("Sec-Fetch-Site", "")
+    if fetch_site in ("cross-site", "same-site"):
+        return True
+    origin = request.headers.get("Origin")
+    if origin:
+        from urllib.parse import urlparse
+        host = request.headers.get("Host", "")
+        if urlparse(origin).netloc != host:
+            return True
+    return False
+
+
+@app.middleware("http")
+async def _csrf_guard(request: Request, call_next):
+    """Refuse cross-site and form-encoded mutations.
+
+    The panel authenticates with HTTP Basic and bearer tokens, both of which a
+    browser may replay on a cross-site request. Body-less POSTs such as
+    ``/clients/{id}/make-admin`` were therefore reachable from any page the
+    operator happened to visit.
+    """
+    if request.method in _MUTATING:
+        ctype = request.headers.get("Content-Type", "").split(";")[0].strip().lower()
+        if ctype in _FORM_CONTENT_TYPES:
+            return _json_error(415, "Mutations must use Content-Type: application/json")
+        if _is_cross_site(request):
+            return _json_error(403, "Cross-site request refused")
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def _default_credentials_gate(request: Request, call_next):
+    """Serve nothing but the password change while defaults are in use (server-side).
+
+    The SPA shows a blocking modal, but that is cosmetic — a client-side gate
+    stops nobody with ``curl``.
+    """
+    path = request.url.path
+    if request.method != "OPTIONS" and not any(path.endswith(a) for a in _SETUP_GATE_ALLOWED):
+        try:
+            defaults = using_default_credentials(get_server_config())
+        except Exception:  # never lock the panel out on a config read error
+            defaults = False
+        if defaults:
+            return _json_error(
+                403,
+                "Default admin credentials are still in use. Change the admin "
+                "password (POST /api/auth/password) before using the panel.",
+            )
+    return await call_next(request)
 
 
 # ===================== Onboarding: pairing + bulk client ops =====================
@@ -4019,7 +4131,7 @@ class BulkClientRequest(BaseModel):
     template_name: Optional[str] = None
 
 
-@app.post("/clients/bulk", dependencies=[Depends(verify_credentials)])
+@app.post("/clients/bulk", dependencies=[Depends(require_admin)])
 def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
     """Apply one action to many clients; returns a per-client result list."""
     results = []
@@ -4321,7 +4433,7 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
         cfg = get_server_config()
         for k, v in data.config.items():
             cfg[k] = v
-        cfg.store()
+        store_config(cfg)
     return {"status": "ok", "clients_added": added, "clients_skipped": skipped,
             "config_restored": bool(data.restore_config and data.config)}
 
@@ -4345,7 +4457,7 @@ def set_policy(data: PolicyUpdate) -> Dict[str, Any]:
     policy = cfg.get("policy", {}) or {}
     policy["chain"] = data.chain
     cfg["policy"] = policy
-    cfg.store()
+    store_config(cfg)
     return {"status": "ok", "chain": data.chain}
 
 
@@ -4476,7 +4588,7 @@ class TagsRequest(BaseModel):
     tags: List[str]
 
 
-@app.put("/clients/{client_id}/tags", dependencies=[Depends(verify_credentials)])
+@app.put("/clients/{client_id}/tags", dependencies=[Depends(require_admin)])
 def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
     """Set the tag list for a client (stored in client metadata)."""
     with ClientDatabase() as db:
@@ -4810,7 +4922,7 @@ def setup_ack(data: SetupAck, request: Request) -> Dict[str, Any]:
     if data.id not in acked:
         acked.append(data.id)
         cfg["setup_acked"] = acked
-        cfg.store()
+        store_config(cfg)
         audit(_current_user(request), "setup.ack", id=data.id)
     return setup_status()
 
@@ -4821,7 +4933,7 @@ def setup_unack(check_id: str, request: Request) -> Dict[str, Any]:
     cfg = get_server_config()
     acked = [a for a in (cfg.get("setup_acked", []) or []) if a != check_id]
     cfg["setup_acked"] = acked
-    cfg.store()
+    store_config(cfg)
     audit(_current_user(request), "setup.unack", id=check_id)
     return setup_status()
 
@@ -4847,7 +4959,7 @@ class PasswordChange(BaseModel):
 
 
 @app.post("/auth/password", dependencies=[Depends(verify_credentials)])
-def change_password(data: PasswordChange, request: Request) -> Dict[str, str]:
+def change_password(data: PasswordChange, request: Request) -> Dict[str, Any]:
     """Change the current user's password (stored hashed with PBKDF2)."""
     from hivemind_admin_panel._auth import hash_password
     cfg = get_server_config()
@@ -4863,9 +4975,12 @@ def change_password(data: PasswordChange, request: Request) -> Dict[str, str]:
             if u.get("username") == user:
                 u["password"] = hashed
         cfg["users"] = users
-    cfg.store()
+    store_config(cfg)
+    # Bearer tokens are stateless HMAC blobs: without re-keying, every token
+    # minted under the old password stays valid for its full 12h TTL.
+    rotate_token_secret(cfg)
     audit(user, "password.changed")
-    return {"status": "ok"}
+    return {"status": "ok", "tokens_revoked": True}
 
 
 @app.post("/config/diff", dependencies=[Depends(verify_credentials)])
