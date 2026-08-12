@@ -24,6 +24,7 @@ Endpoints:
     - /api/stats — Get server statistics (real-time when injected)
 """
 
+import contextlib
 import hmac
 import importlib.metadata
 import json
@@ -54,6 +55,29 @@ from hivemind_core.config import get_server_config as _get_server_config_raw, _D
 # construction with a process-local lock; semantics are unchanged (each caller
 # still gets a fresh config object), the races just can't overlap.
 _config_lock = threading.Lock()
+
+# Every client mutation in this file is a read-modify-write: load the whole
+# Client, change one field, hand the whole row back. The database contract has
+# no partial update — `update_item` delegates to `add_item`, which is an
+# `INSERT OR REPLACE` on the SQLite backend — so two overlapping mutations of
+# the *same* client both write a full row and the later one silently discards
+# the earlier field change. The panel drives this from a UI that fires several
+# requests at once (the ACL editor sends one request per permission), so the
+# overlap is routine rather than theoretical.
+#
+# Serialising the read-modify-write in the panel closes it for the process that
+# owns the database. A cross-process fix needs a partial-update or
+# compare-and-set primitive in hivemind-plugin-manager and every backend that
+# implements it.
+_client_write_lock = threading.RLock()
+
+
+@contextlib.contextmanager
+def client_db_write():
+    """A :class:`ClientDatabase` whose read-modify-write cannot interleave."""
+    with _client_write_lock:
+        with ClientDatabase() as db:
+            yield db
 
 
 def get_server_config():
@@ -1184,7 +1208,7 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
         HTTPException: 404 if client not found.
         HTTPException: 400 if crypto_key has invalid length.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 if data.name is not None:
@@ -1258,7 +1282,7 @@ def rename_client(client_id: int, data: Dict[str, str]) -> Dict[str, Any]:
     if not name:
         raise HTTPException(status_code=400, detail="name required")
 
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 client.name = name
@@ -1331,7 +1355,7 @@ def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, An
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 allowed = client.allowed_types or []
@@ -1392,7 +1416,7 @@ def _modify_skill(client_id: int, skill_id: str, action: str) -> Dict[str, Any]:
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 blacklist = client.skill_blacklist or []
@@ -1453,7 +1477,7 @@ def _modify_intent(client_id: int, intent_id: str, action: str) -> Dict[str, Any
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 blacklist = client.intent_blacklist or []
@@ -1575,7 +1599,7 @@ def _modify_flag(client_id: int, flag: str, value: bool) -> Dict[str, Any]:
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 setattr(client, flag, value)
@@ -3021,7 +3045,7 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 # Core permissions
@@ -3085,7 +3109,7 @@ def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
     if not template:
         raise HTTPException(status_code=404, detail=f"Template '{template_name}' not found")
 
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 client.allowed_types = template.get("allowed_types", [])
@@ -4777,7 +4801,7 @@ class TagsRequest(BaseModel):
 @app.put("/clients/{client_id}/tags", dependencies=[Depends(require_admin)])
 def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
     """Set the tag list for a client (stored in client metadata)."""
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 meta = dict(getattr(client, "metadata", None) or {})
@@ -4883,7 +4907,7 @@ def provision_bridge(data: BridgeProvision, request: Request) -> Dict[str, Any]:
     access_key = os.urandom(16).hex()
     password = os.urandom(16).hex()
     crypto_key = os.urandom(16).hex()   # 32 chars
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         db.add_client(name, access_key, crypto_key=crypto_key, password=password, admin=False)
         client = db.get_client_by_api_key(access_key)
         client.allowed_types = list(BRIDGE_ALLOW)
