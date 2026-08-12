@@ -1,5 +1,8 @@
 # Plugin presets
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 A **preset** is a named, reusable `{module, config}` for a plugin slot, the same
 idea as the database backend profiles, generalized to every plugin type
 (STT, TTS, wake word, VAD, agent, network). Author a config once (for example a

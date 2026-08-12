@@ -1,5 +1,8 @@
 # Architecture
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 ## Components
 
 ```
@@ -35,13 +38,16 @@ It stores the live objects in module globals that the endpoints read:
 | `_startup_error` | exception if core failed to boot | `/startup-error` |
 
 By default the panel is the launcher. `launch_core()` (in `__main__.py`)
-constructs a `HiveMindService`, calls `init_injected_objects(service, db)`, and
-runs hivemind-core in a daemon thread. Uvicorn then serves the panel in the main
+constructs a `HiveMindService` and calls `init_injected_objects(service, db)`.
+hivemind-core then runs on the **main** thread, because `HiveMindService.run()`
+installs the SIGINT/SIGTERM handlers and those only work there. Uvicorn serves
+the panel in a **daemon** thread, since it skips signal handling off the main
 thread. The panel holds the live hivemind-core reference directly. There is no separate
 `hivemind-core` process and no `--with-admin` flag in core.
 
 In `--no-core` mode, none of the globals are injected. Endpoints that need a live
-hivemind-core degrade gracefully (placeholder connections, restart returns an error), while
+hivemind-core degrade honestly — `/connections` returns an empty list plus a note,
+`/stats` reports no counts at all, restart returns an error — while
 everything backed by the database, config, or filesystem works by opening the same on-disk state.
 
 If hivemind-core raises during construction, `launch_core()` injects the exception as

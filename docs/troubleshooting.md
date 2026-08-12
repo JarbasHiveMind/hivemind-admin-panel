@@ -1,5 +1,8 @@
 # Troubleshooting & FAQ
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 Practical fixes for the most common issues, then answers to recurring questions.
 See also [Running the panel](running.md), [Configuration](configuration.md), and
 [Security](security.md).

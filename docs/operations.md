@@ -1,5 +1,8 @@
 # Operations & monitoring
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 Beyond configuration, the panel is an operations console. This page covers the
 real-time, security, onboarding, and ops features.
 

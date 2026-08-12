@@ -1,5 +1,8 @@
 # Tutorial: zero to hero
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 A complete, hands-on walkthrough. By the end you will have launched hivemind-core,
 secured it, paired a satellite, given it a personality, and watched it live. It
 takes about 15 minutes and needs only Python 3.10+.
