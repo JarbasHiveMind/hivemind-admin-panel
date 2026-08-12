@@ -153,6 +153,41 @@ def get_admin_app() -> FastAPI:
     return app
 
 
+# --------------------------------------------------------------------------- throttle
+#
+# Brute-force protection has to live where the password is checked, not only in
+# POST /auth/login: the API accepts HTTP Basic on every route, so a throttle
+# bolted onto the login endpoint alone is bypassed by guessing against /clients.
+
+_LOGIN_FAILURES: Dict[str, List[float]] = {}
+_LOGIN_WINDOW = 300.0   # seconds
+_LOGIN_MAX_FAILURES = 10
+
+
+def _prune_login_failures(now: float) -> None:
+    """Drop usernames with no recent failures, so the map cannot grow forever."""
+    for name in [n for n, hits in _LOGIN_FAILURES.items()
+                 if not any(now - t < _LOGIN_WINDOW for t in hits)]:
+        del _LOGIN_FAILURES[name]
+
+
+def _login_throttled(username: str) -> bool:
+    now = time.time()
+    _prune_login_failures(now)
+    hits = [t for t in _LOGIN_FAILURES.get(username, []) if now - t < _LOGIN_WINDOW]
+    if hits:
+        _LOGIN_FAILURES[username] = hits
+    return len(hits) >= _LOGIN_MAX_FAILURES
+
+
+def _record_login_failure(username: str) -> None:
+    _LOGIN_FAILURES.setdefault(username, []).append(time.time())
+
+
+def _clear_login_failures(username: str) -> None:
+    _LOGIN_FAILURES.pop(username, None)
+
+
 #: Paths where a browser cannot set an Authorization header (EventSource, <img>).
 _QUERY_TOKEN_PATHS = ("/events", "/pairing/qr.svg")
 
@@ -162,11 +197,16 @@ def _allows_query_token(path: str) -> bool:
     return any(path.endswith(sfx) for sfx in _QUERY_TOKEN_PATHS)
 
 
-def _identify(request: Request) -> Optional[tuple]:
+def _identify(request: Request, throttle: bool = False) -> Optional[tuple]:
     """Return (username, role) for a valid Basic or Bearer request, else None.
 
     Also accepts a bearer token via the ``access_token`` query parameter, since
     the browser EventSource API (used by the SSE /events feed) cannot set headers.
+
+    Args:
+        throttle: count and enforce failed Basic attempts. Only the authenticating
+            dependencies pass this; the audit middleware calls ``_identify`` again
+            on the way out and must not double-count or raise there.
     """
     cfg = get_server_config()
     header = request.headers.get("Authorization", "")
@@ -190,9 +230,16 @@ def _identify(request: Request) -> Optional[tuple]:
             user, _, pw = _b64.b64decode(header[6:]).decode().partition(":")
         except Exception:
             return None
+        if throttle and _login_throttled(user):
+            raise HTTPException(status_code=429,
+                                detail="Too many failed logins; wait 5 minutes")
         role = authenticate(cfg, user, pw)
         if role:
+            if throttle:
+                _clear_login_failures(user)
             return user, role
+        if throttle:
+            _record_login_failure(user)
     return None
 
 
@@ -202,7 +249,7 @@ def verify_credentials(request: Request) -> bool:
     Basic credentials are checked against ``server.json`` (admin_user/admin_pass
     plus any ``users``); bearer tokens are issued by ``POST /auth/login``.
     """
-    if _identify(request) is None:
+    if _identify(request, throttle=True) is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -212,7 +259,7 @@ def verify_credentials(request: Request) -> bool:
 
 def require_admin(request: Request) -> bool:
     """Like :func:`verify_credentials` but requires the ``admin`` role."""
-    ident = _identify(request)
+    ident = _identify(request, throttle=True)
     if ident is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -3979,18 +4026,6 @@ class LoginRequest(BaseModel):
 
 #: Failed-login throttle: {username: [timestamps]}. Passwords in server.json are
 #: operator-chosen and unhashed by default, so unlimited guessing is a real risk.
-_LOGIN_FAILURES: Dict[str, List[float]] = {}
-_LOGIN_WINDOW = 300.0   # seconds
-_LOGIN_MAX_FAILURES = 10
-
-
-def _login_throttled(username: str) -> bool:
-    now = time.time()
-    hits = [t for t in _LOGIN_FAILURES.get(username, []) if now - t < _LOGIN_WINDOW]
-    _LOGIN_FAILURES[username] = hits
-    return len(hits) >= _LOGIN_MAX_FAILURES
-
-
 @app.post("/auth/login")
 def login(data: LoginRequest) -> Dict[str, Any]:
     """Exchange username/password for a signed bearer token (no auth required)."""
@@ -4001,10 +4036,10 @@ def login(data: LoginRequest) -> Dict[str, Any]:
                             detail="Too many failed logins; wait 5 minutes")
     role = authenticate(cfg, data.username, data.password)
     if not role:
-        _LOGIN_FAILURES.setdefault(data.username, []).append(time.time())
+        _record_login_failure(data.username)
         audit(data.username, "login.failed")
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    _LOGIN_FAILURES.pop(data.username, None)
+    _clear_login_failures(data.username)
     token = create_token(cfg, data.username, role)
     audit(data.username, "login.ok", role=role)
     from hivemind_admin_panel._metrics import METRICS
@@ -5113,6 +5148,36 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
+#: Shortest password the panel will store. The panel hands out satellite
+#: credentials and can install arbitrary plugins, so a one-character password is
+#: not a lesser version of the default-credentials problem, it is the same one.
+MIN_PASSWORD_LENGTH = 12
+
+
+def _reject_weak_password(password: str) -> None:
+    """Refuse a new password that leaves the panel effectively unprotected.
+
+    The startup check and the setup gate only recognise the shipped
+    ``admin``/``admin``. Without this, "change the admin password" is satisfied
+    by any single character, and the panel then reports itself as secured.
+    """
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+    if password.strip().lower() in _WEAK_PASSWORDS:
+        raise HTTPException(status_code=422,
+                            detail="That password is one of the known defaults")
+
+
+#: Passwords that appear in this project's own documentation and images.
+_WEAK_PASSWORDS = frozenset((
+    "admin", "password", "hivemind", "changeme", "change-me",
+    "change-me-before-exposing", "adminadmin", "administrator",
+    "passwordpassword", "hivemindadmin", "123456789012",
+))
+
+
 @app.post("/auth/password", dependencies=[Depends(verify_credentials)])
 def change_password(data: PasswordChange, request: Request) -> Dict[str, Any]:
     """Change the current user's password (stored hashed with PBKDF2)."""
@@ -5121,6 +5186,7 @@ def change_password(data: PasswordChange, request: Request) -> Dict[str, Any]:
     user = _current_user(request)
     if not authenticate(cfg, user, data.old_password):
         raise HTTPException(status_code=401, detail="Old password is incorrect")
+    _reject_weak_password(data.new_password)
     hashed = hash_password(data.new_password)
     if cfg.get("admin_user", "admin") == user:
         cfg["admin_pass"] = hashed
