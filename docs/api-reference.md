@@ -155,7 +155,7 @@ curl -u admin:admin -X POST http://localhost:8100/api/config/restart
 
 Client objects are returned by `_client_to_dict`, which includes: `client_id`,
 `name`, `description`, `api_key`, `is_admin`, `allowed_types`,
-`message_blacklist`, `skill_blacklist`, `intent_blacklist`, `can_escalate`,
+`skill_blacklist`, `intent_blacklist`, `can_escalate`,
 `can_propagate`, `can_broadcast`, `last_seen`, `revoked`. Create/update
 responses also include `password` and `crypto_key` (secrets).
 A revoked client has `api_key == "REVOKED"` (case-insensitive) or `revoked` set.
@@ -204,7 +204,8 @@ secrets). All require auth and respond `404` if the client is not found.
 | Method | Path                                   | Body             | Effect |
 |--------|----------------------------------------|------------------|--------|
 | POST   | `/clients/{client_id}/allow-msg`       | `MsgTypeRequest` | Add `msg_type` to `allowed_types` |
-| POST   | `/clients/{client_id}/blacklist-msg`   | `MsgTypeRequest` | Remove `msg_type` from `allowed_types` |
+| POST   | `/clients/{client_id}/deny-msg`        | `MsgTypeRequest` | Remove `msg_type` from `allowed_types` |
+| POST   | `/clients/{client_id}/blacklist-msg`   | `MsgTypeRequest` | Deprecated alias of `deny-msg` |
 
 ```bash
 curl -u admin:admin -X POST http://localhost:8100/api/clients/3/allow-msg \
@@ -250,13 +251,14 @@ curl -u admin:admin -X POST http://localhost:8100/api/clients/3/make-admin
 | POST   | `/clients/{client_id}/acl/apply-template`     | Yes  | query `template_name` | Apply a named ACL template |
 
 `GET`/`PUT` return: `client_id`, `name`, `is_admin`, `can_escalate`,
-`can_propagate`, `allowed_types`, `skill_blacklist`, `intent_blacklist`.
+`can_propagate`, `can_broadcast`, `allowed_types`, `skill_blacklist`,
+`intent_blacklist`.
 `PUT` updates only the provided `ACLUpdateRequest` fields. **Side effect:
 writes to the client DB.** `404` if not found.
 
 `apply-template` takes `template_name` as a **query parameter** (not body),
 looks it up in `acl_config.json`, and sets `allowed_types`,
-`message_blacklist`, `skill_blacklist`, `intent_blacklist` from the template.
+`skill_blacklist`, `intent_blacklist` from the template.
 `404` if client or template not found.
 
 ```bash
@@ -637,7 +639,7 @@ noted.
 ### `ClientUpdate`
 All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 (`str`). `is_admin`, `can_escalate`, `can_propagate` (`bool`). `allowed_types`,
-`message_blacklist`, `skill_blacklist`, `intent_blacklist` (`List[str]`).
+`skill_blacklist`, `intent_blacklist` (`List[str]`).
 
 ### `ClientResponse`
 | Field | Type |
@@ -647,7 +649,6 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 | `api_key` | `str` |
 | `is_admin` | `bool` |
 | `allowed_types` | `List[str]` |
-| `message_blacklist` | `List[str]` |
 | `skill_blacklist` | `List[str]` |
 | `intent_blacklist` | `List[str]` |
 | `can_escalate` | `bool` |

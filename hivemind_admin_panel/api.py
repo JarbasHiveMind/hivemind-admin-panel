@@ -237,7 +237,6 @@ class ClientResponse(BaseModel):
     api_key: str
     is_admin: bool
     allowed_types: List[str]
-    message_blacklist: List[str]
     skill_blacklist: List[str]
     intent_blacklist: List[str]
     can_escalate: bool
@@ -275,7 +274,6 @@ class ClientUpdate(BaseModel):
         can_escalate: Permission to send messages upstream.
         can_propagate: Permission to forward messages to siblings.
         allowed_types: List of allowed message types.
-        message_blacklist: List of blacklisted message types.
         skill_blacklist: List of blacklisted skills.
         intent_blacklist: List of blacklisted intents.
     """
@@ -287,8 +285,8 @@ class ClientUpdate(BaseModel):
     is_admin: Optional[bool] = None
     can_escalate: Optional[bool] = None
     can_propagate: Optional[bool] = None
+    can_broadcast: Optional[bool] = None
     allowed_types: Optional[List[str]] = None
-    message_blacklist: Optional[List[str]] = None
     skill_blacklist: Optional[List[str]] = None
     intent_blacklist: Optional[List[str]] = None
 
@@ -723,13 +721,43 @@ def get_startup_error() -> Dict[str, Any]:
     }
 
 
+def _server_json_path() -> Path:
+    """Path to hivemind-core's server.json."""
+    return Path(xdg_config_home()) / "hivemind-core" / "server.json"
+
+
+def _config_file_error() -> Optional[str]:
+    """Return a message if server.json exists but does not parse, else None.
+
+    ``get_server_config()`` silently falls back to hivemind-core's built-in
+    defaults when the file is corrupt. Writing that back would overwrite the
+    operator's real configuration with defaults, and every read in between
+    reports the defaults as if they were the file.
+    """
+    path = _server_json_path()
+    if not path.exists():
+        return None
+    try:
+        json.loads(path.read_text())
+        return None
+    except Exception as e:
+        return f"{path} is unreadable: {e}"
+
+
 @app.get("/config", dependencies=[Depends(verify_credentials)])
 def get_config() -> Dict[str, Any]:
     """Get server configuration.
 
     Returns:
         Dict containing full server configuration from server.json.
+
+    Raises:
+        HTTPException: 500 if server.json exists but cannot be parsed — the
+            defaults returned in that case are not the operator's config.
     """
+    err = _config_file_error()
+    if err:
+        raise HTTPException(status_code=500, detail=err)
     cfg = get_server_config()
     return dict(cfg)
 
@@ -743,7 +771,18 @@ def set_config(data: ConfigUpdate) -> Dict[str, Any]:
 
     Returns:
         Dict with status field on success.
+
+    Raises:
+        HTTPException: 409 if server.json is unreadable. Writing then would
+            replace the operator's real config with hivemind-core defaults.
     """
+    err = _config_file_error()
+    if err:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Refusing to write the configuration: {err}. "
+                   "Repair or remove the file, or restore a snapshot from "
+                   "/api/config/backups.")
     _snapshot_config()
     cfg = get_server_config()
     for key, value in data.config.items():
@@ -753,11 +792,6 @@ def set_config(data: ConfigUpdate) -> Dict[str, Any]:
 
 
 # ===================== Config snapshots / rollback =====================
-
-def _server_json_path() -> Path:
-    """Path to hivemind-core's server.json."""
-    return Path(xdg_config_home()) / "hivemind-core" / "server.json"
-
 
 def _config_backups_dir() -> Path:
     return _server_json_path().parent / "config_backups"
@@ -959,7 +993,6 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
         "api_key": client.api_key,
         "is_admin": bool(client.is_admin),
         "allowed_types": client.allowed_types or [],
-        "message_blacklist": client.message_blacklist or [],
         "skill_blacklist": client.skill_blacklist or [],
         "intent_blacklist": client.intent_blacklist or [],
         "can_escalate": bool(client.can_escalate),
@@ -1127,8 +1160,6 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
                     client.can_propagate = data.can_propagate
                 if data.allowed_types is not None:
                     client.allowed_types = data.allowed_types
-                if data.message_blacklist is not None:
-                    client.message_blacklist = data.message_blacklist
                 if data.skill_blacklist is not None:
                     client.skill_blacklist = data.skill_blacklist
                 if data.intent_blacklist is not None:
@@ -1206,28 +1237,46 @@ def allow_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/blacklist-msg", dependencies=[Depends(require_admin)]
+    "/clients/{client_id}/deny-msg", dependencies=[Depends(require_admin)]
 )
-def blacklist_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
-    """Blacklist a message type for a client.
+def deny_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
+    """Remove a message type from a client's ``allowed_types`` whitelist.
+
+    hivemind-core has no message deny-list: a type the client may not send is
+    simply absent from the whitelist.
 
     Args:
         client_id: The client ID.
-        data: MsgTypeRequest with msg_type to blacklist.
+        data: MsgTypeRequest with the msg_type to remove.
 
     Returns:
         Dict with updated client data.
     """
-    return _modify_msg_type(client_id, data.msg_type, "blacklist")
+    return _modify_msg_type(client_id, data.msg_type, "deny")
+
+
+@app.post(
+    "/clients/{client_id}/blacklist-msg", dependencies=[Depends(require_admin)]
+)
+def blacklist_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
+    """Deprecated alias of ``/deny-msg``; the name never matched the behaviour.
+
+    It does not write a blacklist — nothing in hivemind-core reads one. It
+    removes ``msg_type`` from ``allowed_types``.
+    """
+    return _modify_msg_type(client_id, data.msg_type, "deny")
 
 
 def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, Any]:
-    """Modify message type permissions for a client.
+    """Add or remove a message type from a client's ``allowed_types`` whitelist.
+
+    hivemind-core is whitelist-only: there is no message deny-list. "Denying" a
+    type means taking it out of ``allowed_types``.
 
     Args:
         client_id: The client ID.
-        msg_type: Message type to allow or blacklist.
-        action: 'allow' or 'blacklist'.
+        msg_type: Message type to add or remove.
+        action: ``'allow'`` (add) or ``'deny'`` (remove).
 
     Returns:
         Dict with updated client data.
@@ -1241,7 +1290,7 @@ def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, An
                 allowed = client.allowed_types or []
                 if action == "allow" and msg_type not in allowed:
                     allowed.append(msg_type)
-                elif action == "blacklist" and msg_type in allowed:
+                elif action == "deny" and msg_type in allowed:
                     allowed.remove(msg_type)
                 client.allowed_types = allowed
                 db.update_item(client)
@@ -2057,7 +2106,6 @@ def _migrate_clients(
             admin=client.is_admin,
             intent_blacklist=client.intent_blacklist,
             skill_blacklist=client.skill_blacklist,
-            message_blacklist=client.message_blacklist,
             allowed_types=client.allowed_types,
             crypto_key=client.crypto_key,
             password=client.password,
@@ -2531,6 +2579,7 @@ class ACLUpdateRequest(BaseModel):
     is_admin: Optional[bool] = None
     can_escalate: Optional[bool] = None
     can_propagate: Optional[bool] = None
+    can_broadcast: Optional[bool] = None
     allowed_types: Optional[List[str]] = None
     skill_blacklist: Optional[List[str]] = None
     intent_blacklist: Optional[List[str]] = None
@@ -2548,6 +2597,10 @@ def list_db_clients(module: str) -> List[Dict[str, Any]]:
     """
     try:
         db_class = DatabaseFactory.get_class(module)
+    except Exception:
+        raise HTTPException(status_code=404,
+                            detail=f"Unknown database module '{module}'")
+    try:
         db = db_class()
         # Ensure we close if it's a context manager
         if hasattr(db, "__enter__"):
@@ -2556,7 +2609,8 @@ def list_db_clients(module: str) -> List[Dict[str, Any]]:
         return [_client_to_dict(c, include_secrets=True) for c in db if c.client_id != -1]
     except Exception as e:
         LOG.error(f"Failed to list clients for {module}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=502,
+                            detail=f"Database '{module}' could not be read")
 
 
 class CopyClientRequest(BaseModel):
@@ -2608,7 +2662,6 @@ def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
         target_client = target_db.get_client_by_api_key(client.api_key)
         if target_client:
             target_client.allowed_types = client.allowed_types
-            target_client.message_blacklist = client.message_blacklist
             target_client.skill_blacklist = client.skill_blacklist
             target_client.intent_blacklist = client.intent_blacklist
             target_client.can_escalate = client.can_escalate
@@ -2899,6 +2952,7 @@ def get_client_acl(client_id: int) -> Dict[str, Any]:
                     "is_admin": bool(client.is_admin),
                     "can_escalate": bool(client.can_escalate),
                     "can_propagate": bool(client.can_propagate),
+                    "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                     "allowed_types": client.allowed_types or [],
                     "skill_blacklist": client.skill_blacklist or [],
                     "intent_blacklist": client.intent_blacklist or [],
@@ -2930,6 +2984,8 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
                     client.can_escalate = data.can_escalate
                 if data.can_propagate is not None:
                     client.can_propagate = data.can_propagate
+                if data.can_broadcast is not None:
+                    client.can_broadcast = data.can_broadcast
                 # Message whitelist
                 if data.allowed_types is not None:
                     client.allowed_types = data.allowed_types
@@ -2946,6 +3002,7 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
                     "is_admin": bool(client.is_admin),
                     "can_escalate": bool(client.can_escalate),
                     "can_propagate": bool(client.can_propagate),
+                    "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                     "allowed_types": client.allowed_types or [],
                     "skill_blacklist": client.skill_blacklist or [],
                     "intent_blacklist": client.intent_blacklist or [],
@@ -2985,7 +3042,6 @@ def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
         for client in db:
             if client.client_id == client_id:
                 client.allowed_types = template.get("allowed_types", [])
-                client.message_blacklist = template.get("message_blacklist", [])
                 client.skill_blacklist = template.get("skill_blacklist", [])
                 client.intent_blacklist = template.get("intent_blacklist", [])
                 db.update_item(client)
@@ -2994,9 +3050,9 @@ def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
                     "name": client.name,
                     "template_applied": template_name,
                     "allowed_types": client.allowed_types or [],
-                    "message_blacklist": client.message_blacklist or [],
                     "skill_blacklist": client.skill_blacklist or [],
                     "intent_blacklist": client.intent_blacklist or [],
+                    "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                 }
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -4059,7 +4115,10 @@ async def _default_credentials_gate(request: Request, call_next):
     path = request.url.path
     if request.method != "OPTIONS" and not any(path.endswith(a) for a in _SETUP_GATE_ALLOWED):
         try:
-            defaults = using_default_credentials(get_server_config())
+            # An unreadable server.json also reads as "defaults"; the config
+            # guard below owns that case and gives a truthful answer.
+            defaults = (not _config_file_error()
+                        and using_default_credentials(get_server_config()))
         except Exception:  # never lock the panel out on a config read error
             defaults = False
         if defaults:
@@ -4071,7 +4130,51 @@ async def _default_credentials_gate(request: Request, call_next):
     return await call_next(request)
 
 
+#: Reachable while server.json cannot be parsed — everything needed to see the
+#: problem and roll back to a snapshot.
+_CONFIG_BROKEN_ALLOWED = ("/health", "/config", "/config/backups",
+                          "/config/backups/restore", "/config/backups/diff",
+                          "/auth/login", "/auth/logout", "/auth/me", "/setup/status")
+
+
+@app.middleware("http")
+async def _broken_config_guard(request: Request, call_next):
+    """Refuse to act on a configuration the panel cannot actually read.
+
+    ``get_server_config()`` falls back to hivemind-core's defaults when
+    server.json is corrupt. Left alone, the panel would then report the defaults
+    as the operator's config and write them back on the next save.
+    """
+    path = request.url.path
+    if not any(path.endswith(a) for a in _CONFIG_BROKEN_ALLOWED):
+        err = _config_file_error()
+        if err:
+            return _json_error(
+                409, f"{err}. The panel is read-limited until it is repaired: "
+                     "restore a snapshot from /api/config/backups or fix the file.")
+    return await call_next(request)
+
+
 # ===================== Onboarding: pairing + bulk client ops =====================
+
+def _guess_lan_address() -> str:
+    """Best-effort routable address of this host, for a 0.0.0.0 bind.
+
+    Opens an unconnected UDP socket towards a public address to ask the kernel
+    which local interface it would use. No packet is sent.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("8.8.8.8", 80))
+        return sock.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return "127.0.0.1"
+    finally:
+        sock.close()
+
 
 def _ws_endpoint() -> Dict[str, Any]:
     """Resolve hivemind-core's websocket transport host/port/ssl from server config."""
@@ -4100,7 +4203,11 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
             if c.client_id == client_id:
                 ep = _ws_endpoint()
                 advertise = host or (ep["host"] if ep["host"] not in ("0.0.0.0", "") else None)
-                hoststr = advertise or "<CORE-IP>"
+                # 0.0.0.0 means "every interface": pick the address this host is
+                # actually reachable on rather than shipping a <CORE-IP> placeholder
+                # that no satellite can dial.
+                guessed = advertise is None
+                hoststr = advertise or _guess_lan_address()
                 scheme = "wss" if ep["ssl"] else "ws"
                 bundle = {
                     "client_id": c.client_id,
@@ -4117,9 +4224,13 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
                     "key": c.api_key, "password": c.password, "crypto_key": c.crypto_key,
                     "host": hoststr, "port": ep["port"], "ssl": ep["ssl"],
                 })
-                if not advertise:
-                    bundle["note"] = ("hivemind-core bound to 0.0.0.0; pass ?host=<LAN-IP> "
-                                      "before sharing the bundle.")
+                if guessed:
+                    bundle["host"] = hoststr
+                    bundle["host_guessed"] = True
+                    bundle["note"] = (
+                        f"hivemind-core is bound to 0.0.0.0, so the address was guessed "
+                        f"as {hoststr}. Pass ?host=<LAN-IP> if satellites reach this "
+                        f"machine on a different address.")
                 return bundle
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -4133,7 +4244,20 @@ class BulkClientRequest(BaseModel):
 
 @app.post("/clients/bulk", dependencies=[Depends(require_admin)])
 def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
-    """Apply one action to many clients; returns a per-client result list."""
+    """Apply one action to many clients; returns a per-client result list.
+
+    Not a transaction. The underlying database plugin exposes no multi-row
+    transaction, so a partial failure leaves earlier clients changed. The
+    response therefore reports per-client outcomes and an explicit
+    ``partial`` flag instead of a bare success. Unknown actions and a missing
+    ``template_name`` are rejected up front, so the common way to end up
+    half-applied cannot happen.
+    """
+    known = ("delete", "make_admin", "revoke_admin", "apply_template")
+    if data.action not in known:
+        raise HTTPException(status_code=400, detail=f"unknown action: {data.action}")
+    if data.action == "apply_template" and not data.template_name:
+        raise HTTPException(status_code=400, detail="template_name required")
     results = []
     for cid in data.client_ids:
         try:
@@ -4144,17 +4268,17 @@ def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
             elif data.action == "revoke_admin":
                 _modify_flag(cid, "is_admin", False)
             elif data.action == "apply_template":
-                if not data.template_name:
-                    raise HTTPException(status_code=400, detail="template_name required")
                 apply_acl_template(cid, data.template_name)
-            else:
-                raise HTTPException(status_code=400, detail=f"unknown action: {data.action}")
             results.append({"client_id": cid, "ok": True})
         except HTTPException as e:
             results.append({"client_id": cid, "ok": False, "error": e.detail})
         except Exception as e:  # pragma: no cover - defensive
             results.append({"client_id": cid, "ok": False, "error": str(e)})
-    return {"action": data.action, "results": results}
+    failed = [r for r in results if not r["ok"]]
+    return {"action": data.action, "results": results,
+            "applied": len(results) - len(failed),
+            "failed": len(failed),
+            "partial": bool(failed) and len(failed) != len(results)}
 
 
 # ===================== Agent depth: persona chat + engine taxonomy =====================
@@ -4554,8 +4678,13 @@ def get_topology() -> Dict[str, Any]:
         except Exception:
             online_keys = set()
 
-    nodes = [{"id": "core", "label": "hivemind-core", "type": "core", "online": True}]
+    # `online` for the core node is only knowable when the panel holds the live
+    # protocol. In --no-core mode it is unknown, not True.
+    core_online = _protocol is not None
+    nodes = [{"id": "core", "label": "hivemind-core", "type": "core",
+              "online": core_online if _run_mode != "panel-only" else None}]
     edges = []
+    error = None
     try:
         with ClientDatabase() as db:
             for c in db:
@@ -4577,8 +4706,13 @@ def get_topology() -> Dict[str, Any]:
                 edges.append({"from": "core", "to": nid})
     except Exception as e:
         LOG.error(f"topology: {e}")
+        error = f"client database unreadable: {e}"
     return {"nodes": nodes, "edges": edges,
-            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "core")}
+            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "core"),
+            "core_online": nodes[0]["online"],
+            "error": error,
+            "note": (None if _run_mode != "panel-only" else
+                     "panel-only mode: no live protocol, so online status is unknown")}
 
 
 # ===================== Client tags + first-run hint =====================
@@ -4873,11 +5007,13 @@ def setup_status() -> Dict[str, Any]:
     host = _bound_host or "127.0.0.1"
     exposed = host not in ("127.0.0.1", "localhost", "::1", "")
     clients = 0
+    db_error = None
     try:
         with ClientDatabase() as db:
             clients = sum(1 for c in db if getattr(c, "client_id", -1) != -1)
-    except Exception:
-        pass
+    except Exception as e:
+        LOG.error(f"setup/status: client database unreadable: {e}")
+        db_error = f"client database unreadable: {e}"
     warnings = [c["hint"] for c in checks
                 if not c["ok"] and not c.get("acknowledged")
                 and c["severity"] in ("critical", "warning")]
@@ -4887,8 +5023,10 @@ def setup_status() -> Dict[str, Any]:
                 for c in checks)
     return {
         "default_credentials": default_creds,
-        "has_clients": clients > 0,
-        "client_count": clients,
+        # unknown, not False/0, when the database could not be read
+        "has_clients": None if db_error else clients > 0,
+        "client_count": None if db_error else clients,
+        "database_error": db_error,
         "bound_host": host,
         "exposed": exposed,
         "run_mode": _run_mode,
