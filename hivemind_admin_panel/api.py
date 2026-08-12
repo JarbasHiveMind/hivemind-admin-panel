@@ -4064,8 +4064,26 @@ _FORM_CONTENT_TYPES = ("application/x-www-form-urlencoded", "multipart/form-data
 #: Reachable while the shipped default credentials are still in use. Everything
 #: else is refused, so the "change your password" gate cannot be skipped by
 #: talking to the API directly (the browser UI is not a security boundary).
-_SETUP_GATE_ALLOWED = ("/health", "/auth/login", "/auth/logout", "/auth/me",
-                       "/auth/password", "/setup/status")
+_SETUP_GATE_ALLOWED = frozenset(("/health", "/auth/login", "/auth/logout", "/auth/me",
+                                 "/auth/password", "/setup/status"))
+
+
+def _gate_path(request: Request) -> str:
+    """The request path relative to this app, for exact allow-list matching.
+
+    The API is mounted under ``/api`` by the launcher, so the raw path carries a
+    prefix that the allow-lists do not. Matching by suffix instead would open a
+    hole: every route ending in a path parameter could be handed the name of an
+    allowed endpoint (``DELETE /api/chat/sessions/health``,
+    ``DELETE /api/personas/health``) and would then skip the gate entirely.
+    """
+    path = request.scope.get("path") or request.url.path
+    root = request.scope.get("root_path") or ""
+    if root and path.startswith(root):
+        path = path[len(root):] or "/"
+    if len(path) > 1 and path.endswith("/"):
+        path = path.rstrip("/") or "/"
+    return path
 
 
 def _json_error(status_code: int, detail: str) -> "JSONResponse":
@@ -4112,8 +4130,7 @@ async def _default_credentials_gate(request: Request, call_next):
     The SPA shows a blocking modal, but that is cosmetic — a client-side gate
     stops nobody with ``curl``.
     """
-    path = request.url.path
-    if request.method != "OPTIONS" and not any(path.endswith(a) for a in _SETUP_GATE_ALLOWED):
+    if request.method != "OPTIONS" and _gate_path(request) not in _SETUP_GATE_ALLOWED:
         try:
             # An unreadable server.json also reads as "defaults"; the config
             # guard below owns that case and gives a truthful answer.
@@ -4132,9 +4149,10 @@ async def _default_credentials_gate(request: Request, call_next):
 
 #: Reachable while server.json cannot be parsed — everything needed to see the
 #: problem and roll back to a snapshot.
-_CONFIG_BROKEN_ALLOWED = ("/health", "/config", "/config/backups",
-                          "/config/backups/restore", "/config/backups/diff",
-                          "/auth/login", "/auth/logout", "/auth/me", "/setup/status")
+_CONFIG_BROKEN_ALLOWED = frozenset(("/health", "/config", "/config/backups",
+                                    "/config/backups/restore", "/config/backups/diff",
+                                    "/auth/login", "/auth/logout", "/auth/me",
+                                    "/setup/status"))
 
 
 @app.middleware("http")
@@ -4145,8 +4163,7 @@ async def _broken_config_guard(request: Request, call_next):
     server.json is corrupt. Left alone, the panel would then report the defaults
     as the operator's config and write them back on the next save.
     """
-    path = request.url.path
-    if not any(path.endswith(a) for a in _CONFIG_BROKEN_ALLOWED):
+    if _gate_path(request) not in _CONFIG_BROKEN_ALLOWED:
         err = _config_file_error()
         if err:
             return _json_error(
