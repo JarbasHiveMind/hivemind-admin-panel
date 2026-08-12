@@ -1,5 +1,8 @@
 # Configuration
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 The panel does not have its own config file. It reads and writes the **same
 `server.json` that `hivemind-core` uses**, at `~/.config/hivemind-core/server.json`
 (XDG; honors `XDG_CONFIG_HOME`).

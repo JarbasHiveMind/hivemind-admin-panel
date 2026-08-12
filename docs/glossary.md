@@ -1,5 +1,8 @@
 # Glossary
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 Plain-language definitions of the terms a newcomer meets when running or operating the **HiveMind Admin Panel**, the web UI that manages a HiveMind voice-mesh hivemind-core built on OpenVoiceOS. Cross-references use `[[term]]` for entries on this page and ordinary links for the surrounding docs.
 
 ## A

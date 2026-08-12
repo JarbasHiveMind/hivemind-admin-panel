@@ -1,5 +1,8 @@
 # CLI reference
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 `hivemind-admin-panel` is the **single launcher** for a HiveMind deployment. By
 default, one process starts hivemind-core **in-process** *and* serves the
 admin UI. There is no separate `hivemind-core` command to run. Pass `--no-core`
@@ -49,9 +52,13 @@ hivemind-admin-panel --no-core
 ```
 
 Serves the admin UI without starting a hivemind-core instance. Use this to manage on-disk state
-(clients, ACLs, config, personas) without a running service, or on a host where the
-hivemind-core is managed elsewhere. Live-only views (`/connections`, `/stats` connection
-count, `/config/restart`) degrade — see [Running](running.md).
+(clients, ACLs, config, personas) without a running service.
+
+This mode does **not** attach to a hivemind-core running elsewhere on the host.
+Live views come from objects the panel's own launcher injects in-process, so in
+`--no-core` there are none: `/connections` returns an empty list with a note,
+`/stats` reports no counts, `/topology` cannot say whether the core is online,
+and `/config/restart` returns an error. See [Running](running.md).
 
 ### Development auto-reload
 

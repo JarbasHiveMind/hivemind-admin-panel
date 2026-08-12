@@ -1,5 +1,8 @@
 # Chat bridges
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 A **bridge** connects an external chat platform (Matrix, Twitch, Mattermost,
 DeltaChat, or HackChat) to your hivemind-core. It is a HiveMind **satellite** whose
 input and output are a chat room instead of a microphone. Messages in the room go

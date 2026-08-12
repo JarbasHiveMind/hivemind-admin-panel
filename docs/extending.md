@@ -1,5 +1,8 @@
 # Extending the panel
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 For developers adding features. Read [Architecture](architecture.md) first for the
 injection seam and threading model. This page is the practical "how do I add X".
 

@@ -18,6 +18,15 @@ Throughout this document, paths are written **as declared on the app** (without
 the `/api` prefix). Prepend `/api` for the served URL. The default host/port
 when launched via the panel is `127.0.0.1:8100`.
 
+### Interactive schema
+
+The OpenAPI schema for these routes is at **`/api/openapi.json`**, and Swagger UI
+at **`/api/docs`**.
+
+`http://<host>:8100/openapi.json` and `/docs` also answer `200`, but they belong
+to the outer app that serves the SPA and describe only its two static routes
+(`/` and `/index.html`). They are not the admin API.
+
 All endpoints **except `GET /health`** require HTTP Basic authentication.
 
 ## Authentication

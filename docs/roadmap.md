@@ -1,5 +1,8 @@
 # Roadmap & status
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 Status of the UI/feature roadmap. Most items are **implemented** (backend +
 SPA + tests, CI-green). A few require **hivemind-core changes** and are tracked
 as gated.

@@ -1,5 +1,8 @@
 # Security
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 The admin panel is a **privileged control plane**. Through it an authenticated
 caller can install Python packages, migrate and clear databases, mint client
 credentials, and restart the service. Treat access to it as equivalent to shell
