@@ -36,8 +36,19 @@ It defines two services:
 - **hivemind**: hivemind-core and the admin panel, configured by `docker/server.json` (which
   selects the Redis backend and the admin credentials).
 
-Before exposing anything, edit `docker/server.json` and change `admin_pass`. The
-panel is published on `127.0.0.1:8100` and the websocket transport on `:5678`.
+Edit `docker/server.json` and change `admin_pass` **before the first `up`**. The
+value in the repository is a placeholder and is public, so it protects nothing.
+The file is mounted read-only, so `POST /api/auth/password` cannot rewrite it —
+in this configuration the password is changed by editing the file and restarting
+the container.
+
+The panel's own default-credentials gate does **not** catch this: it recognises
+the shipped `admin`/`admin` only, and the compose placeholder is a different
+string. Nothing will warn you.
+
+The panel is published on `127.0.0.1:8100` only. Reach it through an SSH tunnel
+or put a TLS proxy in front of it. The websocket transport is published on
+`:5678` on all interfaces, because satellites must reach it.
 
 Volumes:
 
