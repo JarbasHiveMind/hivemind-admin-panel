@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.5a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a2...0.1.5a1)
+
+**Merged pull requests:**
+
+- fix: close the remaining XSS sinks in the admin UI [\#25](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/25) ([JarbasAl](https://github.com/JarbasAl))
+- fix: close the path-parameter bypass in the security gates [\#24](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/24) ([JarbasAl](https://github.com/JarbasAl))
+- fix: make a clean pip install resolve again [\#23](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/23) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.4a2) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a1...0.1.4a2)
