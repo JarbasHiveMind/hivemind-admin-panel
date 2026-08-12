@@ -14,12 +14,12 @@
             <p class="subtitle">Sign in to manage your HiveMind server</p>
 
             <div class="form-group">
-                <label>Username</label>
+                <label for="username">Username</label>
                 <input type="text" id="username" placeholder="admin" autocomplete="username">
             </div>
 
             <div class="form-group">
-                <label>Password</label>
+                <label for="password">Password</label>
                 <input type="password" id="password" placeholder="admin" autocomplete="current-password">
             </div>
 
@@ -41,10 +41,10 @@
                 You're signed in with the <strong>default password</strong>. This panel can
                 install software and migrate databases — set a new password before continuing.
             </p>
-            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">New password</label>
+            <label for="frNewPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">New password</label>
             <input id="frNewPass" type="password" autocomplete="new-password" oninput="frScore()" style="width:100%;padding:10px;margin-bottom:6px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
             <div id="frStrength" style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:12px;"><div style="height:100%;width:0;border-radius:2px;background:var(--accent-danger);transition:all .2s;"></div></div>
-            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Confirm password</label>
+            <label for="frConfirmPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Confirm password</label>
             <input id="frConfirmPass" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitFirstRunPassword()" style="width:100%;padding:10px;margin-bottom:12px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
             <div id="frError" class="hidden" style="color:var(--accent-danger);font-size:12px;margin-bottom:12px;"></div>
             <button class="btn btn-primary" onclick="submitFirstRunPassword()" style="width:100%;">Set password &amp; continue</button>
@@ -337,7 +337,7 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label>Select Client</label>
+                                <label for="aclClientSelect">Select Client</label>
                                 <select id="aclClientSelect" onchange="loadClientACL()">
                                     <option value="">Select a client...</option>
                                 </select>
@@ -685,33 +685,33 @@
 
                                 <div id="activeBinaryConfigForm" style="display: grid; gap: 20px;">
                                     <div class="form-group">
-                                        <label>STT (Speech-to-Text) Plugin</label>
+                                        <label for="activeSTTSelect">STT (Speech-to-Text) Plugin</label>
                                         <select id="activeSTTSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>TTS (Text-to-Speech) Plugin</label>
+                                        <label for="activeTTSSelect">TTS (Text-to-Speech) Plugin</label>
                                         <select id="activeTTSSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>Wake Word (e.g., "hey_mycroft")</label>
+                                        <label for="activeWWName">Wake Word (e.g., "hey_mycroft")</label>
                                         <input type="text" id="activeWWName" placeholder="hey_mycroft">
                                     </div>
 
                                     <div class="form-group">
-                                        <label>Wake Word Engine</label>
+                                        <label for="activeWWSelect">Wake Word Engine</label>
                                         <select id="activeWWSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>VAD (Voice Activity Detection)</label>
+                                        <label for="activeVADSelect">VAD (Voice Activity Detection)</label>
                                         <select id="activeVADSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
@@ -811,21 +811,21 @@
                         <div class="modal-header"><h3 id="presetModalTitle">New preset</h3></div>
                         <div class="modal-body">
                             <input type="hidden" id="presetEditName">
-                            <div class="form-group"><label>Plugin type</label>
+                            <div class="form-group"><label for="presetType">Plugin type</label>
                                 <select id="presetType" onchange="onPresetTypeChange()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
-                            <div class="form-group"><label>Preset name</label>
+                            <div class="form-group"><label for="presetName">Preset name</label>
                                 <input id="presetName" placeholder="e.g. whisper-gpu" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></div>
-                            <div class="form-group"><label>Source</label>
+                            <div class="form-group"><label for="presetSource">Source</label>
                                 <select id="presetSource" onchange="onPresetSourceChange()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
                                     <option value="plugin">Local plugin</option>
                                     <option value="server">Registered OVOS server</option>
                                 </select></div>
                             <div id="presetPluginWrap">
-                                <div class="form-group"><label>Module (installed)</label>
+                                <div class="form-group"><label for="presetModule">Module (installed)</label>
                                     <select id="presetModule" onchange="renderPresetFields()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div id="presetServerWrap" style="display:none;">
-                                <div class="form-group"><label>OVOS server</label>
+                                <div class="form-group"><label for="presetServer">OVOS server</label>
                                     <select id="presetServer" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div class="form-group">
@@ -1052,7 +1052,7 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Client Name</label>
+                    <label for="newClientName">Client Name</label>
                     <input type="text" id="newClientName" placeholder="HiveMind-Node">
                 </div>
             </div>
@@ -1076,11 +1076,11 @@
                     run the bridge process separately with the bundle below.
                 </p>
                 <div class="form-group">
-                    <label>Platform</label>
+                    <label for="bridgeType">Platform</label>
                     <select id="bridgeType" onchange="renderBridgeNeeds()" style="width:100%;padding:10px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select>
                 </div>
                 <div class="form-group">
-                    <label>Client name (optional)</label>
+                    <label for="bridgeName">Client name (optional)</label>
                     <input type="text" id="bridgeName" placeholder="auto: <platform>-bridge">
                 </div>
                 <div id="bridgeNeeds" style="font-size:12px;color:var(--text-secondary);"></div>
@@ -1102,19 +1102,19 @@
             <div class="modal-body">
                 <input type="hidden" id="editClientId">
                 <div class="form-group">
-                    <label>Client Name</label>
+                    <label for="editClientName">Client Name</label>
                     <input type="text" id="editClientName">
                 </div>
                 <div class="form-group">
-                    <label>API Key</label>
+                    <label for="editClientApiKey">API Key</label>
                     <input type="text" id="editClientApiKey">
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
+                    <label for="editClientPassword">Password</label>
                     <input type="text" id="editClientPassword">
                 </div>
                 <div class="form-group">
-                    <label>Crypto Key (16, 24, or 32 chars)</label>
+                    <label for="editClientCryptoKey">Crypto Key (16, 24, or 32 chars)</label>
                     <input type="text" id="editClientCryptoKey">
                 </div>
             </div>
@@ -1133,7 +1133,7 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Package Name</label>
+                    <label for="installPluginPackage">Package Name</label>
                     <input type="text" id="installPluginPackage" placeholder="e.g. ovos-tts-plugin-phoonnx">
                     <small style="color: var(--text-secondary); display: block; margin-top: 8px;">
                         Enter a valid PyPI package name from the HiveMind or OVOS ecosystem.
@@ -1216,7 +1216,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Plugin Package Name</label>
+                    <label for="customPluginPackage">Plugin Package Name</label>
                     <input type="text" id="customPluginPackage" placeholder="e.g., ovos-stt-plugin-custom" style="font-family: monospace; font-size: 14px;">
                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
                         💡 Find plugins on <a href="https://pypi.org/search/?q=ovos" target="_blank" style="color: var(--accent-primary);">PyPI</a> or 
@@ -1286,7 +1286,7 @@
                 <input type="hidden" id="profileEditName">
 
                 <div class="form-group">
-                    <label>Profile Name</label>
+                    <label for="profileName">Profile Name</label>
                     <input type="text" id="profileName" placeholder="e.g. production-redis">
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
                         Letters, numbers, hyphens and underscores only.
@@ -1294,7 +1294,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Database Backend</label>
+                    <label for="profileModule">Database Backend</label>
                     <select id="profileModule" onchange="onProfileModuleChange()">
                         <option value="">Select a backend...</option>
                     </select>
@@ -1305,21 +1305,21 @@
                     <h4 style="margin-bottom: 12px; font-size: 14px;">Redis Connection Settings</h4>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Host</label>
+                            <label for="profileRedisHost">Host</label>
                             <input type="text" id="profileRedisHost" value="localhost" placeholder="Redis hostname">
                         </div>
                         <div class="form-group">
-                            <label>Port</label>
+                            <label for="profileRedisPort">Port</label>
                             <input type="number" id="profileRedisPort" value="6379" min="1" max="65535">
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Database Number</label>
+                            <label for="profileRedisDb">Database Number</label>
                             <input type="number" id="profileRedisDb" value="0" min="0" max="15">
                         </div>
                         <div class="form-group">
-                            <label>Password (optional)</label>
+                            <label for="profileRedisPassword">Password (optional)</label>
                             <input type="password" id="profileRedisPassword" placeholder="Leave empty if none">
                         </div>
                     </div>
@@ -1329,14 +1329,14 @@
                 <div id="profileFileSection" class="hidden">
                     <h4 style="margin-bottom: 12px; font-size: 14px;">File Location</h4>
                     <div class="form-group">
-                        <label>Subfolder</label>
+                        <label for="profileFileSubfolder">Subfolder</label>
                         <input type="text" id="profileFileSubfolder" value="hivemind-core" placeholder="hivemind-core">
                         <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
                             Subfolder inside the HiveMind data directory.
                         </p>
                     </div>
                     <div class="form-group">
-                        <label>Database Name</label>
+                        <label for="profileFileName">Database Name</label>
                         <input type="text" id="profileFileName" value="clients" placeholder="clients">
                     </div>
                 </div>
@@ -1398,12 +1398,12 @@
                 <input type="hidden" id="editPersonaName">
 
                 <div class="form-group">
-                    <label>Persona Name *</label>
+                    <label for="personaName">Persona Name *</label>
                     <input type="text" id="personaName" placeholder="My AI Assistant">
                 </div>
 
                 <div class="form-group">
-                    <label>Description</label>
+                    <label for="personaDescription">Description</label>
                     <textarea id="personaDescription" placeholder="A helpful AI assistant..." style="width: 100%; min-height: 60px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;"></textarea>
                 </div>
 
@@ -1435,13 +1435,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Memory Module</label>
+                    <label for="personaMemoryModule">Memory Module</label>
                     <select id="personaMemoryModule" onchange="onMemoryModuleChange()" style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary);">
                         <option value="ovos-agents-short-term-memory-plugin">ovos-agents-short-term-memory-plugin (Default)</option>
                         <option value="">None (Disable memory)</option>
                     </select>
                     <div id="personaMemoryConfigWrap" style="margin-top:8px;">
-                        <label style="font-size:12px;color:var(--text-secondary);">Memory config (JSON, optional — passed to the memory plugin)</label>
+                        <label for="personaMemoryConfig" style="font-size:12px;color:var(--text-secondary);">Memory config (JSON, optional — passed to the memory plugin)</label>
                         <textarea id="personaMemoryConfig" placeholder='{ "max_history": 10 }' style="width:100%;height:64px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);padding:8px;"></textarea>
                     </div>
                     <div style="display:flex;gap:6px;margin-top:8px;">
@@ -1525,7 +1525,7 @@
                             Choose which persona to use for AI conversations. This persona will handle all incoming messages.
                         </p>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>Persona</label>
+                            <label for="enableAgentPersonaSelect">Persona</label>
                             <select id="enableAgentPersonaSelect" style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 14px;">
                                 <option value="">Select a persona...</option>
                             </select>
@@ -1559,33 +1559,33 @@
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>🎤 STT (Speech-to-Text)</label>
+                            <label for="binarySTTSelect">🎤 STT (Speech-to-Text)</label>
                             <select id="binarySTTSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>🔊 TTS (Text-to-Speech)</label>
+                            <label for="binaryTTSSelect">🔊 TTS (Text-to-Speech)</label>
                             <select id="binaryTTSSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>⏰ Wake Word Name</label>
+                            <label for="binaryWWName">⏰ Wake Word Name</label>
                             <input type="text" id="binaryWWName" value="hey_mycroft" placeholder="hey_mycroft" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>⏰ Wake Word Engine</label>
+                            <label for="binaryWWSelect">⏰ Wake Word Engine</label>
                             <select id="binaryWWSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
-                            <label>🎯 VAD (Voice Activity Detection)</label>
+                            <label for="binaryVADSelect">🎯 VAD (Voice Activity Detection)</label>
                             <select id="binaryVADSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
@@ -1613,7 +1613,7 @@
                 <input type="hidden" id="enablePluginModule">
 
                 <div class="form-group">
-                    <label>Plugin</label>
+                    <label for="enablePluginName">Plugin</label>
                     <input type="text" id="enablePluginName" readonly style="background: var(--bg-hover);">
                 </div>
 
@@ -1622,11 +1622,11 @@
                     <h4 style="margin: 16px 0 12px; font-size: 14px;">Network Configuration</h4>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Host</label>
+                            <label for="networkHost">Host</label>
                             <input type="text" id="networkHost" value="0.0.0.0">
                         </div>
                         <div class="form-group">
-                            <label>Port</label>
+                            <label for="networkPort">Port</label>
                             <input type="number" id="networkPort" value="5678">
                         </div>
                     </div>
