@@ -862,12 +862,44 @@
             gap: 12px;
         }
 
+        /* The hamburger. Hidden on wide screens, where the sidebar is always
+           visible and a toggle would be noise. */
+        .nav-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            font-size: 20px;
+            line-height: 1;
+            padding: 6px 12px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .nav-toggle:hover { background: var(--bg-hover); }
+
+        /* Dims the page behind the open drawer and gives a tap target for
+           dismissing it, which is what people try first. */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 90;
+        }
+
+        .sidebar-backdrop.visible { display: block; }
+
         /* Responsive */
         @media (max-width: 768px) {
+            .nav-toggle { display: inline-flex; align-items: center; }
+
             .sidebar {
-                width: 100%;
+                width: min(82vw, 320px);
                 transform: translateX(-100%);
                 transition: transform 0.3s;
+                z-index: 100;
             }
 
             .sidebar.open {
@@ -878,9 +910,82 @@
                 margin-left: 0;
             }
 
-            .stats-grid {
+            /* The topbar holds a title, a restart button and a status pill.
+               Side by side they overflow a phone, so let them wrap. */
+            .topbar {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 12px 16px;
+                /* height is a fixed 64px on desktop. Once these controls wrap
+                   to a second row the sticky bar keeps that height and paints
+                   its overflow straight over the page beneath it, so the
+                   status pill lands on top of the first card. */
+                height: auto;
+                min-height: 64px;
+            }
+
+            .topbar h2 { font-size: 18px; }
+            .topbar-actions { flex-wrap: wrap; gap: 8px; }
+
+            .stats-grid,
+            .cards-grid,
+            .grid-2,
+            .grid-3 {
                 grid-template-columns: 1fr;
             }
+
+            .content { padding: 16px; }
+
+            /* Client and ACL tables, and the monitor's message log, are wider
+               than any phone. Without this the whole PAGE grows instead — the
+               clients page overflowed by 398px and the monitor by 2838px, so
+               the layout slid sideways under the fixed topbar.
+
+               min-width:0 is the load-bearing part: a flex/grid child defaults
+               to min-width:auto, so a wide table pushes its ancestors wide
+               rather than letting the scroll container do its job. */
+            .main,
+            .content,
+            .card,
+            .page {
+                min-width: 0;
+                max-width: 100%;
+            }
+
+            .table-container,
+            .table-wrapper {
+                max-width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table { min-width: 560px; }
+
+            /* Logs, JSON dumps and key material are long single tokens. Let
+               them wrap rather than widen the page. */
+            pre,
+            code,
+            .log-entry,
+            .monitor-log {
+                max-width: 100%;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+
+            .modal {
+                width: calc(100vw - 24px);
+                max-width: none;
+                margin: 12px;
+            }
+
+            .modal-footer { flex-wrap: wrap; }
+        }
+
+        /* Very small phones: stop the stat numbers forcing a sideways scroll. */
+        @media (max-width: 420px) {
+            .stat-value { font-size: 28px; }
+            .sidebar { width: 86vw; }
         }
 
         /* Loading spinner */

@@ -137,5 +137,16 @@ gracefully.
 - **Config dry-run**: `POST /config/diff` previews added, removed, and changed keys
   before you apply a config.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Operations: restart, backups, and log inspection (widescreen)](img/ops.png)
+
+**Mobile**
+
+![Operations: restart, backups, and log inspection (mobile)](img/ops-mobile.png)
+
 ---
 [← Plugin presets](presets.md) · [Home](index.md) · [Security →](security.md)

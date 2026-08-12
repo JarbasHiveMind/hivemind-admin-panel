@@ -69,5 +69,16 @@ or an [OVOS server](ovos-servers.md), or run your OVOS skills.
 
 See the [API reference](api-reference.md) for details.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Test Chat: talk to the hive without a satellite (widescreen)](img/chat.png)
+
+**Mobile**
+
+![Test Chat: talk to the hive without a satellite (mobile)](img/chat-mobile.png)
+
 ---
 [← Chat bridges](bridges.md) · [Home](index.md) · [Architecture →](architecture.md)

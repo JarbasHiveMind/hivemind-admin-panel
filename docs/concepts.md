@@ -109,5 +109,16 @@ You now know the vocabulary. Next:
 - **[Tutorial](tutorial.md)** — do it all end-to-end.
 - **[Glossary](glossary.md)** — any term, defined.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Topology: every node currently attached to the hive (widescreen)](img/topology.png)
+
+**Mobile**
+
+![Topology: every node currently attached to the hive (mobile)](img/topology-mobile.png)
+
 ---
 [Home](index.md) · [Getting started →](getting-started.md)

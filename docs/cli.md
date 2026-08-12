@@ -89,5 +89,16 @@ Press `Ctrl-C` (SIGINT) to shut down cleanly. In the default hivemind-core + pan
 hivemind-core runs on the main thread and installs the SIGINT/SIGTERM handlers, so the signal
 is handled there and both hivemind-core and panel stop together.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Anything the CLI does to clients is visible here too (widescreen)](img/clients.png)
+
+**Mobile**
+
+![Anything the CLI does to clients is visible here too (mobile)](img/clients-mobile.png)
+
 ---
 [← Running](running.md) · [Home](index.md) · [Configuration →](configuration.md)

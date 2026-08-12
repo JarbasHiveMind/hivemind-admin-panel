@@ -56,5 +56,16 @@ to hivemind-core. In `--no-core` mode these degrade gracefully (no live hivemind
 - Passwords now support PBKDF2 hashes (`pbkdf2_sha256$...`) while still accepting
   legacy plaintext for back-compat. Change one through `POST /auth/password`.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Where the panel stands today (widescreen)](img/dashboard.png)
+
+**Mobile**
+
+![Where the panel stands today (mobile)](img/dashboard-mobile.png)
+
 ---
 [← Development](development.md) · [Home](index.md)

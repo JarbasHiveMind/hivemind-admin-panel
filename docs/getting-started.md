@@ -62,5 +62,16 @@ See [Running](running.md) for the difference between the two modes.
 - [API reference](api-reference.md): drive everything over REST.
 - [Deployment](deployment.md): Docker, Compose, or reverse proxy.
 
+
+### What it looks like
+
+**Widescreen**
+
+![The sign-in screen you meet first (widescreen)](img/login.png)
+
+**Mobile**
+
+![The sign-in screen you meet first (mobile)](img/login-mobile.png)
+
 ---
 [← Concepts](concepts.md) · [Home](index.md) · [Tutorial →](tutorial.md)

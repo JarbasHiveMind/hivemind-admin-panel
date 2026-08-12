@@ -77,5 +77,16 @@ The end-to-end suite runs in `build-tests` and `coverage` on every PR.
   to `master`. `dev` is the default branch.
 - License: Apache-2.0. Keep the SPDX header on new source files.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Monitor: live message flow, the fastest way to see your change work (widescreen)](img/monitor.png)
+
+**Mobile**
+
+![Monitor: live message flow, the fastest way to see your change work (mobile)](img/monitor-mobile.png)
+
 ---
 [← API reference](api-reference.md) · [Home](index.md) · [Roadmap →](roadmap.md)

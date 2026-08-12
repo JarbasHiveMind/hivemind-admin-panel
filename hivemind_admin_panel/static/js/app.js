@@ -4605,3 +4605,50 @@
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
         }
+
+// ---------------------------------------------------------------------------
+// Mobile navigation
+//
+// Under 768px the sidebar is translated off-screen and only comes back with
+// the `open` class. Nothing ever added that class, so on a phone the panel
+// opened on the dashboard and every other page was unreachable — the nav
+// buttons were laid out beyond the viewport. These three functions are what
+// the stylesheet was already written for.
+// ---------------------------------------------------------------------------
+function toggleSidebar() {
+    const bar = document.getElementById('sidebar');
+    if (!bar) return;
+    bar.classList.contains('open') ? closeSidebar() : openSidebar();
+}
+
+function openSidebar() {
+    const bar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const toggle = document.getElementById('navToggle');
+    if (bar) bar.classList.add('open');
+    if (backdrop) backdrop.classList.add('visible');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSidebar() {
+    const bar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const toggle = document.getElementById('navToggle');
+    if (bar) bar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('visible');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+// Choosing a destination should dismiss the menu that offered it, otherwise
+// the drawer covers the page the user just asked for.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.matchMedia('(max-width: 768px)').matches) closeSidebar();
+        });
+    });
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+});

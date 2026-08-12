@@ -79,5 +79,16 @@ agent/STT/TTS/database plugins hivemind-core uses.
 - The broader OVOS server list also includes `ovos-bus-server`, `ovos-ww-server`,
   and `ovos-opendata-server`.
 
+
+### What it looks like
+
+**Widescreen**
+
+![OVOS Servers: the STT, TTS and other services in use (widescreen)](img/servers.png)
+
+**Mobile**
+
+![OVOS Servers: the STT, TTS and other services in use (mobile)](img/servers-mobile.png)
+
 ---
 [← Deployment](deployment.md) · [Home](index.md) · [Chat bridges →](bridges.md)

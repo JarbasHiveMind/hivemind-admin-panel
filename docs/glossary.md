@@ -133,5 +133,16 @@ Plain-language definitions of the terms a newcomer meets when running or operati
 
 **XDG config**: the XDG Base Directory convention the panel follows for on-disk state. The shared hivemind-core config is `server.json` at `~/.config/hivemind-core/server.json` (honoring `XDG_CONFIG_HOME`). Personas, database profiles, and server registries live under sibling `~/.config/...` paths. See [Configuration](configuration.md).
 
+
+### What it looks like
+
+**Widescreen**
+
+![Most terms in this glossary are labels on this screen (widescreen)](img/dashboard.png)
+
+**Mobile**
+
+![Most terms in this glossary are labels on this screen (mobile)](img/dashboard-mobile.png)
+
 ---
 [← Tutorial](tutorial.md) · [Home](index.md) · [Troubleshooting →](troubleshooting.md)

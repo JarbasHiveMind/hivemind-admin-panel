@@ -75,5 +75,16 @@ you can revoke it like any other client (which immediately drops it).
 - Give bridges a recognizable client name. The `bridge:<platform>` tag is what
   the panel uses to label them, so keep it if you edit tags.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Agent Protocol: the AI backend answering for the hive (widescreen)](img/agents.png)
+
+**Mobile**
+
+![Agent Protocol: the AI backend answering for the hive (mobile)](img/agents-mobile.png)
+
 ---
 [← OVOS servers](ovos-servers.md) · [Home](index.md) · [Test Chat →](test-chat.md)

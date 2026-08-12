@@ -10,6 +10,17 @@ New here? Read **[Concepts](concepts.md)** first, then follow the
 
 ![Dashboard](img/dashboard.png)
 
+
+### What it looks like
+
+**Widescreen**
+
+![The dashboard: security posture, live counts, and the plugins in use (widescreen)](img/dashboard.png)
+
+**Mobile**
+
+![The dashboard: security posture, live counts, and the plugins in use (mobile)](img/dashboard-mobile.png)
+
 ---
 
 ## Zero to running (newcomers)
@@ -23,7 +34,11 @@ Start here if you've never run HiveMind. No prior knowledge assumed.
    your first satellite with a QR code, lock it down with an ACL, give it a
    personality, and watch messages flow live.
 4. **[Glossary](glossary.md)**: every term, defined.
-5. **[Troubleshooting & FAQ](troubleshooting.md)**: when something does not work.
+5. **[Troubleshooting & FAQ](troubleshooting.md)**: when something does not
+   work. Covers the failures people actually hit — a reinstalled satellite that
+   will not reconnect, two services fighting over port 5678, an upgrade that
+   leaves the hub on an old version, and a crash loop after a plugin goes
+   missing.
 
 ## Operate it (running a real deployment)
 

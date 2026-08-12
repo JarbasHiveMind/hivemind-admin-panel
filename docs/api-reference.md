@@ -63,6 +63,17 @@ DB, listener protocol) are injected via `init_injected_objects()`, so
 `/config/restart` works. In standalone admin mode those endpoints fall back to
 config-only / mock data, and restart is unavailable.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Every panel screen is this API with a face on it (widescreen)](img/dashboard.png)
+
+**Mobile**
+
+![Every panel screen is this API with a face on it (mobile)](img/dashboard-mobile.png)
+
 ---
 
 ## 1. Health & status

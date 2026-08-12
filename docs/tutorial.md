@@ -154,5 +154,16 @@ persona, and monitored it live. Where to go next:
 - **[Configuration](configuration.md)**: every `server.json` knob.
 - **[Troubleshooting](troubleshooting.md)**: if anything misbehaved.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Client Management, where satellites are paired and revoked (widescreen)](img/clients.png)
+
+**Mobile**
+
+![Client Management, where satellites are paired and revoked (mobile)](img/clients-mobile.png)
+
 ---
 [← Getting started](getting-started.md) · [Home](index.md) · [Glossary →](glossary.md)

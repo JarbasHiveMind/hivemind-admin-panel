@@ -105,5 +105,16 @@ These are known and worth accounting for when deploying:
 3. Network-isolate the host; the panel and the OVOS bus it can reach are trusted
    surfaces.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Permissions: what each client is allowed to send (widescreen)](img/acl.png)
+
+**Mobile**
+
+![Permissions: what each client is allowed to send (mobile)](img/acl-mobile.png)
+
 ---
 [← Operations](operations.md) · [Home](index.md) · [Deployment →](deployment.md)

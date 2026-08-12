@@ -77,5 +77,16 @@ can consume. This would also let the panel run fully **out-of-process or remote*
 rather than only in-process. Until then, treat `/connections` live data as
 advisory and rely on the database-backed views for authoritative state.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Topology, the architecture as the running system sees it (widescreen)](img/topology.png)
+
+**Mobile**
+
+![Topology, the architecture as the running system sees it (mobile)](img/topology-mobile.png)
+
 ---
 [← Test Chat](test-chat.md) · [Home](index.md) · [Extending →](extending.md)
