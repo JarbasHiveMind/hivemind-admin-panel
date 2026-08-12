@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.10a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.10a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.9a1...0.1.10a1)
+
+**Merged pull requests:**
+
+- fix: raise the hivemind-bus-client cap so the panel stops freezing the hub [\#38](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/38) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.9a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.9a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.8a1...0.1.9a1)
