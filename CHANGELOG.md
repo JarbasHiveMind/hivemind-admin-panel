@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.7a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.6a1...0.1.7a1)
+
+**Merged pull requests:**
+
+- fix: throttle Basic-auth guessing and refuse weak new passwords [\#28](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/28) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.6a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a2...0.1.6a1)
