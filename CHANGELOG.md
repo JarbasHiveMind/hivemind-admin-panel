@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.2a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a2...0.1.2a1)
+
+**Merged pull requests:**
+
+- fix: close the panel's authentication and authorization holes [\#15](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/15) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.1a2) (2026-07-31)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a1...0.1.1a2)
