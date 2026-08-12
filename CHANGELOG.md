@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.9a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.9a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.8a1...0.1.9a1)
+
+**Merged pull requests:**
+
+- fix: stop docker compose publishing the panel on every interface [\#33](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/33) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.8a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.8a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.7a1...0.1.8a1)
