@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.10a1...0.1.11a1)
+
+**Merged pull requests:**
+
+- fix: make the panel usable on a phone, and show every page in the docs [\#40](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/40) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.10a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.10a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.9a1...0.1.10a1)
