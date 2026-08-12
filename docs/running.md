@@ -81,7 +81,7 @@ hivemind-admin-panel --no-core --reload
 
 **Widescreen**
 
-![The dashboard reports which run mode the panel is in (widescreen)](img/dashboard.png)
+<!-- duplicate screenshot removed -->
 
 **Mobile**
 

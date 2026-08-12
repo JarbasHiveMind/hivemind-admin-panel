@@ -15,7 +15,7 @@ New here? Read **[Concepts](concepts.md)** first, then follow the
 
 **Widescreen**
 
-![The dashboard: security posture, live counts, and the plugins in use (widescreen)](img/dashboard.png)
+<!-- duplicate screenshot removed -->
 
 **Mobile**
 

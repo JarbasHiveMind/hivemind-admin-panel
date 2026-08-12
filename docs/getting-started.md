@@ -67,7 +67,7 @@ See [Running](running.md) for the difference between the two modes.
 
 **Widescreen**
 
-![The sign-in screen you meet first (widescreen)](img/login.png)
+<!-- duplicate screenshot removed -->
 
 **Mobile**
 

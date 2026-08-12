@@ -854,6 +854,25 @@
             overflow-y: auto;
         }
 
+        /* A fixed max-height with overflow:hidden clips instead of scrolls
+           unless the body is the flexible part. In landscape the footer sat
+           below the visible modal and Save could not be reached at all. */
+        .modal {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .modal-header,
+        .modal-footer {
+            flex: 0 0 auto;
+        }
+
         .modal-footer {
             padding: 16px 24px;
             border-top: 1px solid var(--border-color);
@@ -875,6 +894,9 @@
             padding: 6px 12px;
             cursor: pointer;
             margin-right: 12px;
+            min-height: 44px;
+            min-width: 44px;
+            justify-content: center;
         }
 
         .nav-toggle:hover { background: var(--bg-hover); }
@@ -886,20 +908,61 @@
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.55);
-            z-index: 90;
+            z-index: 150;
         }
 
         .sidebar-backdrop.visible { display: block; }
 
-        /* Responsive */
-        @media (max-width: 768px) {
+        /* A wide table must scroll inside its own box at ANY width. Scoped to
+           the phone query this left every tablet and the desktop overflowing —
+           the monitor still slid 2.7k pixels sideways at 769px and 960 at
+           2560. min-width:0 is the load-bearing part: a grid child defaults to
+           min-width:auto, so wide content widens its ancestors instead. */
+        .main,
+        .content,
+        .card,
+        .page {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .table-container,
+        .table-wrapper {
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* The topbar holds a title, a restart button and a status pill. They
+           stop fitting well before the phone breakpoint — at 769px the page
+           slid sideways — so let them wrap whenever they need to. */
+        .topbar {
+            flex-wrap: wrap;
+            height: auto;
+            min-height: 64px;
+        }
+
+        /* Responsive. Landscape phones are wider than 768px but far too short
+           for the desktop layout, so they get the drawer too. */
+        @media (max-width: 768px), (max-height: 500px) and (orientation: landscape) {
             .nav-toggle { display: inline-flex; align-items: center; }
 
             .sidebar {
                 width: min(82vw, 320px);
                 transform: translateX(-100%);
                 transition: transform 0.3s;
-                z-index: 100;
+                /* Above the topbar, which is also z-index 100 and comes later
+                   in the DOM — it was painting over the first nav item, so a
+                   tap near the top edge silently did nothing. */
+                z-index: 200;
+                /* 16 nav items plus a footer are taller than a short phone.
+                   Without this the drawer simply ran off the bottom: at
+                   360x640 six destinations and the theme/logout footer were
+                   unreachable. dvh tracks the URL bar; vh is the fallback. */
+                height: 100vh;
+                height: 100dvh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .sidebar.open {

@@ -159,7 +159,7 @@ persona, and monitored it live. Where to go next:
 
 **Widescreen**
 
-![Client Management, where satellites are paired and revoked (widescreen)](img/clients.png)
+<!-- duplicate screenshot removed -->
 
 **Mobile**
 

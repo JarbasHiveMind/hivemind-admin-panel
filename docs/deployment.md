@@ -107,6 +107,14 @@ This single unit runs hivemind-core and the panel together. Add `--no-core` to t
 
 ### What it looks like
 
+Audio streaming is configured in the binary protocol screen:
+
+![Binary Protocol: the audio transport and its STT, TTS and VAD plugins (widescreen)](img/binary.png)
+
+![Binary Protocol: the audio transport and its STT, TTS and VAD plugins (mobile)](img/binary-mobile.png)
+
+and the listeners a deployment exposes are here:
+
 **Widescreen**
 
 ![Network: the listeners a deployment exposes (widescreen)](img/network.png)

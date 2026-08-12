@@ -267,8 +267,10 @@ control to open the navigation drawer, so every page except the dashboard was
 unreachable, and wide tables stretched the page instead of scrolling.
 
 **Fix.** Upgrade to the release after 0.1.10a1. There is now a ☰ button in the
-top left on narrow screens; it opens the drawer, which closes again when you
-pick a page.
+top left on narrow screens; it opens a scrolling drawer, which closes again
+when you pick a page.
+
+![The navigation drawer open on a phone](img/nav-drawer-mobile.png)
 
 ## FAQ
 

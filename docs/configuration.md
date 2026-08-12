@@ -84,7 +84,9 @@ speech configs as [presets](presets.md) and select them here.
 Which serialization encodings and ciphers clients may use. At least one of each must
 stay enabled.
 
-![Encodings &amp; ciphers](img/encodings.png)
+![Encodings and ciphers, widescreen](img/encodings.png)
+
+![Encodings and ciphers on a phone](img/encodings-mobile.png)
 
 ## Other config
 

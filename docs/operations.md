@@ -140,6 +140,14 @@ gracefully.
 
 ### What it looks like
 
+The client store behind all of it:
+
+![Database: the client storage backend (widescreen)](img/database.png)
+
+![Database: the client storage backend (mobile)](img/database-mobile.png)
+
+and the operations screen itself:
+
 **Widescreen**
 
 ![Operations: restart, backups, and log inspection (widescreen)](img/ops.png)

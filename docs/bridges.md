@@ -78,13 +78,16 @@ you can revoke it like any other client (which immediately drops it).
 
 ### What it looks like
 
+Bridges are configured per bridge, but they all answer through the agent
+selected here:
+
 **Widescreen**
 
-![Agent Protocol: the AI backend answering for the hive (widescreen)](img/agents.png)
+![Agent Protocol, where the backend a bridge talks to is chosen (widescreen)](img/agents.png)
 
 **Mobile**
 
-![Agent Protocol: the AI backend answering for the hive (mobile)](img/agents-mobile.png)
+![Agent Protocol, where the backend a bridge talks to is chosen (mobile)](img/agents-mobile.png)
 
 ---
 [← OVOS servers](ovos-servers.md) · [Home](index.md) · [Test Chat →](test-chat.md)

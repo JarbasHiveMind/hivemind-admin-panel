@@ -112,9 +112,17 @@ You now know the vocabulary. Next:
 
 ### What it looks like
 
+A persona is the character the hive answers as:
+
+![Personas: the character the hive answers as (widescreen)](img/personas.png)
+
+![Personas: the character the hive answers as (mobile)](img/personas-mobile.png)
+
+and the topology is every node currently attached:
+
 **Widescreen**
 
-![Topology: every node currently attached to the hive (widescreen)](img/topology.png)
+<!-- duplicate screenshot removed -->
 
 **Mobile**
 

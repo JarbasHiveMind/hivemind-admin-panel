@@ -68,7 +68,7 @@ Types: `stt` · `tts` · `ww` · `vad` · `agent` · `network`. Stored under
 
 **Widescreen**
 
-![Presets: saved configurations you can apply in one click (widescreen)](img/presets.png)
+<!-- duplicate screenshot removed -->
 
 **Mobile**
 
