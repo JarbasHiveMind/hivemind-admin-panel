@@ -342,8 +342,8 @@
                 let action = '';
                 if (!c.ok && c.severity === 'warning') {
                     action = c.acknowledged
-                        ? `<a href="#" onclick="event.preventDefault();unackCheck('${escapeHtml(c.id)}')" style="font-size:11px;color:var(--text-secondary);">restore</a>`
-                        : `<a href="#" onclick="event.preventDefault();ackCheck('${escapeHtml(c.id)}')" style="font-size:11px;color:var(--text-secondary);">dismiss</a>`;
+                        ? `<a href="#" onclick="event.preventDefault();unackCheck('${jsArg(c.id)}')" style="font-size:11px;color:var(--text-secondary);">restore</a>`
+                        : `<a href="#" onclick="event.preventDefault();ackCheck('${jsArg(c.id)}')" style="font-size:11px;color:var(--text-secondary);">dismiss</a>`;
                 }
                 return `
                 <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--border-color);${c.acknowledged ? 'opacity:.6;' : ''}">
@@ -483,7 +483,7 @@
                 svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#30363d" stroke-width="1.5"/>`;
                 const centerGlyph = n.bridge ? n.bridge.icon : (n.type === 'admin' ? '★' : '');
                 const sublabel = n.bridge ? `<text x="${x}" y="${y + 50}" text-anchor="middle" font-size="9" fill="var(--text-secondary)">${esc(n.bridge.label)} bridge</text>` : '';
-                svg += `<g style="cursor:pointer;" onclick="pairClient(${n.id.replace('client-','')}, '${esc(n.label)}')">
+                svg += `<g style="cursor:pointer;" onclick="pairClient(${n.id.replace('client-','')}, '${jsArg(n.label)}')">
                           <circle cx="${x}" cy="${y}" r="22" fill="${color}"/>
                           <text x="${x}" y="${y + 38}" text-anchor="middle" font-size="11" fill="currentColor">${esc(n.label)}</text>
                           ${centerGlyph ? `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="13">${centerGlyph}</text>` : ''}
@@ -571,7 +571,9 @@
 
         // ===================== Monitor =====================
         let monitorEventSource = null;
-        function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+        // Kept as a short alias; it used to miss the apostrophe, which is the one
+        // character that matters inside an inline handler's JS string literal.
+        function esc(s) { return escapeHtml(s == null ? '' : s); }
 
         async function loadMonitorPage() {
             await renderMetrics();
@@ -667,8 +669,8 @@
                        <span class="badge">${esc(s.type)}</span>
                        <span style="color:var(--text-secondary);flex:1;">${esc(s.url)}</span>
                        <span id="health-${s.id}" style="font-size:12px;color:var(--text-secondary);">—</span>
-                       <button class="btn btn-secondary btn-sm" onclick="checkServer('${s.id}')">Health</button>
-                       <button class="btn btn-danger btn-sm" onclick="deleteServer('${s.id}')">Remove</button>
+                       <button class="btn btn-secondary btn-sm" onclick="checkServer('${jsArg(s.id)}')">Health</button>
+                       <button class="btn btn-danger btn-sm" onclick="deleteServer('${jsArg(s.id)}')">Remove</button>
                      </div>`).join('') : '<span style="color:var(--text-secondary);">no servers registered</span>';
             } catch (e) {}
         }
@@ -710,8 +712,8 @@
                         <div><code>${esc(s.file)}</code>
                             <span style="color:var(--text-secondary);font-size:11px;margin-left:8px;">${new Date(s.mtime*1000).toLocaleString()} · ${(s.size/1024).toFixed(1)} KB</span></div>
                         <div style="display:flex;gap:6px;">
-                            <button class="btn btn-secondary btn-sm" onclick="diffConfigBackup('${esc(s.file)}')">Diff</button>
-                            <button class="btn btn-danger btn-sm" onclick="revertConfigBackup('${esc(s.file)}')">Revert</button>
+                            <button class="btn btn-secondary btn-sm" onclick="diffConfigBackup('${jsArg(s.file)}')">Diff</button>
+                            <button class="btn btn-danger btn-sm" onclick="revertConfigBackup('${jsArg(s.file)}')">Revert</button>
                         </div>
                     </div>`).join('');
             } catch (e) { el.textContent = 'Failed to load history'; }
@@ -1338,7 +1340,7 @@
 
         async function loadPresetsPage() {
             document.getElementById('presetTypeTabs').innerHTML = _PRESET_TYPES.map(([t,l]) =>
-                `<button class="btn btn-sm ${t===_presetType?'btn-primary':'btn-secondary'}" onclick="selectPresetType('${t}')">${l}</button>`).join('');
+                `<button class="btn btn-sm ${t===_presetType?'btn-primary':'btn-secondary'}" onclick="selectPresetType('${jsArg(t)}')">${l}</button>`).join('');
             await renderPresetCards();
         }
         function selectPresetType(t){ _presetType = t; loadPresetsPage(); }
@@ -1356,10 +1358,10 @@
                         <div style="min-width:0;"><strong>${esc(n)}</strong> <span style="font-size:11px;color:var(--text-secondary);">${summ}</span>
                             <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;"><code>${esc(JSON.stringify(p.config || {}))}</code></div></div>
                         <div style="display:flex;gap:6px;flex-shrink:0;">
-                            <button class="btn btn-primary btn-sm" onclick="applyPreset('${_presetType}','${esc(n)}')" title="${(_presetType==='agent'||_presetType==='network')?'Activate in server.json':'Apply to the active binary protocol'}">Apply</button>
-                            <button class="btn btn-secondary btn-sm" onclick="testPreset('${_presetType}','${esc(n)}')">Test</button>
-                            <button class="btn btn-secondary btn-sm" onclick="showPresetModal('${_presetType}','${esc(n)}')">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="deletePreset('${_presetType}','${esc(n)}')">✕</button>
+                            <button class="btn btn-primary btn-sm" onclick="applyPreset('${jsArg(_presetType)}','${jsArg(n)}')" title="${(_presetType==='agent'||_presetType==='network')?'Activate in server.json':'Apply to the active binary protocol'}">Apply</button>
+                            <button class="btn btn-secondary btn-sm" onclick="testPreset('${jsArg(_presetType)}','${jsArg(n)}')">Test</button>
+                            <button class="btn btn-secondary btn-sm" onclick="showPresetModal('${jsArg(_presetType)}','${jsArg(n)}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePreset('${jsArg(_presetType)}','${jsArg(n)}')">✕</button>
                         </div></div>`;
                 }).join('');
             } catch (e) { c.textContent = 'Failed to load presets'; }
@@ -1678,7 +1680,7 @@
                         <div>
                             ${b.installed
                                 ? '<span class="badge badge-success" style="font-size: 11px;">Installed</span>'
-                                : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${b.package}')">Install</button>`}
+                                : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(b.package)}')">Install</button>`}
                         </div>
                     </div>
                 `;
@@ -1790,7 +1792,7 @@
             } catch (e) {
                 statusDiv.classList.add('error');
                 statusDiv.style.border = '1px solid var(--accent-danger)';
-                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${e.message}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(e.message)}</span>`;
             }
         }
 
@@ -1856,7 +1858,7 @@
             } catch (e) {
                 statusDiv.classList.add('error');
                 statusDiv.style.border = '1px solid var(--accent-danger)';
-                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${e.message}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(e.message)}</span>`;
             }
         }
 
@@ -2055,17 +2057,17 @@
                         _binaryHtml += `
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 2px solid ${isActive ? 'var(--accent-primary)' : 'var(--border-color)'};">
                                 <div>
-                                    <div style="font-weight: 600; margin-bottom: 4px;">${plugin.name} ${isActive ? '<span class="badge badge-success" style="margin-left: 8px;">Active</span>' : ''}</div>
-                                    <div style="font-size: 13px; color: var(--text-secondary);">${plugin.description}</div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${plugin.package}</code></div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${plugin.entry_point}</code></div>
+                                    <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(plugin.name)} ${isActive ? '<span class="badge badge-success" style="margin-left: 8px;">Active</span>' : ''}</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(plugin.description)}</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${escapeHtml(plugin.package)}</code></div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(plugin.entry_point)}</code></div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     ${isActive
                                         ? '<span class="badge badge-success">✓ Active</span>'
                                         : isInstalled
-                                            ? `<button class="btn btn-primary btn-sm" onclick="showEnableBinaryProtocolModal('${plugin.entry_point}')">Enable</button>`
-                                            : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${plugin.package}')">Install</button>`
+                                            ? `<button class="btn btn-primary btn-sm" onclick="showEnableBinaryProtocolModal('${jsArg(plugin.entry_point)}')">Enable</button>`
+                                            : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(plugin.package)}')">Install</button>`
                                     }
                                 </div>
                             </div>
@@ -2104,13 +2106,13 @@
                         _binaryNotInstalledHtml += `
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 2px solid var(--border-color);">
                                 <div>
-                                    <div style="font-weight: 600; margin-bottom: 4px;">${plugin.name}</div>
-                                    <div style="font-size: 13px; color: var(--text-secondary);">${plugin.description}</div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${plugin.package}</code></div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${plugin.entry_point}</code></div>
+                                    <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(plugin.name)}</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(plugin.description)}</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${escapeHtml(plugin.package)}</code></div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(plugin.entry_point)}</code></div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    <button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${plugin.package}')">Install</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(plugin.package)}')">Install</button>
                                 </div>
                             </div>
                         `;
@@ -2210,7 +2212,7 @@
                 try { names = Object.keys((await apiCall('/presets/' + t)).presets || {}); } catch (e) {}
                 const opts = ['<option value="">' + label + ' preset…</option>']
                     .concat(names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`)).join('');
-                html += `<select onchange="applyBinaryPreset('${t}', this.value)" style="padding:8px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">${opts}</select>`;
+                html += `<select onchange="applyBinaryPreset('${jsArg(t)}', this.value)" style="padding:8px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">${opts}</select>`;
             }
             wrap.innerHTML = html;
         }
@@ -2330,23 +2332,23 @@
                             <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">${escapeHtml(description)}</div>
                             <div style="font-size: 11px; color: var(--text-secondary);">
                                 <span>🧩 ${solverCount} solver(s)</span>
-                                ${persona.memory_module ? `<span style="margin-left: 12px;">💭 Memory: ${persona.memory_module}</span>` : ''}
+                                ${persona.memory_module ? `<span style="margin-left: 12px;">💭 Memory: ${escapeHtml(persona.memory_module)}</span>` : ''}
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn btn-secondary btn-sm" onclick="previewPersona('${escapeHtml(persona.name)}')" title="Preview persona JSON">
+                            <button class="btn btn-secondary btn-sm" onclick="previewPersona('${jsArg(persona.name)}')" title="Preview persona JSON">
                                 👁️ Preview
                             </button>
-                            <button class="btn btn-secondary btn-sm" onclick="testPersona('${escapeHtml(persona.name)}')" title="Test persona">
+                            <button class="btn btn-secondary btn-sm" onclick="testPersona('${jsArg(persona.name)}')" title="Test persona">
                                 ⚠️ Test
                             </button>
-                            <button class="btn btn-secondary btn-sm" onclick="exportPersona('${escapeHtml(persona.name)}')" title="Export persona">
+                            <button class="btn btn-secondary btn-sm" onclick="exportPersona('${jsArg(persona.name)}')" title="Export persona">
                                 📥 Export
                             </button>
-                            <button class="btn btn-primary btn-sm" onclick="editPersona('${escapeHtml(persona.name)}')">
+                            <button class="btn btn-primary btn-sm" onclick="editPersona('${jsArg(persona.name)}')">
                                 ✏️ Edit
                             </button>
-                            <button class="btn btn-danger btn-sm" onclick="deletePersona('${escapeHtml(persona.name)}')" title="Delete persona">
+                            <button class="btn btn-danger btn-sm" onclick="deletePersona('${jsArg(persona.name)}')" title="Delete persona">
                                 🗑️
                             </button>
                         </div>
@@ -2522,11 +2524,11 @@
                     const description = plugin.description || '';
 
                     html += `
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-primary); border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border-color);" onclick="toggleSolver('${entryPoint}', '${plugin.name}')">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg-primary); border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border-color);" onclick="toggleSolver('${jsArg(entryPoint)}', '${jsArg(plugin.name)}')">
                             <div style="flex: 1;">
-                                <div style="font-weight: 600; font-size: 13px;">${plugin.name}</div>
-                                <div style="font-size: 11px; color: var(--text-secondary);">${description}</div>
-                                <div style="font-size: 10px; color: var(--text-secondary); font-family: monospace;">${entryPoint}</div>
+                                <div style="font-weight: 600; font-size: 13px;">${escapeHtml(plugin.name)}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary);">${escapeHtml(description)}</div>
+                                <div style="font-size: 10px; color: var(--text-secondary); font-family: monospace;">${escapeHtml(entryPoint)}</div>
                             </div>
                             <span style="font-size: 16px; color: var(--accent-primary);">+</span>
                         </div>
@@ -2649,8 +2651,8 @@
                         <span style="cursor: grab; font-size: 16px; color: var(--text-secondary);">⋮⋮</span>
                         <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">${index + 1}.</span>
                         <span style="flex: 1; font-size: 13px; font-family: monospace;">${pkg}${configBadge}</span>
-                        <button class="btn btn-secondary btn-sm" onclick="scrollToSolverConfig('${pkg}')" style="padding: 4px 8px; font-size: 11px;" title="Configure plugin">⚙</button>
-                        <button class="btn btn-danger btn-sm" onclick="toggleSolver('${pkg}')" style="padding: 4px 8px; font-size: 11px;">✕</button>
+                        <button class="btn btn-secondary btn-sm" onclick="scrollToSolverConfig('${jsArg(pkg)}')" style="padding: 4px 8px; font-size: 11px;" title="Configure plugin">⚙</button>
+                        <button class="btn btn-danger btn-sm" onclick="toggleSolver('${jsArg(pkg)}')" style="padding: 4px 8px; font-size: 11px;">✕</button>
                     </div>
                 `;
             });
@@ -2876,7 +2878,7 @@
                 loadPersonasPage();
             } catch (e) {
                 statusDiv.classList.add('error');
-                statusDiv.innerHTML = `✗ Failed to save: ${e.message}`;
+                statusDiv.innerHTML = `✗ Failed to save: ${escapeHtml(e.message)}`;
                 showToast('Failed to save persona: ' + e.message, 'error');
             }
         }
@@ -3037,7 +3039,7 @@
                 document.getElementById('testPersonaConfirm').classList.remove('hidden');
             } catch (e) {
                 statusDiv.classList.add('error');
-                statusDiv.innerHTML = `✗ Failed to load persona: ${e.message}`;
+                statusDiv.innerHTML = `✗ Failed to load persona: ${escapeHtml(e.message)}`;
                 statusDiv.classList.remove('hidden');
             }
         }
@@ -3102,7 +3104,7 @@
                 resultsDiv.innerHTML = html;
             } catch (e) {
                 statusDiv.classList.add('error');
-                statusDiv.innerHTML = `✗ Test failed: ${e.message}`;
+                statusDiv.innerHTML = `✗ Test failed: ${escapeHtml(e.message)}`;
                 statusDiv.classList.remove('hidden');
             }
         }
@@ -3130,7 +3132,7 @@
                 showToast(`Persona "${name}" activated`);
                 showRestartRequiredModal();
             } catch (e) {
-                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ Failed: ${e.message}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ Failed: ${escapeHtml(e.message)}</span>`;
                 showToast('Failed to activate persona: ' + e.message, 'error');
             }
         }
@@ -3175,23 +3177,23 @@
                     if (status === 'installed') {
                         const verBadge = `<span class="badge badge-success" style="font-size: 11px;">✓ ${plugin.version ? esc(plugin.version) : 'Installed'}</span>`;
                         actionButton = `${verBadge}
-                            <button class="btn btn-secondary btn-sm" onclick="upgradePlugin('${installPackage}')" title="Upgrade to latest">⬆ Update</button>
-                            <button class="btn btn-danger btn-sm" onclick="uninstallPlugin('${installPackage}')" title="Uninstall">✕</button>`;
+                            <button class="btn btn-secondary btn-sm" onclick="upgradePlugin('${jsArg(installPackage)}')" title="Upgrade to latest">⬆ Update</button>
+                            <button class="btn btn-danger btn-sm" onclick="uninstallPlugin('${jsArg(installPackage)}')" title="Uninstall">✕</button>`;
                     } else if (status === 'failed') {
-                        actionButton = `<button class="btn btn-warning btn-sm" onclick="showPluginError('${entryPoint}', '${plugin.error || 'Unknown error'}')" title="${plugin.error || 'Failed to load'}">⚠️ Error</button>`;
+                        actionButton = `<button class="btn btn-warning btn-sm" onclick="showPluginError('${jsArg(entryPoint)}', '${jsArg(plugin.error || 'Unknown error')}')" title="${escapeHtml(plugin.error || 'Failed to load')}">⚠️ Error</button>`;
                     } else {
-                        actionButton = `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${installPackage}', false)">Install</button>`;
+                        actionButton = `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(installPackage)}', false)">Install</button>`;
                     }
 
                     html += `
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                             <div style="flex: 1; min-width: 0;">
-                                <strong style="font-size: 14px;">${plugin.name}</strong>
-                                <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0;">${description}</p>
+                                <strong style="font-size: 14px;">${escapeHtml(plugin.name)}</strong>
+                                <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0;">${escapeHtml(description)}</p>
                                 <div style="font-size: 11px; color: var(--text-secondary);">
-                                    <div>Package: <code style="color: var(--accent-primary);">${installPackage}</code></div>
-                                    <div>Entry Point: <code style="color: var(--accent-primary);">${entryPoint}</code></div>
-                                    ${status === 'failed' ? `<div style="color: var(--accent-warning); font-size: 10px; margin-top: 4px;">⚠️ ${plugin.error}</div>` : ''}
+                                    <div>Package: <code style="color: var(--accent-primary);">${escapeHtml(installPackage)}</code></div>
+                                    <div>Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(entryPoint)}</code></div>
+                                    ${status === 'failed' ? `<div style="color: var(--accent-warning); font-size: 10px; margin-top: 4px;">⚠️ ${escapeHtml(plugin.error)}</div>` : ''}
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px; margin-left: 16px;">
@@ -3352,19 +3354,19 @@
 
         // Helper function to generate plugin info HTML with package and entry_point
         function getPluginInfoHtml(plugin) {
-            let html = `<div style="font-weight: 600; margin-bottom: 4px;">${plugin.name}</div>`;
+            let html = `<div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(plugin.name)}</div>`;
             
             if (plugin.description) {
-                html += `<div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">${plugin.description}</div>`;
+                html += `<div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">${escapeHtml(plugin.description)}</div>`;
             }
             
             // Show package name
             const pkgName = plugin.package || plugin.module || plugin.entry_point || 'unknown';
-            html += `<div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${pkgName}</code></div>`;
+            html += `<div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${escapeHtml(pkgName)}</code></div>`;
             
             // Always show entry_point
             const entryPoint = plugin.entry_point || plugin.module || pkgName;
-            html += `<div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${entryPoint}</code></div>`;
+            html += `<div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(entryPoint)}</code></div>`;
             
             return html;
         }
@@ -3395,7 +3397,7 @@
                                 ? '<span class="badge badge-success">✓ Active</span>'
                                 : backend.installed
                                     ? `<button class="btn btn-secondary btn-sm" onclick="navigate('database')" title="Configure via Database Profiles page">Manage</button>`
-                                    : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${pkgName}')">Install</button>`
+                                    : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(pkgName)}')">Install</button>`
                             }
                         </div>
                     </div>
@@ -3427,10 +3429,10 @@
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px;">
                             ${isEnabled
-                                ? `<button class="btn btn-danger btn-sm" onclick="toggleNetworkProtocol('${entryPoint}', false)">Disable</button>`
+                                ? `<button class="btn btn-danger btn-sm" onclick="toggleNetworkProtocol('${jsArg(entryPoint)}', false)">Disable</button>`
                                 : plugin.installed
-                                    ? `<button class="btn btn-primary btn-sm" onclick="showEnablePluginModal('network_protocol', '${entryPoint}', '${plugin.name}')">Enable</button>`
-                                    : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${pkgName}')">Install</button>`
+                                    ? `<button class="btn btn-primary btn-sm" onclick="showEnablePluginModal('network_protocol', '${jsArg(entryPoint)}', '${jsArg(plugin.name)}')">Enable</button>`
+                                    : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(pkgName)}')">Install</button>`
                             }
                         </div>
                     </div>
@@ -3474,10 +3476,10 @@
                             ${isActive
                                 ? '<span class="badge badge-success">✓ Active</span>'
                                 : canEnable
-                                    ? `<button class="btn btn-primary btn-sm" onclick="showEnableAgentModal('${entryPoint}', ${JSON.stringify(personas || []).replace(/"/g, '&quot;')})">Enable</button>`
+                                    ? `<button class="btn btn-primary btn-sm" onclick="showEnableAgentModal('${jsArg(entryPoint)}', ${JSON.stringify(personas || []).replace(/"/g, '&quot;')})">Enable</button>`
                                     : isPersonaAgent && !hasPersonas
                                         ? `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;" title="Create a persona first on the Personas page">Create Persona First</button>`
-                                        : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${pkgName}')">Install</button>`
+                                        : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(pkgName)}')">Install</button>`
                             }
                         </div>
                     </div>
@@ -3510,10 +3512,10 @@
                 if (status === 'installed') {
                     const verBadge = `<span class="badge badge-success" style="font-size: 11px;">✓ ${plugin.version ? esc(plugin.version) : 'Installed'}</span>`;
                     actionButton = `${verBadge}
-                        <button class="btn btn-secondary btn-sm" onclick="upgradePlugin('${pkgName}')" title="Upgrade to latest">⬆ Update</button>
-                        <button class="btn btn-danger btn-sm" onclick="uninstallPlugin('${pkgName}')" title="Uninstall">✕</button>`;
+                        <button class="btn btn-secondary btn-sm" onclick="upgradePlugin('${jsArg(pkgName)}')" title="Upgrade to latest">⬆ Update</button>
+                        <button class="btn btn-danger btn-sm" onclick="uninstallPlugin('${jsArg(pkgName)}')" title="Uninstall">✕</button>`;
                 } else if (status === 'failed') {
-                    actionButton = `<button class="btn btn-warning btn-sm" onclick="showPluginError('${entryPoint}', '${plugin.error || 'Unknown error'}')" title="${plugin.error || 'Failed to load'}">⚠️ Error</button>`;
+                    actionButton = `<button class="btn btn-warning btn-sm" onclick="showPluginError('${jsArg(entryPoint)}', '${jsArg(plugin.error || 'Unknown error')}')" title="${escapeHtml(plugin.error || 'Failed to load')}">⚠️ Error</button>`;
                 } else {
                     // Fallback to old method if no install_status
                     const pkgLower = pkgName.toLowerCase();
@@ -3523,14 +3525,14 @@
                     });
                     actionButton = isInstalled
                         ? '<span class="badge badge-success" style="font-size: 11px;">✓ Installed</span>'
-                        : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${pkgName}')">Install</button>`;
+                        : `<button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(pkgName)}')">Install</button>`;
                 }
 
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                         <div style="flex: 1; min-width: 0;">
                             ${getPluginInfoHtml(plugin)}
-                            ${status === 'failed' ? `<div style="color: var(--accent-warning); font-size: 10px; margin-top: 4px;">⚠️ ${plugin.error}</div>` : ''}
+                            ${status === 'failed' ? `<div style="color: var(--accent-warning); font-size: 10px; margin-top: 4px;">⚠️ ${escapeHtml(plugin.error)}</div>` : ''}
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px; margin-left: 16px;">
                             ${actionButton}
@@ -3575,8 +3577,8 @@
         function showPluginError(entryPoint, errorMessage) {
             showConfirmModal(
                 'Plugin Load Error',
-                `Entry point <code style="background: var(--bg-secondary); padding: 4px 8px; border-radius: 4px;">${entryPoint}</code> failed to load:<br><br>
-                 <code style="background: var(--bg-secondary); padding: 8px; display: block; margin: 8px 0; font-size: 11px; white-space: pre-wrap; word-break: break-word;">${errorMessage}</code><br>
+                `Entry point <code style="background: var(--bg-secondary); padding: 4px 8px; border-radius: 4px;">${escapeHtml(entryPoint)}</code> failed to load:<br><br>
+                 <code style="background: var(--bg-secondary); padding: 8px; display: block; margin: 8px 0; font-size: 11px; white-space: pre-wrap; word-break: break-word;">${escapeHtml(errorMessage)}</code><br>
                  This usually means the plugin is installed but has missing dependencies or incompatible versions.`,
                 () => {
                     // Offer to reinstall
@@ -3746,7 +3748,7 @@
                 // Success!
                 updateInstallProgress(100, 'Installation complete!', '✅');
 
-                completeInstallSuccess(`${packageName} installed successfully!`);
+                completeInstallSuccess(`${escapeHtml(packageName)} installed successfully!`);
 
                 // Refresh solver plugins list if applicable
                 if (typeof renderSolverPluginsFromAPI === 'function') {
@@ -3901,7 +3903,7 @@
                     showRestartRequiredModal();
                 } catch (e) {
                     statusDiv.className = 'validation-result error';
-                    statusDiv.innerHTML = `✗ Failed: ${e.message}`;
+                    statusDiv.innerHTML = `✗ Failed: ${escapeHtml(e.message)}`;
                     statusDiv.classList.remove('hidden');
                 }
             } else {
@@ -4172,7 +4174,7 @@
                 showRestartRequiredModal();
             } catch (e) {
                 statusDiv.className = 'validation-result error';
-                statusDiv.innerHTML = `✗ Failed: ${e.message}`;
+                statusDiv.innerHTML = `✗ Failed: ${escapeHtml(e.message)}`;
                 statusDiv.classList.remove('hidden');
             }
         }
@@ -4283,7 +4285,7 @@
             // Use a friendlier confirmation modal for pre-defined plugins
             showConfirmModal(
                 'Confirm Installation',
-                `Do you want to install the plugin package "${packageName}"?`,
+                `Do you want to install the plugin package "${escapeHtml(packageName)}"?`,
                 () => {
                     installPluginWithProgress(packageName, requiresRestart);
                 }
@@ -4338,7 +4340,7 @@
                     if (existingInfo) existingInfo.remove();
                     
                     for (const client of clients) {
-                        select.innerHTML += `<option value="${client.client_id}">${client.name} (ID: ${client.client_id})</option>`;
+                        select.innerHTML += `<option value="${client.client_id}">${escapeHtml(client.name)} (ID: ${client.client_id})</option>`;
                     }
                 }
 
@@ -4363,7 +4365,7 @@
             }
             let html = '';
             for (const template of templates) {
-                html += `<button class="btn btn-secondary btn-sm" onclick="applyACLTemplate('${template.name}')" title="${template.description}">${template.name}</button>`;
+                html += `<button class="btn btn-secondary btn-sm" onclick="applyACLTemplate('${jsArg(template.name)}')" title="${escapeHtml(template.description)}">${escapeHtml(template.name)}</button>`;
             }
             container.innerHTML = html;
         }
@@ -4382,7 +4384,7 @@
                 const value = item[key];
                 // Use full value for messages, only truncate skills/intents if needed
                 const label = value || '';
-                html += `<button class="btn btn-secondary btn-sm" onclick="addToACL('${targetId}', '${value}')" title="${item.description || value}">${label}</button>`;
+                html += `<button class="btn btn-secondary btn-sm" onclick="addToACL('${jsArg(targetId)}', '${jsArg(value)}')" title="${escapeHtml(item.description || value)}">${escapeHtml(label)}</button>`;
             }
             container.innerHTML = html;
         }
@@ -4499,8 +4501,8 @@
             document.getElementById('errorPage').classList.add('active');
 
             let html = `<div class="error-details">`;
-            html += `<p><strong>Error Type:</strong> ${health.error_type || 'Unknown'}</p>`;
-            html += `<p><strong>Error Message:</strong> ${health.startup_error || 'Unknown error'}</p>`;
+            html += `<p><strong>Error Type:</strong> ${escapeHtml(health.error_type || 'Unknown')}</p>`;
+            html += `<p><strong>Error Message:</strong> ${escapeHtml(health.startup_error || 'Unknown error')}</p>`;
             html += `</div>`;
 
             document.getElementById('errorDetails').innerHTML = html;
