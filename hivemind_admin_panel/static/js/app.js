@@ -1,5 +1,12 @@
 // State
-        let auth = { username: '', password: '' };
+        // The bearer token is the session credential. The plaintext password is
+        // NEVER persisted: anything that can run script in this page (a stored XSS
+        // in a client name, a malicious extension) could otherwise read the admin
+        // password straight out of sessionStorage. The password lives in this
+        // variable for the lifetime of the tab only, so the first-run password
+        // change can send `old_password`.
+        let auth = { username: '', token: '' };
+        let _sessionPassword = '';
         let currentPage = 1;
         let allClients = [];
         let filteredClients = [];
@@ -88,6 +95,15 @@
             .replace(/'/g, '&#39;');
         }
 
+        // Safe interpolation into an inline handler argument: onclick="f('${jsArg(v)}')".
+        // The value is parsed first as HTML and then as JavaScript, so both layers
+        // have to be neutralised.
+        function jsArg(s) {
+          return escapeHtml(String(s == null ? '' : s)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'"));
+        }
+
         // Theme
         function loadTheme() {
             const saved = localStorage.getItem('theme') || 'dark';
@@ -107,46 +123,44 @@
         }
 
         // Auth
-        function checkStoredAuth() {
+        async function checkStoredAuth() {
             const username = sessionStorage.getItem('hm_username');
-            const password = sessionStorage.getItem('hm_password');
-            if (username && password) {
-                auth = { username, password };
-                document.getElementById('username').value = username;
-                document.getElementById('password').value = password;
-                attemptLogin();
-            } else {
-                showLoginScreen();
-            }
+            const token = sessionStorage.getItem('hm_token');
+            if (!username || !token) { showLoginScreen(); return; }
+            auth = { username, token };
+            // The token is signed and expires; confirm it is still good.
+            const ok = await fetch('/api/auth/me',
+                                   { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(r => r.ok).catch(() => false);
+            if (!ok) { logout(); return; }
+            await enterApp();
         }
 
         async function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            auth = { username, password };
-            await attemptLogin();
+            let res;
+            try {
+                res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+            } catch (e) { showLoginError('Could not reach the server.'); return; }
+            if (res.status === 401) { showLoginError('Invalid credentials'); return; }
+            if (res.status === 429) { showLoginError('Too many failed logins — wait 5 minutes.'); return; }
+            if (!res.ok) { showLoginError('Server error: ' + res.status); return; }
+            const data = await res.json();
+            auth = { username, token: data.token };
+            _sessionPassword = password;   // in-memory only
+            sessionStorage.setItem('hm_username', username);
+            sessionStorage.setItem('hm_token', data.token);
+            document.getElementById('password').value = '';
+            await enterApp();
         }
 
-        async function attemptLogin() {
+        async function enterApp() {
             try {
-                // Verify credentials against an authenticated endpoint
-                const authHeader = 'Basic ' + btoa(auth.username + ':' + auth.password);
-                const authResponse = await fetch('/api/config', {
-                    headers: { 'Authorization': authHeader }
-                });
-                if (authResponse.status === 401) {
-                    showLoginError('Invalid credentials');
-                    return;
-                }
-                if (!authResponse.ok) {
-                    showLoginError('Server error: ' + authResponse.status);
-                    return;
-                }
-
-                // Store credentials only after confirmed valid
-                sessionStorage.setItem('hm_username', auth.username);
-                sessionStorage.setItem('hm_password', auth.password);
-
                 hideLoginScreen();
                 showApp();
 
@@ -166,9 +180,11 @@
         }
 
         function logout() {
-            auth = { username: '', password: '' };
+            auth = { username: '', token: '' };
+            _sessionPassword = '';
             sessionStorage.removeItem('hm_username');
-            sessionStorage.removeItem('hm_password');
+            sessionStorage.removeItem('hm_token');
+            sessionStorage.removeItem('hm_password');   // clear pre-0.1.2 leftovers
             stopHealthCheck();
             hideApp();
             showLoginScreen();
@@ -215,22 +231,35 @@
             const fail = (m) => { err.textContent = m; err.classList.remove('hidden'); };
             if (np.length < 8) return fail('Password must be at least 8 characters.');
             if (np !== cp) return fail('Passwords do not match.');
-            if (np === auth.password) return fail('Choose a password different from the default.');
+            if (!_sessionPassword) {
+                return fail('Session expired — sign in again before changing the password.');
+            }
+            if (np === _sessionPassword) return fail('Choose a password different from the default.');
             try {
                 const res = await fetch('/api/auth/password', {
                     method: 'POST',
-                    headers: { 'Authorization': 'Basic ' + btoa(auth.username + ':' + auth.password),
+                    headers: { 'Authorization': 'Bearer ' + auth.token,
                                'Content-Type': 'application/json' },
-                    body: JSON.stringify({ old_password: auth.password, new_password: np }),
+                    body: JSON.stringify({ old_password: _sessionPassword, new_password: np }),
                 });
                 if (!res.ok) {
                     const d = await res.json().catch(() => ({}));
                     return fail(d.detail || ('Server error: ' + res.status));
                 }
             } catch (e) { return fail('Could not reach the server.'); }
-            // Re-authenticate with the new password so the session keeps working.
-            auth.password = np;
-            sessionStorage.setItem('hm_password', np);
+            // Changing the password re-keys the token secret server-side, so every
+            // existing token (including this session's) is now dead: mint a new one.
+            _sessionPassword = np;
+            try {
+                const re = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: auth.username, password: np }),
+                });
+                if (!re.ok) { logout(); return; }
+                auth.token = (await re.json()).token;
+                sessionStorage.setItem('hm_token', auth.token);
+            } catch (e) { logout(); return; }
             document.getElementById('firstRunModal').style.display = 'none';
             document.getElementById('frNewPass').value = '';
             document.getElementById('frConfirmPass').value = '';
@@ -436,8 +465,7 @@
             const host = prompt('hivemind-core address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
             try {
                 const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
-                const tok = (await apiCall('/auth/login', 'POST',
-                    { username: auth.username, password: auth.password })).token;
+                const tok = auth.token;
                 document.getElementById('pairQr').innerHTML =
                     `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
@@ -565,12 +593,8 @@
             stopMonitorLive();
             // EventSource can't set headers, so mint a short-lived token and pass it
             // as access_token (accepted by the SSE endpoint).
-            let token;
-            try {
-                token = (await apiCall('/auth/login', 'POST',
-                    { username: auth.username, password: auth.password })).token;
-            } catch (e) { return; }
-            monitorEventSource = new EventSource('/api/events?interval=2&access_token=' + encodeURIComponent(token));
+            monitorEventSource = new EventSource(
+                '/api/events?interval=2&access_token=' + encodeURIComponent(auth.token));
             monitorEventSource.addEventListener('snapshot', renderMetrics);
             monitorEventSource.addEventListener('event', loadEvents);
             monitorEventSource.onerror = () => { renderMetrics(); };
@@ -748,7 +772,7 @@
         // API
         async function apiCall(endpoint, method = 'GET', body = null) {
             const headers = {
-                'Authorization': 'Basic ' + btoa(auth.username + ':' + auth.password)
+                'Authorization': 'Bearer ' + auth.token
             };
             if (body) {
                 headers['Content-Type'] = 'application/json';
@@ -821,9 +845,9 @@
                 let html = '';
                 for (const [name, cfg] of Object.entries(config.network_protocol || {})) {
                     html += `<div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-bottom: 12px;">
-                        <strong style="color: var(--accent-primary);">${name}</strong>
+                        <strong style="color: var(--accent-primary);">${escapeHtml(name)}</strong>
                         <div style="margin-top: 8px; font-size: 13px; color: var(--text-secondary);">
-                            Host: ${cfg.host || 'N/A'} | Port: ${cfg.port || 'N/A'} | SSL: ${cfg.ssl ? 'Yes' : 'No'}
+                            Host: ${escapeHtml(cfg.host || 'N/A')} | Port: ${escapeHtml(cfg.port || 'N/A')} | SSL: ${cfg.ssl ? 'Yes' : 'No'}
                         </div>
                     </div>`;
                 }
@@ -980,12 +1004,13 @@
                 tbody.innerHTML = pageClients.map(c => {
                     const isRevoked = c.revoked || false;
                     const rowStyle = isRevoked ? 'style="opacity: 0.5; background: rgba(255, 107, 107, 0.1);"' : '';
-                    const nameDisplay = isRevoked ? `<span style="color: var(--accent-danger);">🔒 ${c.name} (Revoked)</span>` : `<strong>${c.name}</strong>`;
+                    const safeName = escapeHtml(c.name ?? '');
+                    const nameDisplay = isRevoked ? `<span style="color: var(--accent-danger);">🔒 ${safeName} (Revoked)</span>` : `<strong>${safeName}</strong>`;
                     return `
                         <tr ${rowStyle}>
                             <td>${c.client_id}</td>
                             <td>${nameDisplay}</td>
-                            <td><code>${c.api_key.substring(0, 16)}...</code></td>
+                            <td><code>${escapeHtml(String(c.api_key ?? '').substring(0, 16))}...</code></td>
                             <td><span class="badge ${c.is_admin ? 'badge-success' : 'badge-danger'}">${c.is_admin ? 'Yes' : 'No'}</span></td>
                             <td><span class="badge ${c.can_escalate ? 'badge-success' : 'badge-danger'}">${c.can_escalate ? 'Yes' : 'No'}</span></td>
                             <td><span class="badge ${c.can_propagate ? 'badge-success' : 'badge-danger'}">${c.can_propagate ? 'Yes' : 'No'}</span></td>
@@ -1560,14 +1585,14 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(name)}${isActive ? ' <span class="badge badge-success" style="margin-left: 8px;">Active</span>' : ''}</div>
                             <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">${escapeHtml(b ? b.name : p.module)}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary);">Module: <code style="color: var(--accent-primary);">${p.module}</code></div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-all;">Config: <code>${cfgStr}</code></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Module: <code style="color: var(--accent-primary);">${escapeHtml(p.module)}</code></div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-all;">Config: <code>${escapeHtml(cfgStr)}</code></div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-left: 12px; flex-shrink: 0;">
-                            ${!isActive ? `<button class="btn btn-primary btn-sm" onclick="activateProfile('${name}')">Activate</button>` : ''}
-                            <button class="btn btn-secondary btn-sm" onclick="showEditProfileModal('${name}')">Edit</button>
-                            <button class="btn btn-secondary btn-sm" onclick="testSavedProfile('${name}')">Test</button>
-                            ${!isActive ? `<button class="btn btn-danger btn-sm" onclick="deleteProfile('${name}')">Delete</button>` : ''}
+                            ${!isActive ? `<button class="btn btn-primary btn-sm" onclick="activateProfile('${jsArg(name)}')">Activate</button>` : ''}
+                            <button class="btn btn-secondary btn-sm" onclick="showEditProfileModal('${jsArg(name)}')">Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="testSavedProfile('${jsArg(name)}')">Test</button>
+                            ${!isActive ? `<button class="btn btn-danger btn-sm" onclick="deleteProfile('${jsArg(name)}')">Delete</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -1590,9 +1615,9 @@
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                         <div>
-                            <span style="font-weight: 600; font-size: 13px;">${b.name}</span>
-                            <span style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">${b.description || ''}</span>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Package: <code style="color: var(--accent-primary);">${b.package}</code></div>
+                            <span style="font-weight: 600; font-size: 13px;">${escapeHtml(b.name)}</span>
+                            <span style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">${escapeHtml(b.description || '')}</span>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Package: <code style="color: var(--accent-primary);">${escapeHtml(b.package)}</code></div>
                         </div>
                         <div>
                             ${b.installed
