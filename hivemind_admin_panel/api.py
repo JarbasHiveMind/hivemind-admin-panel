@@ -1316,7 +1316,7 @@ def allow_skill(client_id: int, data: SkillRequest) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-skill",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_skill(client_id: int, data: SkillRequest) -> Dict[str, Any]:
     """Blacklist a skill for a client.
@@ -1377,7 +1377,7 @@ def allow_intent(client_id: int, data: IntentRequest) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-intent",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_intent(client_id: int, data: IntentRequest) -> Dict[str, Any]:
     """Blacklist an intent for a client.
@@ -1422,7 +1422,7 @@ def _modify_intent(client_id: int, intent_id: str, action: str) -> Dict[str, Any
 
 @app.post(
     "/clients/{client_id}/allow-escalate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def allow_escalate(client_id: int) -> Dict[str, Any]:
     """Allow client to escalate messages upstream.
@@ -1438,7 +1438,7 @@ def allow_escalate(client_id: int) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-escalate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_escalate(client_id: int) -> Dict[str, Any]:
     """Block client from escalating messages upstream.
@@ -1454,7 +1454,7 @@ def blacklist_escalate(client_id: int) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/allow-propagate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def allow_propagate(client_id: int) -> Dict[str, Any]:
     """Allow client to propagate messages to siblings.
@@ -1470,7 +1470,7 @@ def allow_propagate(client_id: int) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-propagate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_propagate(client_id: int) -> Dict[str, Any]:
     """Block client from propagating messages to siblings.
@@ -1820,7 +1820,7 @@ def upgrade_plugin(data: PluginInstallRequest, request: Request) -> PluginInstal
     return PluginInstallResult(success=True, message=msg)
 
 
-@app.post("/plugins/enable", dependencies=[Depends(verify_credentials)])
+@app.post("/plugins/enable", dependencies=[Depends(require_admin)])
 def enable_plugin(data: ConfigUpdateRequest) -> PluginInstallResult:
     """Enable a plugin by updating the configuration.
 
@@ -2757,7 +2757,7 @@ def get_persona_config() -> Dict[str, Any]:
     return _load_persona_config()
 
 
-@app.put("/persona/config", dependencies=[Depends(verify_credentials)])
+@app.put("/persona/config", dependencies=[Depends(require_admin)])
 def save_persona_config(data: Dict[str, Any]) -> Dict[str, Any]:
     """Save persona configuration to JSON file.
 
@@ -3345,7 +3345,7 @@ def get_persona(name: str) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
 
 
-@app.post("/personas", dependencies=[Depends(verify_credentials)])
+@app.post("/personas", dependencies=[Depends(require_admin)])
 def create_persona(data: PersonaCreate) -> Dict[str, Any]:
     """Create a new persona.
     
@@ -3395,7 +3395,7 @@ def create_persona(data: PersonaCreate) -> Dict[str, Any]:
     return {**config, "status": "ok", "path": str(persona_path)}
 
 
-@app.put("/personas/{name}", dependencies=[Depends(verify_credentials)])
+@app.put("/personas/{name}", dependencies=[Depends(require_admin)])
 def update_persona(name: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Update an existing persona.
     
@@ -3435,7 +3435,7 @@ def update_persona(name: str, data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-@app.delete("/personas/{name}", dependencies=[Depends(verify_credentials)])
+@app.delete("/personas/{name}", dependencies=[Depends(require_admin)])
 def delete_persona(name: str) -> Dict[str, Any]:
     """Delete a persona.
     
@@ -3547,7 +3547,7 @@ def export_persona(name: str) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
 
 
-@app.post("/personas/{name}/activate", dependencies=[Depends(verify_credentials)])
+@app.post("/personas/{name}/activate", dependencies=[Depends(require_admin)])
 def activate_persona(name: str, force: bool = False) -> Dict[str, Any]:
     """Activate a persona as the agent backend.
 
@@ -4463,7 +4463,7 @@ def list_servers() -> List[Dict[str, Any]]:
     return _load_servers()
 
 
-@app.post("/servers", dependencies=[Depends(verify_credentials)])
+@app.post("/servers", dependencies=[Depends(require_admin)])
 def add_server(data: ServerCreate) -> Dict[str, Any]:
     """Register an external OVOS server endpoint."""
     import uuid
@@ -4475,7 +4475,7 @@ def add_server(data: ServerCreate) -> Dict[str, Any]:
     return entry
 
 
-@app.delete("/servers/{server_id}", dependencies=[Depends(verify_credentials)])
+@app.delete("/servers/{server_id}", dependencies=[Depends(require_admin)])
 def delete_server(server_id: str) -> Dict[str, str]:
     """Remove a registered server."""
     servers = _load_servers()
