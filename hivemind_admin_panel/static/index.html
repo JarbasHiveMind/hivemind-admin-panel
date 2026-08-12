@@ -54,7 +54,8 @@
 
     <div id="app" class="app">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1>HiveMind</h1>
                 <div class="version">Admin Panel</div>
@@ -156,6 +157,10 @@
         <main class="main">
             <!-- Topbar -->
             <header class="topbar">
+                <button id="navToggle" class="nav-toggle" onclick="toggleSidebar()"
+                        aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+                    <span aria-hidden="true">☰</span>
+                </button>
                 <h2 id="pageTitle">Dashboard</h2>
                 <div id="restartWarningBanner" class="hidden" style="background: var(--accent-warning); color: #1e1e1e; padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; margin: 0 20px;">
                     <span style="display: flex; align-items: center; gap: 8px;">

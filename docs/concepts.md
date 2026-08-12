@@ -109,5 +109,24 @@ You now know the vocabulary. Next:
 - **[Tutorial](tutorial.md)** — do it all end-to-end.
 - **[Glossary](glossary.md)** — any term, defined.
 
+
+### What it looks like
+
+A persona is the character the hive answers as:
+
+![Personas: the character the hive answers as (widescreen)](img/personas.png)
+
+![Personas: the character the hive answers as (mobile)](img/personas-mobile.png)
+
+and the topology is every node currently attached:
+
+**Widescreen**
+
+<!-- duplicate screenshot removed -->
+
+**Mobile**
+
+![Topology: every node currently attached to the hive (mobile)](img/topology-mobile.png)
+
 ---
 [Home](index.md) · [Getting started →](getting-started.md)

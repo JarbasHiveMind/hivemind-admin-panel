@@ -112,5 +112,16 @@ hand-edit `version.py`, and work on a feature branch and let CI (the gh-automati
 workflows) run build-tests, coverage, lint, and license-check. See
 [Development](development.md).
 
+
+### What it looks like
+
+**Widescreen**
+
+![OpenVoiceOS Plugins: what the panel can install and configure (widescreen)](img/voice-plugins.png)
+
+**Mobile**
+
+![OpenVoiceOS Plugins: what the panel can install and configure (mobile)](img/voice-plugins-mobile.png)
+
 ---
 [← Architecture](architecture.md) · [Home](index.md) · [API reference →](api-reference.md)

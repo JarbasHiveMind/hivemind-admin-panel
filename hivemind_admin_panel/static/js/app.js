@@ -4605,3 +4605,103 @@
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
         }
+
+// ---------------------------------------------------------------------------
+// Mobile navigation
+//
+// Under 768px the sidebar is translated off-screen and only comes back with
+// the `open` class. Nothing ever added that class, so on a phone the panel
+// opened on the dashboard and every other page was unreachable — the nav
+// buttons were laid out beyond the viewport. These three functions are what
+// the stylesheet was already written for.
+// ---------------------------------------------------------------------------
+function toggleSidebar() {
+    const bar = document.getElementById('sidebar');
+    if (!bar) return;
+    bar.classList.contains('open') ? closeSidebar() : openSidebar();
+}
+
+function _mobileLayout() {
+    return window.matchMedia('(max-width: 768px), (max-height: 500px) and (orientation: landscape)').matches;
+}
+
+function openSidebar() {
+    const bar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const toggle = document.getElementById('navToggle');
+    if (bar) {
+        bar.classList.add('open');
+        bar.removeAttribute('inert');
+        bar.removeAttribute('aria-hidden');
+    }
+    if (backdrop) backdrop.classList.add('visible');
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', 'true');
+        toggle.setAttribute('aria-label', 'Close navigation');
+    }
+    // Move focus into the drawer. Without this, tabbing from the toggle walked
+    // straight past it — the drawer is earlier in the DOM — and landed on
+    // "Restart HiveMind" with an opaque backdrop over the page.
+    const target = bar && (bar.querySelector('.nav-item.active') || bar.querySelector('.nav-item'));
+    if (target) target.focus();
+    // Stop the page scrolling underneath the backdrop.
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+    const bar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const toggle = document.getElementById('navToggle');
+    const wasOpen = bar && bar.classList.contains('open');
+    if (bar) {
+        bar.classList.remove('open');
+        // A drawer parked off-screen must leave the tab order, or the first
+        // six Tab presses on a phone land on invisible controls.
+        if (_mobileLayout()) {
+            bar.setAttribute('inert', '');
+            bar.setAttribute('aria-hidden', 'true');
+        }
+    }
+    if (backdrop) backdrop.classList.remove('visible');
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open navigation');
+        if (wasOpen) toggle.focus();
+    }
+    document.body.style.overflow = '';
+}
+
+function _syncSidebarInertness() {
+    const bar = document.getElementById('sidebar');
+    if (!bar) return;
+    if (_mobileLayout() && !bar.classList.contains('open')) {
+        bar.setAttribute('inert', '');
+        bar.setAttribute('aria-hidden', 'true');
+    } else {
+        bar.removeAttribute('inert');
+        bar.removeAttribute('aria-hidden');
+    }
+}
+
+// Choosing a destination should dismiss the menu that offered it, otherwise
+// the drawer covers the page the user just asked for. Delegated, so nav items
+// added later keep the behaviour.
+document.addEventListener('DOMContentLoaded', () => {
+    _syncSidebarInertness();
+    const nav = document.querySelector('.sidebar .nav');
+    if (nav) {
+        nav.addEventListener('click', (e) => {
+            if (e.target.closest('.nav-item') && _mobileLayout()) closeSidebar();
+        });
+    }
+});
+
+window.addEventListener('resize', _syncSidebarInertness);
+
+document.addEventListener('keydown', (e) => {
+    // Only the drawer. Typing Escape in a form field should not move the page
+    // out from under the person typing.
+    if (e.key !== 'Escape') return;
+    const bar = document.getElementById('sidebar');
+    if (bar && bar.classList.contains('open')) closeSidebar();
+});

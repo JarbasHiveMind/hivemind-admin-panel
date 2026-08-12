@@ -104,5 +104,24 @@ sudo systemctl enable --now hivemind-admin-panel
 This single unit runs hivemind-core and the panel together. Add `--no-core` to the
 `ExecStart` line if hivemind-core is managed by a separate service on the host.
 
+
+### What it looks like
+
+Audio streaming is configured in the binary protocol screen:
+
+![Binary Protocol: the audio transport and its STT, TTS and VAD plugins (widescreen)](img/binary.png)
+
+![Binary Protocol: the audio transport and its STT, TTS and VAD plugins (mobile)](img/binary-mobile.png)
+
+and the listeners a deployment exposes are here:
+
+**Widescreen**
+
+![Network: the listeners a deployment exposes (widescreen)](img/network.png)
+
+**Mobile**
+
+![Network: the listeners a deployment exposes (mobile)](img/network-mobile.png)
+
 ---
 [← Security](security.md) · [Home](index.md) · [OVOS servers →](ovos-servers.md)

@@ -76,5 +76,16 @@ hivemind-admin-panel --no-core --reload
 | `--reload` | off | dev auto-reload (implies `--no-core`) |
 | `--log-level` | `INFO` | log level for the in-process hivemind-core |
 
+
+### What it looks like
+
+**Widescreen**
+
+<!-- duplicate screenshot removed -->
+
+**Mobile**
+
+![The dashboard reports which run mode the panel is in (mobile)](img/dashboard-mobile.png)
+
 ---
 [← Troubleshooting](troubleshooting.md) · [Home](index.md) · [CLI →](cli.md)

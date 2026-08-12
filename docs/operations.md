@@ -137,5 +137,24 @@ gracefully.
 - **Config dry-run**: `POST /config/diff` previews added, removed, and changed keys
   before you apply a config.
 
+
+### What it looks like
+
+The client store behind all of it:
+
+![Database: the client storage backend (widescreen)](img/database.png)
+
+![Database: the client storage backend (mobile)](img/database-mobile.png)
+
+and the operations screen itself:
+
+**Widescreen**
+
+![Operations: restart, backups, and log inspection (widescreen)](img/ops.png)
+
+**Mobile**
+
+![Operations: restart, backups, and log inspection (mobile)](img/ops-mobile.png)
+
 ---
 [← Plugin presets](presets.md) · [Home](index.md) · [Security →](security.md)

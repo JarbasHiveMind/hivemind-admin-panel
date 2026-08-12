@@ -84,7 +84,9 @@ speech configs as [presets](presets.md) and select them here.
 Which serialization encodings and ciphers clients may use. At least one of each must
 stay enabled.
 
-![Encodings &amp; ciphers](img/encodings.png)
+![Encodings and ciphers, widescreen](img/encodings.png)
+
+![Encodings and ciphers on a phone](img/encodings-mobile.png)
 
 ## Other config
 
@@ -150,6 +152,17 @@ client-impersonation variant that goes through the hub.
 
 The same persona JSON can be hosted over an OpenAI or Ollama HTTP API by
 **ovos-persona-server**. See [OVOS servers](ovos-servers.md).
+
+
+### What it looks like
+
+**Widescreen**
+
+![Presets: saved configurations you can apply in one click (widescreen)](img/presets.png)
+
+**Mobile**
+
+![Presets: saved configurations you can apply in one click (mobile)](img/presets-mobile.png)
 
 ---
 [← CLI](cli.md) · [Home](index.md) · [Plugin presets →](presets.md)

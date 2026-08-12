@@ -75,5 +75,19 @@ you can revoke it like any other client (which immediately drops it).
 - Give bridges a recognizable client name. The `bridge:<platform>` tag is what
   the panel uses to label them, so keep it if you edit tags.
 
+
+### What it looks like
+
+Bridges are configured per bridge, but they all answer through the agent
+selected here:
+
+**Widescreen**
+
+![Agent Protocol, where the backend a bridge talks to is chosen (widescreen)](img/agents.png)
+
+**Mobile**
+
+![Agent Protocol, where the backend a bridge talks to is chosen (mobile)](img/agents-mobile.png)
+
 ---
 [← OVOS servers](ovos-servers.md) · [Home](index.md) · [Test Chat →](test-chat.md)

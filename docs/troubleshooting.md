@@ -151,6 +151,127 @@ Each entry is **symptom → cause → fix**.
   These are prerelease floors. Make sure your installer allows prereleases for
   those packages.
 
+### A satellite that was reinstalled can never reconnect
+
+**Symptom.** A satellite that used to work is refused on every attempt after a
+reinstall, a reflash, or a move to new hardware. The node logs:
+
+```
+protocol v3 handshake with sat::... FAILED: client Noise static key
+contradicts the pinned key
+```
+
+**Cause.** The node pins each client's Noise static key the first time it sees
+it (CRYPTO-1 §3.4.5) and refuses any later key for that client. That is what
+stops an impostor taking over a known identity — and a genuine reinstall looks
+exactly the same from the outside, because the key really did change.
+
+**Fix.** Clear the pin for that one client and let it pair again:
+
+```bash
+hivemind-core reset-noise-pin <access-key-or-node-id>
+```
+
+Only do this when you know the client actually changed. If you did not
+reinstall anything, the refusal may be doing its job.
+
+The client keeps its own pin of the *node's* key, and older clients could get
+stuck in the mirror image of this — retrying `KKpsk0` forever. Upgrade
+`hivemind-bus-client` to 1.0.8a1 or newer, where the client drops a stale pin
+and retries.
+
+### "Address already in use" on port 5678
+
+**Symptom.** hivemind-core restarts in a loop; the log ends with
+`OSError: [Errno 98] Address already in use`, and `systemctl --user status`
+shows it as `activating` forever.
+
+**Cause.** Two things want the hub port. The usual pair is this panel running
+in its default in-process mode — where it *is* the hub — alongside a separate
+`hivemind-core` service. Only one can bind 5678.
+
+**Fix.** Decide which one owns the hub and stop the other:
+
+```bash
+ss -ltnp | grep 5678        # who has it
+systemctl --user disable --now hivemind-core.service   # if the panel owns it
+```
+
+Or keep the separate service and run the panel with `--no-core`. Whichever you
+pick, the run-mode badge in the top right tells you what the panel thinks it
+is doing.
+
+### The hub is running an old version and upgrading does not change it
+
+**Symptom.** You upgrade `hivemind-core`, restart, and the dashboard still
+reports the old version. Features that shipped months ago are missing.
+
+**Cause.** In in-process mode the hub runs from the panel's virtualenv, not
+whichever one you upgraded, and the panel's own dependency pins constrain it.
+A stale upper bound on `hivemind-bus-client` held panels before 0.1.10a1 to
+`hivemind-core` 4.11.x no matter what was installed.
+
+**Fix.** Upgrade the panel itself, in the environment the service actually
+runs, and confirm what it resolved to:
+
+```bash
+VIRTUAL_ENV=/path/to/panel/venv uv pip install -U --prerelease=allow hivemind-admin-panel
+/path/to/panel/venv/bin/python -c "import importlib.metadata as m; print(m.version('hivemind-core'))"
+```
+
+The version on the dashboard is the one that counts.
+
+### hivemind-core crash-loops after an upgrade with a plugin error
+
+**Symptom.** After upgrading, the service will not start. The log names a
+plugin:
+
+```
+KeyError: "'hivemind-audio-binary-protocol-plugin' not found. Available plugins: []"
+RuntimeError: unknown plugin: ovos-tts-plugin-server
+TypeError: 'NoneType' object is not callable      # an STT or VAD plugin
+KeyError: 'vad'
+```
+
+**Cause.** Optional plugins live in the same environment and are not
+dependencies of the thing you upgraded, so a resolve can leave them behind.
+The binary (audio) protocol needs an STT, a TTS and a VAD plugin, and it wants
+them named in its own config block — a missing key raises rather than falling
+back.
+
+**Fix.** Reinstall the plugins the config asks for, then give the binary
+protocol explicit settings:
+
+```json
+"binary_protocol": {
+  "module": "hivemind-audio-binary-protocol-plugin",
+  "hivemind-audio-binary-protocol-plugin": {
+    "stt": {"module": "ovos-stt-plugin-server"},
+    "tts": {"module": "ovos-tts-plugin-server"},
+    "vad": {"module": "ovos-vad-plugin-silero"}
+  }
+}
+```
+
+To get the hub back up immediately while you sort the audio stack out, set
+`"binary_protocol": {"module": null}`. Audio streaming stops; everything else
+keeps working.
+
+### The panel is unusable on a phone
+
+**Symptom.** You sign in on a phone, land on the dashboard, and cannot reach
+any other page. Tables slide off the side of the screen.
+
+**Cause.** Panels up to and including 0.1.10a1 had the mobile stylesheet but no
+control to open the navigation drawer, so every page except the dashboard was
+unreachable, and wide tables stretched the page instead of scrolling.
+
+**Fix.** Upgrade to the release after 0.1.10a1. There is now a ☰ button in the
+top left on narrow screens; it opens a scrolling drawer, which closes again
+when you pick a page.
+
+![The navigation drawer open on a phone](img/nav-drawer-mobile.png)
+
 ## FAQ
 
 ### Do I need to run `hivemind-core` separately?
@@ -219,6 +340,17 @@ GGUF) are optional and can be mixed in. See [Configuration](configuration.md).
 No, one panel instance manages exactly one hivemind-core (the one it launches,
 or the on-disk state it reads in `--no-core` mode). Run a separate panel per
 hivemind-core instance.
+
+
+### What it looks like
+
+**Widescreen**
+
+![Monitor is where most problems become visible (widescreen)](img/monitor.png)
+
+**Mobile**
+
+![Monitor is where most problems become visible (mobile)](img/monitor-mobile.png)
 
 ---
 [← Glossary](glossary.md) · [Home](index.md) · [Running →](running.md)

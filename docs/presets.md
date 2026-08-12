@@ -63,5 +63,16 @@ restart):
 Types: `stt` · `tts` · `ww` · `vad` · `agent` · `network`. Stored under
 `~/.config/hivemind-core/plugin_presets/{type}/{name}.json`.
 
+
+### What it looks like
+
+**Widescreen**
+
+<!-- duplicate screenshot removed -->
+
+**Mobile**
+
+![Presets: saved configurations you can apply in one click (mobile)](img/presets-mobile.png)
+
 ---
 [← Configuration](configuration.md) · [Home](index.md) · [Operations →](operations.md)

@@ -5034,8 +5034,11 @@ def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
                      and cfg.get("admin_pass", "admin") == "admin")
     host = _bound_host or "127.0.0.1"
     loopback = host in ("127.0.0.1", "localhost", "::1", "")
-    # hivemind-core's satellite-facing websocket TLS (independent of the panel's HTTP).
-    core_tls = bool(cfg.get("ssl") or (cfg.get("cert_file") and cfg.get("key_file")))
+    # There is deliberately no check for websocket TLS. HiveMind encrypts its
+    # own payloads end to end — an AES session key on protocol v1/v2 and the
+    # Noise transport on v3 — so ws:// is not cleartext and a satellite on a
+    # plain socket is not exposed. Flagging it taught operators to add TLS for
+    # a problem they did not have, and trained them to ignore this panel.
 
     checks: List[Dict[str, Any]] = [
         {
@@ -5054,14 +5057,6 @@ def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
             "hint": (f"The panel is bound to {host} and reachable from the network. "
                      "Keep it on 127.0.0.1, or put it behind a TLS-terminating, "
                      "authenticating reverse proxy."),
-        },
-        {
-            "id": "core_tls",
-            "label": "hivemind-core websocket TLS configured",
-            "ok": core_tls,
-            "severity": "info",
-            "hint": ("Satellites connect over plain ws://. For untrusted networks, "
-                     "enable TLS (ssl/cert_file/key_file) in server.json."),
         },
     ]
     for c in checks:
