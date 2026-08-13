@@ -1126,11 +1126,41 @@
         function showAddClientModal() {
             document.getElementById('addClientModal').classList.add('active');
             document.getElementById('newClientName').value = '';
+            document.getElementById('addClientFormGroup').classList.remove('hidden');
+            const result = document.getElementById('addClientResult');
+            result.classList.add('hidden');
+            result.innerHTML = '';
+            document.getElementById('addClientFooter').innerHTML =
+                '<button class="btn btn-secondary" onclick="closeAddClientModal()">Cancel</button>' +
+                '<button class="btn btn-primary" id="addClientSubmitBtn" onclick="addClient()">Add Client</button>';
             document.getElementById('newClientName').focus();
         }
 
         function closeAddClientModal() {
             document.getElementById('addClientModal').classList.remove('active');
+        }
+
+        // Copies a credential value to the clipboard and toasts confirmation.
+        // `text` is the raw (unescaped) secret; never read from the DOM so it
+        // works regardless of how the value was escaped for display.
+        function copyCredential(text, label) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`${label} copied to clipboard`);
+            }).catch(() => {
+                showToast(`Failed to copy ${label}`, 'error');
+            });
+        }
+
+        // Renders a one-time credential reveal row with a copy button.
+        // The raw secret is stashed on the button element (not in localStorage/
+        // sessionStorage) so copyCredential can read it without re-parsing HTML.
+        function _credentialRow(label, value) {
+            const rowId = 'cred_' + Math.random().toString(36).slice(2);
+            return `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+                <div style="flex:0 0 90px;font-size:12px;color:var(--text-secondary);">${esc(label)}</div>
+                <code id="${rowId}" style="flex:1;background:var(--bg-hover);padding:6px 8px;border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;white-space:nowrap;">${esc(value)}</code>
+                <button class="btn btn-secondary btn-sm" onclick="copyCredential(document.getElementById('${jsArg(rowId)}').textContent, '${jsArg(label)}')">Copy</button>
+            </div>`;
         }
 
         async function addClient() {
@@ -1140,13 +1170,34 @@
                 return;
             }
 
+            const btn = document.getElementById('addClientSubmitBtn');
+            if (btn) btn.disabled = true;
             try {
-                await apiCall('/clients', 'POST', { name });
+                const client = await apiCall('/clients', 'POST', { name });
                 showToast('Client added successfully');
-                closeAddClientModal();
                 loadClients();
+
+                // The backend only ever returns these secrets on this one response;
+                // the table afterwards shows a truncated, non-copyable key. Reveal
+                // them now so the user can actually configure their satellite.
+                document.getElementById('addClientFormGroup').classList.add('hidden');
+                const result = document.getElementById('addClientResult');
+                result.innerHTML = `
+                    <div class="card" style="border-left:4px solid var(--accent-success);">
+                        <strong>✅ Client "${esc(client.name)}" created</strong>
+                        <div style="font-size:12px;color:var(--text-secondary);margin:6px 0 10px;">
+                            Save these now — the password is not shown again in full.
+                        </div>
+                        ${_credentialRow('Access Key', client.api_key)}
+                        ${_credentialRow('Password', client.password)}
+                        ${_credentialRow('Crypto Key', client.crypto_key)}
+                    </div>`;
+                result.classList.remove('hidden');
+                document.getElementById('addClientFooter').innerHTML =
+                    '<button class="btn btn-primary" onclick="closeAddClientModal()">Done</button>';
             } catch (e) {
                 showToast('Failed to add client', 'error');
+                if (btn) btn.disabled = false;
             }
         }
 

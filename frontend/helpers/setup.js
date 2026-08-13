@@ -92,7 +92,11 @@ const MIN_HTML = `
 
 <!-- Add client modal -->
 <div id="addClientModal"></div>
+<div id="addClientFormGroup">
 <input id="newClientName" />
+</div>
+<div id="addClientResult" class="hidden"></div>
+<div id="addClientFooter"></div>
 
 <!-- Edit client modal -->
 <div id="editClientModal"></div>

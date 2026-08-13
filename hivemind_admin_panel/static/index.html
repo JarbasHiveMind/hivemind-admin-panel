@@ -1056,14 +1056,15 @@
                 <h3>Add New Client</h3>
             </div>
             <div class="modal-body">
-                <div class="form-group">
+                <div class="form-group" id="addClientFormGroup">
                     <label for="newClientName">Client Name</label>
                     <input type="text" id="newClientName" placeholder="HiveMind-Node">
                 </div>
+                <div id="addClientResult" class="hidden"></div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="addClientFooter">
                 <button class="btn btn-secondary" onclick="closeAddClientModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="addClient()">Add Client</button>
+                <button class="btn btn-primary" id="addClientSubmitBtn" onclick="addClient()">Add Client</button>
             </div>
         </div>
     </div>
