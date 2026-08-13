@@ -109,7 +109,7 @@ if TYPE_CHECKING:
     from hivemind_core.service import HiveMindService
     from hivemind_core.protocol import HiveMindListenerProtocol
 
-__all__ = ["app", "init_injected_objects", "get_admin_app"]
+__all__ = ["app", "init_injected_objects", "get_admin_app", "set_startup_error"]
 
 #: HTTP Basic security scheme for authentication
 security = HTTPBasic()
@@ -166,6 +166,24 @@ def init_injected_objects(
     if startup_error:
         _startup_error = startup_error
         _error_traceback = traceback.format_exc()
+
+
+def set_startup_error(error: Exception) -> None:
+    """Record a startup error without touching already-injected core objects.
+
+    Unlike ``init_injected_objects``, this does not overwrite ``service``/``db``/
+    ``protocol``. It exists for failures that are independent of hivemind-core
+    construction — e.g. the admin UI's own HTTP server failing to bind — which
+    must not wipe a live ``service``/``db``/``protocol`` reference that
+    ``launch_core`` already injected (the hub can be healthy while the panel's
+    own listener is dead).
+
+    Args:
+        error: the exception to surface at ``GET /api/startup-error``.
+    """
+    global _startup_error, _error_traceback
+    _startup_error = error
+    _error_traceback = traceback.format_exc()
 
 
 def get_admin_app() -> FastAPI:
