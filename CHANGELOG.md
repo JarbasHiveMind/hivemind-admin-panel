@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.11a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a2) (2026-08-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a1...0.1.11a2)
+
+**Merged pull requests:**
+
+- Update dependency node to v24 [\#35](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/35) ([renovate[bot]](https://github.com/apps/renovate))
+- Update actions/setup-node action to v7 [\#34](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/34) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.1.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.10a1...0.1.11a1)
