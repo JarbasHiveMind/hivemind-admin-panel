@@ -1,0 +1,24 @@
+name: Frontend Tests
+
+on:
+  pull_request:
+    branches: [dev, master, main]
+    paths:
+      - 'hivemind_admin_panel/static/js/**'
+      - 'frontend/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/frontend-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  jest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
