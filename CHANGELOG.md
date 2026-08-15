@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.11a4](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a4) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a3...0.1.11a4)
+
+**Merged pull requests:**
+
+- Update jest monorepo to v30 [\#45](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/45) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.1.11a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a3) (2026-08-15)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a2...0.1.11a3)
