@@ -1,8 +1,11 @@
 # CLI reference
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 `hivemind-admin-panel` is the **single launcher** for a HiveMind deployment. By
-default one process starts a `hivemind-core` hivemind-core **in-process** *and* serves the
-admin UI — there is no separate `hivemind-core` command to run. Pass `--no-core`
+default, one process starts hivemind-core **in-process** *and* serves the
+admin UI. There is no separate `hivemind-core` command to run. Pass `--no-core`
 to serve the panel only.
 
 See [Getting started](getting-started.md) for a first run and [Running](running.md)
@@ -37,8 +40,8 @@ hivemind-admin-panel --host 0.0.0.0 --port 8100
 ```
 
 Binds the panel on all interfaces so other machines on the network can reach it.
-The panel ships with default credentials (`admin`/`admin`) — **change them before
-binding to `0.0.0.0`**, and prefer a firewall or reverse proxy with TLS in front.
+The panel ships with default credentials (`admin`/`admin`). **Change them before
+binding to `0.0.0.0`**, and put a firewall or reverse proxy with TLS in front.
 Admin credentials live in `server.json` (see [Configuration](configuration.md)),
 not on the command line.
 
@@ -49,9 +52,13 @@ hivemind-admin-panel --no-core
 ```
 
 Serves the admin UI without starting a hivemind-core instance. Use this to manage on-disk state
-(clients, ACLs, config, personas) without a running service, or on a host where the
-hivemind-core is managed elsewhere. Live-only views (`/connections`, `/stats` connection
-count, `/config/restart`) degrade — see [Running](running.md).
+(clients, ACLs, config, personas) without a running service.
+
+This mode does **not** attach to a hivemind-core running elsewhere on the host.
+Live views come from objects the panel's own launcher injects in-process, so in
+`--no-core` there are none: `/connections` returns an empty list with a note,
+`/stats` reports no counts, `/topology` cannot say whether the core is online,
+and `/config/restart` returns an error. See [Running](running.md).
 
 ### Development auto-reload
 
@@ -60,8 +67,8 @@ hivemind-admin-panel --no-core --reload
 ```
 
 Enables uvicorn auto-reload while editing the panel. `--reload` runs uvicorn in a
-**child process**, which the in-process hivemind-core thread cannot survive, so `--reload`
-implies `--no-core` — hivemind-core is never started in this mode.
+**child process**, which the in-process hivemind-core thread cannot survive. So `--reload`
+implies `--no-core`, and hivemind-core is never started in this mode.
 
 ### Version
 
@@ -82,9 +89,16 @@ Press `Ctrl-C` (SIGINT) to shut down cleanly. In the default hivemind-core + pan
 hivemind-core runs on the main thread and installs the SIGINT/SIGTERM handlers, so the signal
 is handled there and both hivemind-core and panel stop together.
 
----
 
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Running](running.md) | [📖 Docs home](index.md) | [Configuration](configuration.md) → |
+### What it looks like
+
+**Widescreen**
+
+![Anything the CLI does to clients is visible here too (widescreen)](img/clients.png)
+
+**Mobile**
+
+![Anything the CLI does to clients is visible here too (mobile)](img/clients-mobile.png)
+
+---
+[← Running](running.md) · [Home](index.md) · [Configuration →](configuration.md)

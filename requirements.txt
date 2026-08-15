@@ -4,8 +4,15 @@
 # (imported by api.py). These alpha floors pull the Apache-licensed, current
 # packages and make pip accept them without --pre.
 hivemind-core>=4.6.1a1,<5.0.0
-# used directly for the client-impersonation chat (server-side bus client)
-hivemind-bus-client>=0.9.0,<1.0.0
+# used directly for the client-impersonation chat (server-side bus client).
+# The cap is <2.0.0, not <1.0.0: the old bound pinned every install of this
+# panel to bus-client 0.11.x, and because hivemind-core depends on the same
+# package it dragged the hub back to core 4.11.x too. On a box where the panel
+# owns the hub in native mode that silently froze the whole node a year behind
+# — no protocol v3 fixes, no RENDEZVOUS. The panel uses six calls from this
+# package (constructor, on_mycroft, connect, handshake_event, emit, close),
+# all unchanged across the 1.0 boundary.
+hivemind-bus-client>=1.0.8a1,<2.0.0
 hivemind-plugin-manager>=0.7.1a1,<1.0.0
 ovos-plugin-manager>=2.6.1a2,<3.0.0
 ovos-utils>=0.3.0,<1.0.0
