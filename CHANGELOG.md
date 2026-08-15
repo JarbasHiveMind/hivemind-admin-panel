@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.13a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a3) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a2...0.1.13a3)
+
+**Merged pull requests:**
+
+- Update docker/login-action action to v4 [\#8](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/8) ([renovate[bot]](https://github.com/apps/renovate))
+- Update docker/build-push-action action to v7 [\#7](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/7) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.1.13a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a2) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a1...0.1.13a2)
+
 ## [0.1.13a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a1) (2026-08-15)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.12a1...0.1.13a1)
