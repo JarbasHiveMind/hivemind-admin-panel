@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.11a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a3) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a2...0.1.11a3)
+
+**Merged pull requests:**
+
+- docs: add AGENTS.md with per-repo agent conventions [\#47](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/47) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.11a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a2) (2026-08-14)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a1...0.1.11a2)
