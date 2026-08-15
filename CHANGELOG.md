@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.13a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a1) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.12a1...0.1.13a1)
+
+**Merged pull requests:**
+
+- fix: reveal newly-created client credentials instead of discarding them [\#42](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/42) ([JarbasAl](https://github.com/JarbasAl))
+- Update docker/setup-buildx-action action to v4 [\#11](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/11) ([renovate[bot]](https://github.com/apps/renovate))
+- Update docker/setup-qemu-action action to v4 [\#10](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/10) ([renovate[bot]](https://github.com/apps/renovate))
+- Update docker/metadata-action action to v6 [\#9](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/9) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.1.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.12a1) (2026-08-15)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a4...0.1.12a1)
