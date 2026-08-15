@@ -23,8 +23,11 @@ classifiers = [
 dynamic = ["version", "dependencies"]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov", "httpx"]
-dev = ["pytest", "pytest-cov", "httpx"]
+# starlette's TestClient needs httpx.BaseTransport, which httpx 1.0 removes.
+# The requirements use alpha floors, so CI resolves with prereleases allowed and
+# picked up httpx 1.0.dev — every test then errored on the conftest import.
+test = ["pytest", "pytest-cov", "httpx>=0.27,<1.0"]
+dev = ["pytest", "pytest-cov", "httpx>=0.27,<1.0"]
 
 [project.urls]
 Homepage = "https://github.com/JarbasHiveMind/hivemind-admin-panel"
