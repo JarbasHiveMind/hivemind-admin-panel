@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.12a1) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a4...0.1.12a1)
+
+**Merged pull requests:**
+
+- fix: the admin panel must not die silently when it cannot bind [\#43](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/43) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.11a4](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a4) (2026-08-15)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a3...0.1.11a4)
