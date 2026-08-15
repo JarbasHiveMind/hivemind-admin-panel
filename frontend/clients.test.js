@@ -187,14 +187,27 @@ describe('addClient', () => {
 
   test('POSTs to /clients with correct name payload', async () => {
     const apiCall = mockFn('apiCall');
-    apiCall.mockResolvedValue({});
+    apiCall.mockResolvedValue({
+      name: 'NewDevice',
+      api_key: 'key0000000000000000000001',
+      password: 'super-secret-password',
+      crypto_key: 'crypto0000000000000000001',
+    });
     document.getElementById('newClientName').value = 'NewDevice';
 
     await global.addClient();
 
     expect(apiCall).toHaveBeenCalledWith('/clients', 'POST', { name: 'NewDevice' });
-    expect(closeAddClientModal).toHaveBeenCalled();
     expect(loadClients).toHaveBeenCalled();
+    // The credentials are revealed once instead of the modal being closed
+    // automatically — the user must click "Done" after saving them.
+    expect(closeAddClientModal).not.toHaveBeenCalled();
+    expect(document.getElementById('addClientFormGroup').classList.contains('hidden')).toBe(true);
+    const resultHtml = document.getElementById('addClientResult').innerHTML;
+    expect(resultHtml).toContain('key0000000000000000000001');
+    expect(resultHtml).toContain('super-secret-password');
+    expect(resultHtml).toContain('crypto0000000000000000001');
+    expect(document.getElementById('addClientFooter').innerHTML).toContain('closeAddClientModal()');
   });
 
   test('shows error when name is empty', async () => {
