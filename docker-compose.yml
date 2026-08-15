@@ -2,8 +2,11 @@
 #
 #   docker compose up --build
 #
-# Then open the admin panel at http://127.0.0.1:8100 (default creds admin /
-# the password in docker/server.json — change it before exposing the port).
+# Then open the admin panel at http://127.0.0.1:8100.
+#
+# The admin password in docker/server.json is a placeholder and is public in
+# this repository, so it protects nothing. Edit that file before the first `up`.
+# The mount is read-only, so the panel cannot change the password for you.
 name: hivemind-admin-panel
 
 services:
@@ -24,8 +27,11 @@ services:
     depends_on:
       - redis
     ports:
-      - "5678:5678"   # websocket transport (satellites connect here)
-      - "8100:8100"   # admin panel web UI
+      - "5678:5678"             # websocket transport (satellites connect here)
+      # The panel is loopback-only. It reads and writes satellite credentials and
+      # can install plugins, so it belongs behind an SSH tunnel or a TLS proxy,
+      # never straight on a host interface. See docs/deployment.md.
+      - "127.0.0.1:8100:8100"   # admin panel web UI
     volumes:
       # server config + admin credentials + DB backend selection
       - ./docker/server.json:/home/hivemind/.config/hivemind-core/server.json:ro
