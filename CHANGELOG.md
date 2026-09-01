@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.14a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.14a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a3...0.1.14a1)
+
+**Merged pull requests:**
+
+- fix: stop leaking token-signing secret and client secrets to operator role \(authz\) [\#56](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/56) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.13a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a3) (2026-08-15)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a2...0.1.13a3)
