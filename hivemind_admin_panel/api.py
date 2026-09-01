@@ -792,11 +792,13 @@ def health() -> Dict[str, Any]:
 
 
 @app.get("/startup-error", dependencies=[Depends(verify_credentials)])
-def get_startup_error() -> Dict[str, Any]:
+def get_startup_error(request: Request) -> Dict[str, Any]:
     """Get detailed startup error information if core failed to start.
 
     Returns:
-        Dict with error message, type, and full traceback.
+        Dict with error message, type, and full traceback. The traceback carries
+        filesystem paths and config internals, so it is included only for
+        admins; operators see the error message and type without it.
         Returns 404 if no startup error occurred.
 
     Raises:
@@ -808,10 +810,11 @@ def get_startup_error() -> Dict[str, Any]:
             detail="No startup error recorded"
         )
 
+    is_admin = _is_admin(request)
     return {
         "error": str(_startup_error),
         "error_type": type(_startup_error).__name__,
-        "traceback": _error_traceback,
+        "traceback": _error_traceback if is_admin else None,
         "timestamp": time.time() if _error_traceback else None,
     }
 
@@ -861,6 +864,28 @@ def _redact_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
         for u in users:
             if isinstance(u, dict) and "password" in u:
                 u["password"] = REDACTED
+    return red
+
+
+#: Substrings marking a database-profile config value as a credential. Backend
+#: configs (SQL DSN, Redis URL, plain password) embed connection secrets that an
+#: operator listing profiles must never read.
+_SECRET_PROFILE_KEY_HINTS = ("password", "secret", "dsn", "url", "token", "key")
+
+
+def _redact_profile_config(config: Any) -> Any:
+    """Return a deep copy of a profile ``config`` with credential-bearing values
+    replaced by :data:`REDACTED`. A value is redacted when its key name contains
+    any of :data:`_SECRET_PROFILE_KEY_HINTS`."""
+    if not isinstance(config, dict):
+        return config
+    red = copy.deepcopy(config)
+    for key, value in list(red.items()):
+        low = str(key).lower()
+        if any(hint in low for hint in _SECRET_PROFILE_KEY_HINTS):
+            red[key] = REDACTED
+        elif isinstance(value, dict):
+            red[key] = _redact_profile_config(value)
     return red
 
 
@@ -1035,7 +1060,10 @@ def diff_config_backup(file: str) -> Dict[str, Any]:
         snapshot = json.loads(src.read_text())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Corrupt backup: {e}")
-    current = dict(get_server_config())
+    # Redact both sides before diffing so the token-signing secret and admin
+    # password never surface in added/removed/changed for any caller.
+    current = _redact_config(dict(get_server_config()))
+    snapshot = _redact_config(snapshot)
     added = {k: snapshot[k] for k in snapshot if k not in current}
     removed = {k: current[k] for k in current if k not in snapshot}
     changed = {k: {"from": current[k], "to": snapshot[k]}
@@ -2399,6 +2427,9 @@ def list_database_profiles() -> Dict[str, Any]:
     _ensure_profiles_initialized()
     profiles = _list_profiles()
     active = _get_active_profile_name()
+    for name, profile in profiles.items():
+        if isinstance(profile, dict) and "config" in profile:
+            profile["config"] = _redact_profile_config(profile.get("config"))
     return {"profiles": profiles, "active": active}
 
 
@@ -2453,7 +2484,8 @@ def get_database_profile(name: str) -> Dict[str, Any]:
     p = _load_profile(name)
     if p is None:
         raise HTTPException(status_code=404, detail=f"Profile '{name}' not found")
-    return {"name": name, "module": p.get("module"), "config": p.get("config", {})}
+    return {"name": name, "module": p.get("module"),
+            "config": _redact_profile_config(p.get("config", {}))}
 
 
 @app.put("/database/profiles/{name}", dependencies=[Depends(require_admin)])
@@ -2742,27 +2774,34 @@ class ACLUpdateRequest(BaseModel):
 
 
 @app.get("/database/{module}/clients", dependencies=[Depends(verify_credentials)])
-def list_db_clients(module: str) -> List[Dict[str, Any]]:
+def list_db_clients(module: str, request: Request) -> List[Dict[str, Any]]:
     """List clients from a specific database module.
-    
+
     Args:
         module: The database module entry point.
-        
+
     Returns:
-        List of client dictionaries.
+        List of client dictionaries. Client password/crypto_key are included
+        only for admins; the connection api_key is stripped for operators,
+        mirroring ``GET /clients``.
     """
     try:
         db_class = DatabaseFactory.get_class(module)
     except Exception:
         raise HTTPException(status_code=404,
                             detail=f"Unknown database module '{module}'")
+    is_admin = _is_admin(request)
     try:
         db = db_class()
         # Ensure we close if it's a context manager
         if hasattr(db, "__enter__"):
             with db:
-                return [_client_to_dict(c, include_secrets=True) for c in db if c.client_id != -1]
-        return [_client_to_dict(c, include_secrets=True) for c in db if c.client_id != -1]
+                clients = [_client_to_dict(c, include_secrets=is_admin)
+                           for c in db if c.client_id != -1]
+        else:
+            clients = [_client_to_dict(c, include_secrets=is_admin)
+                       for c in db if c.client_id != -1]
+        return clients if is_admin else _strip_api_key(clients)
     except Exception as e:
         LOG.error(f"Failed to list clients for {module}: {e}")
         raise HTTPException(status_code=502,
@@ -5320,8 +5359,10 @@ def change_password(data: PasswordChange, request: Request) -> Dict[str, Any]:
 @app.post("/config/diff", dependencies=[Depends(verify_credentials)])
 def config_diff(data: ConfigUpdate) -> Dict[str, Any]:
     """Diff a proposed config against the current server.json (dry-run preview)."""
-    current = dict(get_server_config())
-    proposed = data.config or {}
+    # Redact both sides before diffing so the token-signing secret and admin
+    # password never surface in added/removed/changed for any caller.
+    current = _redact_config(dict(get_server_config()))
+    proposed = _redact_config(data.config or {})
     added = {k: proposed[k] for k in proposed if k not in current}
     removed = {k: current[k] for k in current if k not in proposed}
     changed = {k: {"from": current[k], "to": proposed[k]}
