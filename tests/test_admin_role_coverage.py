@@ -119,3 +119,111 @@ def test_operator_can_still_read_and_dry_run(client, operator_auth):
     assert client.get("/clients", headers=operator_auth).status_code == 200
     assert client.post("/config/validate", json={"config": {}},
                        headers=operator_auth).status_code == 200
+
+
+# --------------------------------------------------- secret exfiltration (authz)
+
+TOKEN_SECRET = "deadbeef" * 8  # a known signing secret to look for on the wire
+OP_USER = "authz-ops"
+OP_PASS = "authz-ops-pass"
+
+
+@pytest.fixture()
+def authz_env(_server_config):
+    """Write admin creds, a known token secret and one operator user in a single
+    ``store()``, and yield both auth headers.
+
+    server.json is disk-backed and every fixture that reads-modifies-stores it
+    holds its own snapshot, so composing separate operator/token fixtures races
+    on teardown. Doing it all in one place keeps these tests order-independent.
+    """
+    from hivemind_core.config import get_server_config
+    from tests.conftest import ADMIN_USER, ADMIN_PASS
+
+    cfg = get_server_config()
+    previous = {k: cfg.get(k) for k in ("admin_token_secret", "users")}
+    cfg["admin_user"] = ADMIN_USER
+    cfg["admin_pass"] = ADMIN_PASS
+    cfg["admin_token_secret"] = TOKEN_SECRET
+    cfg["users"] = [{"username": OP_USER, "password": OP_PASS, "role": "operator"}]
+    cfg.store()
+    admin = base64.b64encode(f"{ADMIN_USER}:{ADMIN_PASS}".encode()).decode()
+    op = base64.b64encode(f"{OP_USER}:{OP_PASS}".encode()).decode()
+    try:
+        yield {"admin": {"Authorization": f"Basic {admin}"},
+               "operator": {"Authorization": f"Basic {op}"}}
+    finally:
+        for k, v in previous.items():
+            if v is None:
+                cfg.pop(k, None)
+            else:
+                cfg[k] = v
+        cfg.store()
+
+
+def test_operator_config_hides_token_secret_and_password(client, authz_env):
+    """An operator reading /config must not receive the token-signing secret or
+    admin password: leaking the secret lets them forge an admin bearer token."""
+    resp = client.get("/config", headers=authz_env["operator"])
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    from tests.conftest import ADMIN_PASS
+    assert body.get("admin_token_secret") != TOKEN_SECRET
+    assert body.get("admin_pass") != ADMIN_PASS
+    assert TOKEN_SECRET not in resp.text
+    assert ADMIN_PASS not in resp.text
+
+
+def test_admin_config_hides_token_secret(client, authz_env):
+    """Even an admin browser session has no need for the raw signing secret."""
+    resp = client.get("/config", headers=authz_env["admin"])
+    assert resp.status_code == 200, resp.text
+    assert TOKEN_SECRET not in resp.text
+
+
+def test_admin_config_roundtrip_preserves_token_secret(client, authz_env):
+    """GET /config then POST it back (as the SPA does) must not clobber the real
+    signing secret with the redaction placeholder."""
+    cfg = client.get("/config", headers=authz_env["admin"]).json()
+    cfg["description"] = "roundtrip"
+    assert client.post("/config", json={"config": cfg},
+                       headers=authz_env["admin"]).status_code == 200
+    from hivemind_core.config import get_server_config
+    assert get_server_config().get("admin_token_secret") == TOKEN_SECRET
+
+
+def test_operator_backup_forbidden(client, authz_env):
+    """A full secret-bearing backup is an admin action."""
+    assert client.get("/backup", headers=authz_env["operator"]).status_code == 403
+
+
+def test_admin_backup_omits_token_secret_but_keeps_client_secrets(
+        client, authz_env, make_client):
+    """The backup drops the token-signing secret and admin password from config,
+    but still carries client password/crypto_key so a restore works."""
+    make_client(name="backup-sat")
+    resp = client.get("/backup", headers=authz_env["admin"])
+    assert resp.status_code == 200, resp.text
+    bundle = resp.json()
+    assert "admin_token_secret" not in bundle["config"]
+    assert "admin_pass" not in bundle["config"]
+    assert TOKEN_SECRET not in resp.text
+    assert bundle["clients"], "backup should include clients"
+    assert any("password" in c and "crypto_key" in c for c in bundle["clients"])
+
+
+def test_operator_clients_list_hides_api_key(client, authz_env, make_client):
+    """Operators may list clients but must not read the connection api_key."""
+    make_client(name="apikey-sat")
+    resp = client.get("/clients", headers=authz_env["operator"])
+    assert resp.status_code == 200, resp.text
+    clients = resp.json()
+    assert clients, "operator should still see the client list"
+    assert all("api_key" not in c for c in clients)
+
+
+def test_admin_clients_list_keeps_api_key(client, authz_env, make_client):
+    """Admins still get the api_key in the client list."""
+    make_client(name="apikey-admin-sat")
+    clients = client.get("/clients", headers=authz_env["admin"]).json()
+    assert any(c.get("api_key") for c in clients)
