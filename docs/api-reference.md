@@ -1,4 +1,4 @@
-# HiveMind Admin Panel — API Reference
+# HiveMind Admin Panel: API Reference
 
 REST API for managing HiveMind-core clients, permissions, server
 configuration, plugins, databases, ACLs, personas, and OVOS integration.
@@ -17,6 +17,15 @@ http://<host>:8100/api/clients
 Throughout this document, paths are written **as declared on the app** (without
 the `/api` prefix). Prepend `/api` for the served URL. The default host/port
 when launched via the panel is `127.0.0.1:8100`.
+
+### Interactive schema
+
+The OpenAPI schema for these routes is at **`/api/openapi.json`**, and Swagger UI
+at **`/api/docs`**.
+
+`http://<host>:8100/openapi.json` and `/docs` also answer `200`, but they belong
+to the outer app that serves the SPA and describe only its two static routes
+(`/` and `/index.html`). They are not the admin API.
 
 All endpoints **except `GET /health`** require HTTP Basic authentication.
 
@@ -54,6 +63,17 @@ DB, listener protocol) are injected via `init_injected_objects()`, so
 `/config/restart` works. In standalone admin mode those endpoints fall back to
 config-only / mock data, and restart is unavailable.
 
+
+### What it looks like
+
+**Widescreen**
+
+![Every panel screen is this API with a face on it (widescreen)](img/dashboard.png)
+
+**Mobile**
+
+![Every panel screen is this API with a face on it (mobile)](img/dashboard-mobile.png)
+
 ---
 
 ## 1. Health & status
@@ -68,8 +88,8 @@ config-only / mock data, and restart is unavailable.
 
 ### `GET /health`
 No auth. Returns `status` (`"ok"` or `"degraded"`), `version`, `timestamp`,
-`run_mode` (`"in-process"` / `"panel-only"` / `"unknown"`), and — when core
-objects are injected — `service_status`, `active_connections`, and
+`run_mode` (`"in-process"` / `"panel-only"` / `"unknown"`), and, when core
+objects are injected, `service_status`, `active_connections`, and
 `total_clients`. Error details are never exposed here.
 
 ```bash
@@ -83,13 +103,13 @@ startup error was recorded.
 ### `GET /setup/status`
 Returns the security self-check: `default_credentials`, `bound_host`, `exposed`,
 `run_mode`, `secure` (all *critical* checks pass), `clean` (nothing un-handled
-remains), `warnings[]`, and `checks[]` — each `{id, label, ok, severity, hint,
-acknowledged}` with `severity` ∈ `critical | warning | info`.
+remains), `warnings[]`, and `checks[]`. Each is `{id, label, ok, severity, hint,
+acknowledged}` with `severity` in `critical | warning | info`.
 
 ### `POST /setup/ack` · `DELETE /setup/ack/{check_id}`
 Acknowledge / un-acknowledge a **warning** (e.g. `bind_host`) so a deliberate
 posture (like binding `0.0.0.0` behind a proxy) stops flagging the dashboard.
-Critical checks (e.g. `admin_password`) cannot be acknowledged — `400`. Both
+Critical checks (for example `admin_password`) cannot be acknowledged (`400`). Both
 return the updated `/setup/status` body. Body for POST: `{"id": "bind_host"}`.
 
 ---
@@ -98,19 +118,19 @@ return the updated `/setup/status` body. Body for POST: `{"id": "bind_host"}`.
 
 | Method | Path               | Auth | Body            | Description |
 |--------|--------------------|------|-----------------|-------------|
-| GET    | `/config`          | Yes  | —               | Full server config from `server.json` |
+| GET    | `/config`          | Yes  | none               | Full server config from `server.json` |
 | POST   | `/config`          | Yes  | `ConfigUpdate`  | Merge keys into config and persist |
 | POST   | `/config/validate` | Yes  | `ConfigUpdate`  | Validate config without applying |
-| POST   | `/config/restart`  | Yes  | —               | Trigger async service restart |
-| GET    | `/config/defaults` | Yes  | —               | Default config values (`_DEFAULT`) |
-| GET    | `/config/backups`  | Yes   | —              | List `server.json` snapshots (newest first) |
-| POST   | `/config/backups`  | Admin | —              | Take a manual snapshot |
+| POST   | `/config/restart`  | Yes  | none               | Trigger async service restart |
+| GET    | `/config/defaults` | Yes  | none               | Default config values (`_DEFAULT`) |
+| GET    | `/config/backups`  | Yes   | none              | List `server.json` snapshots (newest first) |
+| POST   | `/config/backups`  | Admin | none              | Take a manual snapshot |
 | GET    | `/config/backups/diff` | Yes | `?file=`     | Diff a snapshot vs current (added/removed/changed) |
 | POST   | `/config/backups/restore` | Admin | `{file}` | Revert to a snapshot (snapshots current first) |
 
 > `server.json` is snapshotted automatically before every mutating config path
-> (`/config`, `/plugins/enable`, `/personas/{name}/activate`, `/policy`, `/restore`);
-> the last 20 are kept under `config_backups/`.
+> (`/config`, `/plugins/enable`, `/personas/{name}/activate`, `/policy`, `/restore`).
+> The last 20 are kept under `config_backups/`.
 
 ### `POST /config`
 Merges each key from `config` into the live config and calls `cfg.store()`.
@@ -129,9 +149,9 @@ load referenced plugin classes via the factories (**plugin discovery**), and
 warns about missing optional deps (`zeroconf`, `ggwave`).
 
 ### `POST /config/restart`
-**Side effect: schedules a graceful service restart via a background task** —
-sets `HIVEMIND_AUTO_RESTART=1` and signals the service to stop. Only works in
-in-process-hivemind-core mode; in `--no-core` mode returns
+**Side effect: schedules a graceful service restart through a background task.**
+It sets `HIVEMIND_AUTO_RESTART=1` and signals the service to stop. This only works in
+in-process-hivemind-core mode. In `--no-core` mode it returns
 `RestartResult(status="error", ...)`. Returns `RestartResult`.
 
 ```bash
@@ -144,24 +164,24 @@ curl -u admin:admin -X POST http://localhost:8100/api/config/restart
 
 | Method | Path                              | Auth | Body           | Description |
 |--------|-----------------------------------|------|----------------|-------------|
-| GET    | `/clients`                        | Yes  | —              | List all clients (incl. revoked); excludes internal id=-1 |
-| GET    | `/clients/active`                 | Yes  | —              | List only non-revoked clients |
-| GET    | `/clients/{client_id}`            | Yes  | —              | Get one client |
-| GET    | `/clients/{client_id}/credentials`| Yes  | —              | Get api_key, password, crypto_key |
+| GET    | `/clients`                        | Yes  | none              | List all clients (including revoked), excludes internal id=-1 |
+| GET    | `/clients/active`                 | Yes  | none              | List only non-revoked clients |
+| GET    | `/clients/{client_id}`            | Yes  | none              | Get one client |
+| GET    | `/clients/{client_id}/credentials`| Yes  | none              | Get api_key, password, crypto_key |
 | POST   | `/clients`                        | Yes  | `ClientCreate` | Create a client |
 | PUT    | `/clients/{client_id}`            | Yes  | `ClientUpdate` | Update a client |
-| DELETE | `/clients/{client_id}`            | Yes  | —              | Delete (revoke) a client |
+| DELETE | `/clients/{client_id}`            | Yes  | none              | Delete (revoke) a client |
 | POST   | `/clients/{client_id}/rename`     | Yes  | `{"name": ...}`| Rename a client |
 
 Client objects are returned by `_client_to_dict`, which includes: `client_id`,
 `name`, `description`, `api_key`, `is_admin`, `allowed_types`,
-`message_blacklist`, `skill_blacklist`, `intent_blacklist`, `can_escalate`,
+`skill_blacklist`, `intent_blacklist`, `can_escalate`,
 `can_propagate`, `can_broadcast`, `last_seen`, `revoked`. Create/update
-responses additionally include `password` and `crypto_key` (secrets).
+responses also include `password` and `crypto_key` (secrets).
 A revoked client has `api_key == "REVOKED"` (case-insensitive) or `revoked` set.
 
 ### `POST /clients`
-Auto-generates `password` and `api_key` (16-byte hex) when omitted; name
+Auto-generates `password` and `api_key` (16-byte hex) when omitted. Name
 defaults to `HiveMind-Node-<count>`. `crypto_key`, if provided, must be 16, 24,
 or 32 chars (else `400`). **Side effect: writes to the client database.**
 Returns the full client dict including secrets.
@@ -204,7 +224,8 @@ secrets). All require auth and respond `404` if the client is not found.
 | Method | Path                                   | Body             | Effect |
 |--------|----------------------------------------|------------------|--------|
 | POST   | `/clients/{client_id}/allow-msg`       | `MsgTypeRequest` | Add `msg_type` to `allowed_types` |
-| POST   | `/clients/{client_id}/blacklist-msg`   | `MsgTypeRequest` | Remove `msg_type` from `allowed_types` |
+| POST   | `/clients/{client_id}/deny-msg`        | `MsgTypeRequest` | Remove `msg_type` from `allowed_types` |
+| POST   | `/clients/{client_id}/blacklist-msg`   | `MsgTypeRequest` | Deprecated alias of `deny-msg` |
 
 ```bash
 curl -u admin:admin -X POST http://localhost:8100/api/clients/3/allow-msg \
@@ -245,18 +266,19 @@ curl -u admin:admin -X POST http://localhost:8100/api/clients/3/make-admin
 
 | Method | Path                                          | Auth | Body              | Description |
 |--------|-----------------------------------------------|------|-------------------|-------------|
-| GET    | `/clients/{client_id}/acl`                    | Yes  | —                 | Read core ACL block for a client |
+| GET    | `/clients/{client_id}/acl`                    | Yes  | none                 | Read core ACL block for a client |
 | PUT    | `/clients/{client_id}/acl`                    | Yes  | `ACLUpdateRequest`| Update ACL fields in one call |
 | POST   | `/clients/{client_id}/acl/apply-template`     | Yes  | query `template_name` | Apply a named ACL template |
 
 `GET`/`PUT` return: `client_id`, `name`, `is_admin`, `can_escalate`,
-`can_propagate`, `allowed_types`, `skill_blacklist`, `intent_blacklist`.
+`can_propagate`, `can_broadcast`, `allowed_types`, `skill_blacklist`,
+`intent_blacklist`.
 `PUT` updates only the provided `ACLUpdateRequest` fields. **Side effect:
 writes to the client DB.** `404` if not found.
 
 `apply-template` takes `template_name` as a **query parameter** (not body),
 looks it up in `acl_config.json`, and sets `allowed_types`,
-`message_blacklist`, `skill_blacklist`, `intent_blacklist` from the template.
+`skill_blacklist`, `intent_blacklist` from the template.
 `404` if client or template not found.
 
 ```bash
@@ -283,14 +305,14 @@ Recognized bridges are labelled in `/topology` (node `type: "bridge"`, with a
 
 ## 4c. Test Chat (client impersonation)
 
-Chat through the hub *as* a registered client — see [Test Chat](test-chat.md).
+Chat through the hub *as* a registered client. See [Test Chat](test-chat.md).
 Server-side: the panel opens a real bus client with the chosen client's credentials.
 
 | Method | Path                              | Auth  | Description |
 |--------|-----------------------------------|-------|-------------|
 | POST   | `/chat/sessions`                  | Admin | Start impersonating `{client_id}` → `{session_id, name, endpoint}` (502 if the hub is unreachable) |
 | POST   | `/chat/sessions/{sid}/say`        | Admin | Send `{utterance, lang?}` as the client |
-| GET    | `/chat/sessions/{sid}/messages`   | Yes   | Poll the transcript; `?since=N` returns messages after index `N` (`{messages, total}`) |
+| GET    | `/chat/sessions/{sid}/messages`   | Yes   | Poll the transcript. `?since=N` returns messages after index `N` (`{messages, total}`) |
 | GET    | `/chat/sessions`                  | Yes   | List active sessions |
 | DELETE | `/chat/sessions/{sid}`            | Admin | End the session (disconnects the bus client) |
 
@@ -304,7 +326,7 @@ Transcript roles: `user` (you, as the client), `assistant` (the hub's reply),
 
 | Method | Path           | Auth | Description |
 |--------|----------------|------|-------------|
-| GET    | `/connections` | Yes  | Active connections (real-time with the in-process hivemind-core, else mock); each carries a `bridge` field when recognized |
+| GET    | `/connections` | Yes  | Active connections (real-time with the in-process hivemind-core, else mock), each carries a `bridge` field when recognized |
 | GET    | `/stats`       | Yes  | Server statistics |
 
 ### `GET /connections`
@@ -314,7 +336,7 @@ With an injected protocol, returns `count` and a `connections` list with
 
 ### `GET /stats`
 Returns `network_protocols` (count), `agent_protocol` (module), `binarize`,
-and — when objects are injected — `client_count`, `total_clients`,
+and, when objects are injected, `client_count`, `total_clients`,
 `active_connections`, `service_status`.
 
 ---
@@ -323,20 +345,20 @@ and — when objects are injected — `client_count`, `total_clients`,
 
 | Method | Path                                       | Auth | Body                  | Description |
 |--------|--------------------------------------------|------|-----------------------|-------------|
-| GET    | `/plugins`                                 | Yes  | —                     | All known plugins + installed status (from `plugins_config.json`) |
+| GET    | `/plugins`                                 | Yes  | none                     | All known plugins + installed status (from `plugins_config.json`) |
 | POST   | `/plugins/install`                         | Yes   | `PluginInstallRequest`| Install a package via uv/pip |
-| POST   | `/plugins/upgrade`                         | Admin | `PluginInstallRequest`| `uv pip install --upgrade`; reports before→after version |
-| POST   | `/plugins/uninstall`                       | Admin | `PluginInstallRequest`| `uv pip uninstall`; **400** if the package provides an active module |
+| POST   | `/plugins/upgrade`                         | Admin | `PluginInstallRequest`| `uv pip install --upgrade`, reports before-to-after version |
+| POST   | `/plugins/uninstall`                       | Admin | `PluginInstallRequest`| `uv pip uninstall`, **400** if the package provides an active module |
 | POST   | `/plugins/enable`                          | Yes   | `ConfigUpdateRequest` | Enable/disable a plugin in config |
-| GET    | `/plugins/solvers`                         | Yes  | —                     | Persona handler plugins (modern chat/agent engines + legacy solvers) with install status |
-| GET    | `/plugins/memory`                          | Yes  | —                     | Installed persona memory plugins (entry points); default `ovos-agents-short-term-memory-plugin` |
-| GET    | `/plugins/installed/ovos/{plugin_type}`    | Yes  | —                     | Installed OVOS plugins (`stt`/`tts`/`ww`/`vad`) |
-| GET    | `/plugins/installed/hivemind/{plugin_type}`| Yes  | —                     | Installed HiveMind plugins (`network`/`agent`/`database`/`binary`) |
+| GET    | `/plugins/solvers`                         | Yes  | none                     | Persona handler plugins (modern chat/agent engines + legacy solvers) with install status |
+| GET    | `/plugins/memory`                          | Yes  | none                     | Installed persona memory plugins (entry points), default `ovos-agents-short-term-memory-plugin` |
+| GET    | `/plugins/installed/ovos/{plugin_type}`    | Yes  | none                     | Installed OVOS plugins (`stt`/`tts`/`ww`/`vad`) |
+| GET    | `/plugins/installed/hivemind/{plugin_type}`| Yes  | none                     | Installed HiveMind plugins (`network`/`agent`/`database`/`binary`) |
 
 ### `POST /plugins/install`
 **Side effect: runs `subprocess` `python -m pip install <package>`** (120s
 timeout). The package name is lowercased/stripped. Returns
-`PluginInstallResult` (`success`, `message`, `config_updated`); failures are
+`PluginInstallResult` (`success`, `message`, `config_updated`). Failures are
 reported in `message`, not raised.
 
 ```bash
@@ -348,8 +370,8 @@ curl -u admin:admin -X POST http://localhost:8100/api/plugins/install \
 ### `POST /plugins/enable`
 Updates `server.json` for the given `plugin_type` (`database`,
 `agent_protocol`, `binary_protocol`, `network_protocol`). For
-`network_protocol` with `enabled=false` it deletes the entry; default network
-config when none given is `{"host": "0.0.0.0", "port": 5678, "ssl": false}`.
+`network_protocol` with `enabled=false` it deletes the entry. The default network
+config when none is given is `{"host": "0.0.0.0", "port": 5678, "ssl": false}`.
 For `binary_protocol` with `enabled=false` it sets `module=None`.
 **Side effect: writes `server.json`.** Returns `PluginInstallResult`.
 
@@ -380,7 +402,7 @@ a flat list of entry-point strings. **Side effect: HiveMind plugin discovery.**
 
 ## 6b. Plugin presets
 
-Reusable `{module, config}` per plugin type — see [Plugin presets](presets.md).
+Reusable `{module, config}` per plugin type. See [Plugin presets](presets.md).
 Types: `stt`/`tts`/`ww`/`vad`/`agent`/`network`.
 
 | Method | Path | Auth | Description |
@@ -388,7 +410,7 @@ Types: `stt`/`tts`/`ww`/`vad`/`agent`/`network`.
 | GET    | `/presets` · `/presets/{type}` | Yes | All, or one type (+ `installed_modules`) |
 | GET/POST/PUT/DELETE | `/presets/{type}[/{name}]` | read Yes / write Admin | CRUD |
 | POST   | `/presets/{type}/{name}/test`  | Yes   | Load-check (module installed) |
-| POST   | `/presets/{type}/{name}/apply` | Admin | Apply: agent/network → slot; stt/tts/ww/vad → active binary protocol (snapshots first) |
+| POST   | `/presets/{type}/{name}/apply` | Admin | Apply: agent/network → slot, stt/tts/ww/vad → active binary protocol (snapshots first) |
 
 ---
 
@@ -402,12 +424,12 @@ profile is whichever profile's module+config matches `server.json`.
 
 | Method | Path                                  | Auth | Body                    | Description |
 |--------|---------------------------------------|------|-------------------------|-------------|
-| GET    | `/database/profiles`                  | Yes  | —                       | List profiles + active name |
+| GET    | `/database/profiles`                  | Yes  | none                       | List profiles + active name |
 | POST   | `/database/profiles`                  | Yes  | `DatabaseProfileCreate` | Create a profile (does not activate) |
-| GET    | `/database/profiles/{name}`           | Yes  | —                       | Get one profile |
+| GET    | `/database/profiles/{name}`           | Yes  | none                       | Get one profile |
 | PUT    | `/database/profiles/{name}`           | Yes  | `DatabaseProfileUpdate` | Update a profile |
-| DELETE | `/database/profiles/{name}`           | Yes  | —                       | Delete a profile |
-| POST   | `/database/profiles/{name}/test`      | Yes  | —                       | Test connectivity for a profile |
+| DELETE | `/database/profiles/{name}`           | Yes  | none                       | Delete a profile |
+| POST   | `/database/profiles/{name}/test`      | Yes  | none                       | Test connectivity for a profile |
 | POST   | `/database/profiles/{name}/activate`  | Yes  | `ActivateProfileRequest`| Activate (optionally migrate) |
 
 ### `GET /database/profiles`
@@ -415,7 +437,7 @@ Returns `{"profiles": {name: {...}}, "active": <name|null>}`. **Side effect:
 may write `default.json` on first call.**
 
 ### `POST /database/profiles`
-Name must match `^[a-zA-Z0-9_-]+$` (else `422`); `409` if it already exists.
+Name must match `^[a-zA-Z0-9_-]+$` (else `422`). `409` if it already exists.
 **Side effect: writes a profile file.** Does not change the active DB.
 
 ```bash
@@ -435,13 +457,13 @@ deletes the profile file.**
 
 ### `POST /database/profiles/{name}/test`
 Returns `DatabaseTestResult`. **Side effect: for Redis modules opens a TCP
-socket + PING; for file-based modules probes parent-directory writability.**
+socket and PING. For file-based modules, it probes parent-directory writability.**
 
 ### `POST /database/profiles/{name}/activate`
 Validates the plugin loads (`400` if not). With `migrate_data=true`, copies
 clients from the current DB into the target (`500` on failure). Then writes the
 profile's module+config into `server.json["database"]`. **Side effects: opens
-both DBs and copies clients; writes `server.json`.** A restart is required.
+both DBs and copies clients, writes `server.json`.** A restart is required.
 Returns `ActivateProfileResult`.
 
 ```bash
@@ -459,10 +481,10 @@ curl -u admin:admin -X POST \
 |--------|-------------------------------|------|----------------------------|-------------|
 | POST   | `/database/test`              | Yes  | `{module, config}`         | Test a module+config without saving |
 | POST   | `/database/migrate`           | Yes  | `DatabaseMigrationRequest` | **Deprecated** legacy migration |
-| GET    | `/database/backends`          | Yes  | —                          | Available DB backends + install status |
-| GET    | `/database/{module}/clients`  | Yes  | —                          | List clients from a specific DB module |
+| GET    | `/database/backends`          | Yes  | none                          | Available DB backends + install status |
+| GET    | `/database/{module}/clients`  | Yes  | none                          | List clients from a specific DB module |
 | POST   | `/database/copy-client`       | Yes  | `CopyClientRequest`        | Copy one client between DBs |
-| POST   | `/database/{module}/clear`    | Yes  | —                          | Delete all clients from a DB module |
+| POST   | `/database/{module}/clear`    | Yes  | none                          | Delete all clients from a DB module |
 
 ### `POST /database/test`
 Body is a raw dict with `module` (entry-point) and optional `config`. Returns
@@ -498,7 +520,7 @@ effect: writes to the target DB.**
 
 ### `POST /database/{module}/clear`
 Deletes every non-internal client from the module's DB. `500` on error. **Side
-effect: destructive — wipes the target DB's clients.** Returns count cleared.
+effect: destructive, wipes the target DB's clients.** Returns count cleared.
 
 ---
 
@@ -533,32 +555,32 @@ Schema note: a persona's response engines are the modern **`handlers`** list
 (ordered chat/agent plugins). `POST /personas` accepts either `handlers` or the
 deprecated `solvers` alias, but always **persists `handlers`**. `memory_module`
 selects the conversational-memory plugin (default
-`ovos-agents-short-term-memory-plugin`; options via `GET /plugins/memory`). The same
+`ovos-agents-short-term-memory-plugin`, options come from `GET /plugins/memory`). The same
 persona JSON can be served over OpenAI/Ollama by `ovos-persona-server` (see
 [ovos-servers.md](ovos-servers.md)).
 
 | Method | Path                       | Auth | Body            | Description |
 |--------|----------------------------|------|-----------------|-------------|
-| GET    | `/persona/config`          | Yes  | —               | Bundled `persona.json` template |
+| GET    | `/persona/config`          | Yes  | none               | Bundled `persona.json` template |
 | PUT    | `/persona/config`          | Yes  | raw dict        | Save persona config to `~/.config/ovos_persona/persona.json` |
-| GET    | `/personas`                | Yes  | —               | List all persona files |
-| GET    | `/personas/active`         | Yes  | —               | Currently active persona name/path |
-| GET    | `/personas/{name}`         | Yes  | —               | Get one persona |
+| GET    | `/personas`                | Yes  | none               | List all persona files |
+| GET    | `/personas/active`         | Yes  | none               | Currently active persona name/path |
+| GET    | `/personas/{name}`         | Yes  | none               | Get one persona |
 | POST   | `/personas`                | Yes  | `PersonaCreate` | Create a persona |
 | PUT    | `/personas/{name}`         | Yes  | raw dict        | Update a persona |
-| DELETE | `/personas/{name}`         | Yes  | —               | Delete a persona file |
-| POST   | `/personas/{name}/test`    | Yes  | —               | Validate + check models/solvers |
-| GET    | `/personas/{name}/export`  | Yes  | —               | Export persona JSON |
-| POST   | `/personas/{name}/activate`| Yes  | `?force=`       | Set persona as active; **409** if invalid/handlers missing (unless `force=true`) |
+| DELETE | `/personas/{name}`         | Yes  | none               | Delete a persona file |
+| POST   | `/personas/{name}/test`    | Yes  | none               | Validate + check models/solvers |
+| GET    | `/personas/{name}/export`  | Yes  | none               | Export persona JSON |
+| POST   | `/personas/{name}/activate`| Yes  | `?force=`       | Set persona as active. **409** if invalid or handlers missing (unless `force=true`) |
 | POST   | `/personas/{name}/chat`    | Yes  | `PersonaChatRequest` | One-shot test reply (legacy) |
-| POST   | `/personas/{name}/chat/sessions` | Admin | —          | Open a **multi-turn** session (persistent Persona + memory) → `{session_id}` |
+| POST   | `/personas/{name}/chat/sessions` | Admin | none          | Open a **multi-turn** session (persistent Persona + memory) → `{session_id}` |
 | POST   | `/personas/chat/sessions/{sid}/say` | Admin | `{message, lang?}` | Send a turn |
 | GET    | `/personas/chat/sessions/{sid}/messages` | Yes | `?since=` | Poll the transcript |
-| DELETE | `/personas/chat/sessions/{sid}` | Admin | —          | End the session (drops the Persona / its memory) |
+| DELETE | `/personas/chat/sessions/{sid}` | Admin | none          | End the session (drops the Persona / its memory) |
 
 `POST /personas` and `PUT` persist per-entry-point config (handler **and** memory
-config) under each entry-point key — e.g. `"ovos-agents-short-term-memory-plugin":
-{"max_history": 10}` — matching how `ovos_persona.Persona` reads it.
+config) under each entry-point key, for example `"ovos-agents-short-term-memory-plugin":
+{"max_history": 10}`, matching how `ovos_persona.Persona` reads it.
 
 ### `PUT /persona/config`
 **Side effect: writes `~/.config/ovos_persona/persona.json`.** `500` on write
@@ -609,7 +631,7 @@ curl -u admin:admin -X POST http://localhost:8100/api/personas/Assistant/activat
 ### `GET /ovos/test-bus`
 **Side effect: opens a TCP socket and a websocket handshake** to
 `ws://{host}:{port}/core` (2s timeouts). Returns
-`{"success": bool, "message": str}`; failures are returned in the body, not
+`{"success": bool, "message": str}`. Failures are returned in the body, not
 raised.
 
 ```bash
@@ -636,8 +658,8 @@ noted.
 
 ### `ClientUpdate`
 All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
-(`str`); `is_admin`, `can_escalate`, `can_propagate` (`bool`); `allowed_types`,
-`message_blacklist`, `skill_blacklist`, `intent_blacklist` (`List[str]`).
+(`str`). `is_admin`, `can_escalate`, `can_propagate` (`bool`). `allowed_types`,
+`skill_blacklist`, `intent_blacklist` (`List[str]`).
 
 ### `ClientResponse`
 | Field | Type |
@@ -647,7 +669,6 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 | `api_key` | `str` |
 | `is_admin` | `bool` |
 | `allowed_types` | `List[str]` |
-| `message_blacklist` | `List[str]` |
 | `skill_blacklist` | `List[str]` |
 | `intent_blacklist` | `List[str]` |
 | `can_escalate` | `bool` |
@@ -657,22 +678,22 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 ### `MsgTypeRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `msg_type` | `str` | — |
+| `msg_type` | `str` | none |
 
 ### `SkillRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `skill_id` | `str` | — |
+| `skill_id` | `str` | none |
 
 ### `IntentRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `intent_id` | `str` | — |
+| `intent_id` | `str` | none |
 
 ### `ACLUpdateRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `client_id` | `int` | — |
+| `client_id` | `int` | none |
 | `is_admin` | `Optional[bool]` | `None` |
 | `can_escalate` | `Optional[bool]` | `None` |
 | `can_propagate` | `Optional[bool]` | `None` |
@@ -683,7 +704,7 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 ### `ConfigUpdate`
 | Field | Type | Default |
 |-------|------|---------|
-| `config` | `Dict[str, Any]` | — |
+| `config` | `Dict[str, Any]` | none |
 
 ### `ConfigValidationResult` (response)
 | Field | Type |
@@ -701,45 +722,45 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 ### `PluginInfo` (response)
 | Field | Type | Default |
 |-------|------|---------|
-| `name` | `str` | — |
-| `package` | `str` | — |
+| `name` | `str` | none |
+| `package` | `str` | none |
 | `entry_point` | `Optional[str]` | `None` |
-| `description` | `str` | — |
-| `category` | `str` | — (`agent`/`network`/`database`/`binary`/`stt`/`tts`/`ww`/`vad`/`other`) |
-| `installed` | `bool` | — |
+| `description` | `str` | none |
+| `category` | `str` | none (`agent`/`network`/`database`/`binary`/`stt`/`tts`/`ww`/`vad`/`other`) |
+| `installed` | `bool` | none |
 
 ### `PluginInstallRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `package` | `str` | — |
+| `package` | `str` | none |
 
 ### `PluginInstallResult` (response)
 | Field | Type | Default |
 |-------|------|---------|
-| `success` | `bool` | — |
-| `message` | `str` | — |
+| `success` | `bool` | none |
+| `message` | `str` | none |
 | `config_updated` | `bool` | `False` |
 
 ### `ConfigUpdateRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `plugin_type` | `str` | — (`agent_protocol`/`network_protocol`/`database`/`binary_protocol`) |
-| `module` | `str` | — |
-| `enabled` | `bool` | — |
+| `plugin_type` | `str` | none (`agent_protocol`/`network_protocol`/`database`/`binary_protocol`) |
+| `module` | `str` | none |
+| `enabled` | `bool` | none |
 | `config` | `Optional[Dict[str, Any]]` | `None` |
 
 ### `DatabaseProfile`
 | Field | Type | Default |
 |-------|------|---------|
-| `name` | `str` | — |
-| `module` | `str` | — |
+| `name` | `str` | none |
+| `module` | `str` | none |
 | `config` | `Dict[str, Any]` | `{}` |
 
 ### `DatabaseProfileCreate`
 | Field | Type | Default |
 |-------|------|---------|
-| `name` | `str` | — |
-| `module` | `str` | — |
+| `name` | `str` | none |
+| `module` | `str` | none |
 | `config` | `Dict[str, Any]` | `{}` |
 
 ### `DatabaseProfileUpdate`
@@ -756,15 +777,15 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 ### `ActivateProfileResult` (response)
 | Field | Type | Default |
 |-------|------|---------|
-| `success` | `bool` | — |
-| `message` | `str` | — |
-| `profile_name` | `str` | — |
+| `success` | `bool` | none |
+| `message` | `str` | none |
+| `profile_name` | `str` | none |
 | `clients_migrated` | `int` | `0` |
 
 ### `DatabaseMigrationRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `target_module` | `str` | — |
+| `target_module` | `str` | none |
 | `preserve_data` | `bool` | `True` |
 
 ### `DatabaseMigrationResult` (response)
@@ -786,14 +807,14 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 ### `CopyClientRequest`
 | Field | Type | Default |
 |-------|------|---------|
-| `source_module` | `str` | — |
-| `target_module` | `str` | — |
-| `api_key` | `str` | — |
+| `source_module` | `str` | none |
+| `target_module` | `str` | none |
+| `api_key` | `str` | none |
 
 ### `PersonaCreate`
 | Field | Type | Default |
 |-------|------|---------|
-| `name` | `str` | — |
+| `name` | `str` | none |
 | `description` | `Optional[str]` | `None` |
 | `solvers` | `List[str]` | `[]` |
 | `handlers` | `Optional[List[str]]` | `None` |
@@ -805,8 +826,4 @@ All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
 > `PUT /personas/{name}`.
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Extending](extending.md) | [📖 Docs home](index.md) | [Development](development.md) → |
+[← Extending](extending.md) · [Home](index.md) · [Development →](development.md)
