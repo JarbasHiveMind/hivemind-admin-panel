@@ -845,55 +845,80 @@ def _config_file_error() -> Optional[str]:
 #: Placeholder sent to the client in place of a secret value.
 REDACTED = "********"
 
-#: Top-level server.json keys that must never leave the server over the API.
-#: ``admin_token_secret`` is the HMAC key that signs bearer tokens: anyone who
-#: reads it can forge an ``{"role": "admin"}`` token. ``admin_pass`` is the
-#: primary admin password. The browser needs neither.
+#: Top-level server.json keys dropped from a portable backup bundle:
+#: ``admin_token_secret`` regenerates on first use and ``admin_pass`` is the
+#: primary admin password; neither is needed to restore a deployment.
 _SECRET_CONFIG_KEYS = ("admin_token_secret", "admin_pass")
 
 
+def _redact_by_hints(config: Any, hints: tuple) -> Any:
+    """Return a deep copy of ``config`` with every value whose key name contains
+    (case-insensitive substring) one of ``hints`` replaced by :data:`REDACTED`.
+
+    The walk recurses through nested dicts AND list elements at every depth, so a
+    credential buried under a backend, plugin or provider section is caught no
+    matter how deep it sits."""
+    if isinstance(config, dict):
+        red: Dict[str, Any] = {}
+        for k, v in config.items():
+            if any(hint in str(k).lower() for hint in hints):
+                red[k] = REDACTED
+            else:
+                red[k] = _redact_by_hints(v, hints)
+        return red
+    if isinstance(config, list):
+        return [_redact_by_hints(v, hints) for v in config]
+    return config
+
+
+#: Substrings marking a server.json value as a credential. The HMAC signing
+#: secret (``admin_token_secret``) and admin password (``admin_pass``) live at
+#: the top level, but ``database`` nests the active backend's raw connection
+#: config (DSN/url/password for redis/sqlalchemy/mongo) and
+#: ``agent_protocol``/``network_protocol`` nest provider keys (an LLM key on a
+#: persona agent plugin). None of these may leave the server over the API, at
+#: any depth.
+_SECRET_CONFIG_KEY_HINTS = (
+    "password", "admin_pass", "secret", "token", "api_key", "apikey", "key",
+    "dsn", "access_token", "client_secret", "bearer", "credential",
+    "credentials",
+)
+
+
 def _redact_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
-    """Deep-copy ``cfg`` with the token-signing secret, admin password and every
-    ``users[*].password`` replaced by :data:`REDACTED`."""
-    red = copy.deepcopy(dict(cfg))
-    for key in _SECRET_CONFIG_KEYS:
-        if key in red:
-            red[key] = REDACTED
-    users = red.get("users")
-    if isinstance(users, list):
-        for u in users:
-            if isinstance(u, dict) and "password" in u:
-                u["password"] = REDACTED
-    return red
+    """Deep-copy ``cfg`` with every credential-bearing value replaced by
+    :data:`REDACTED`, recursing into nested dicts and list elements. This covers
+    the top-level signing secret and admin password, ``users[*].password``, the
+    nested ``database`` backend secrets and provider keys under
+    ``agent_protocol``/``network_protocol``."""
+    return _redact_by_hints(dict(cfg), _SECRET_CONFIG_KEY_HINTS)
 
 
 #: Substrings marking a database-profile config value as a credential. Backend
 #: configs (SQL DSN, Redis URL, plain password) embed connection secrets that an
 #: operator listing profiles must never read.
-_SECRET_PROFILE_KEY_HINTS = ("password", "secret", "dsn", "url", "token", "key")
+_SECRET_PROFILE_KEY_HINTS = (
+    "password", "secret", "dsn", "url", "token", "key", "bearer",
+    "credential", "credentials", "access_token", "client_secret",
+)
 
 
 def _redact_profile_config(config: Any) -> Any:
     """Return a deep copy of a profile ``config`` with credential-bearing values
     replaced by :data:`REDACTED`. A value is redacted when its key name contains
-    any of :data:`_SECRET_PROFILE_KEY_HINTS`."""
-    if not isinstance(config, dict):
-        return config
-    red = copy.deepcopy(config)
-    for key, value in list(red.items()):
-        low = str(key).lower()
-        if any(hint in low for hint in _SECRET_PROFILE_KEY_HINTS):
-            red[key] = REDACTED
-        elif isinstance(value, dict):
-            red[key] = _redact_profile_config(value)
-    return red
+    any of :data:`_SECRET_PROFILE_KEY_HINTS`; the walk recurses through nested
+    dicts and list elements."""
+    return _redact_by_hints(config, _SECRET_PROFILE_KEY_HINTS)
 
 
 #: Substrings marking a persona/solver/preset config value as an LLM-provider
 #: credential. Persona and plugin configs embed provider keys (``key``,
 #: ``api_key``, bearer ``token``) anywhere in their nested structure, so an
 #: operator reading a persona or preset must never see the raw value.
-_SECRET_PERSONA_KEY_HINTS = ("key", "api_key", "token", "secret", "password")
+_SECRET_PERSONA_KEY_HINTS = (
+    "key", "api_key", "token", "secret", "password", "bearer", "credential",
+    "credentials", "access_token", "client_secret",
+)
 
 
 def _redact_persona_config(config: Any) -> Any:
@@ -902,17 +927,7 @@ def _redact_persona_config(config: Any) -> Any:
     contains any of :data:`_SECRET_PERSONA_KEY_HINTS`; the walk recurses through
     nested dicts and lists so provider keys buried under a plugin section are
     caught too."""
-    if isinstance(config, dict):
-        red: Dict[str, Any] = {}
-        for k, v in config.items():
-            if any(hint in str(k).lower() for hint in _SECRET_PERSONA_KEY_HINTS):
-                red[k] = REDACTED
-            else:
-                red[k] = _redact_persona_config(v)
-        return red
-    if isinstance(config, list):
-        return [_redact_persona_config(v) for v in config]
-    return config
+    return _redact_by_hints(config, _SECRET_PERSONA_KEY_HINTS)
 
 
 def _restore_redacted(incoming: Any, existing: Any) -> Any:
