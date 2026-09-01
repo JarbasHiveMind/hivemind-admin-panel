@@ -31,7 +31,7 @@ const path = require('path');
 
 const APP_JS_PATH = path.resolve(
   __dirname,
-  '../../../hivemind_core/admin/static/js/app.js'
+  '../../hivemind_admin_panel/static/js/app.js'
 );
 
 const MIN_HTML = `
@@ -92,7 +92,11 @@ const MIN_HTML = `
 
 <!-- Add client modal -->
 <div id="addClientModal"></div>
+<div id="addClientFormGroup">
 <input id="newClientName" />
+</div>
+<div id="addClientResult" class="hidden"></div>
+<div id="addClientFooter"></div>
 
 <!-- Edit client modal -->
 <div id="editClientModal"></div>
@@ -120,6 +124,7 @@ const MIN_HTML = `
 <input id="personaName" />
 <textarea id="personaDescription"></textarea>
 <select id="personaMemoryModule"></select>
+<div id="personaMemoryConfigWrap"><textarea id="personaMemoryConfig"></textarea></div>
 <div id="createPersonaStatus" class="validation-result hidden"></div>
 <div id="personaSolverConfigContainer"></div>
 <div id="personaAvailableSolvers"></div>
