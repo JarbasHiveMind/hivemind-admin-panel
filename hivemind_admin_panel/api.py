@@ -889,6 +889,32 @@ def _redact_profile_config(config: Any) -> Any:
     return red
 
 
+#: Substrings marking a persona/solver/preset config value as an LLM-provider
+#: credential. Persona and plugin configs embed provider keys (``key``,
+#: ``api_key``, bearer ``token``) anywhere in their nested structure, so an
+#: operator reading a persona or preset must never see the raw value.
+_SECRET_PERSONA_KEY_HINTS = ("key", "api_key", "token", "secret", "password")
+
+
+def _redact_persona_config(config: Any) -> Any:
+    """Return a deep copy of a persona/preset ``config`` with credential-bearing
+    values replaced by :data:`REDACTED`. A value is redacted when its key name
+    contains any of :data:`_SECRET_PERSONA_KEY_HINTS`; the walk recurses through
+    nested dicts and lists so provider keys buried under a plugin section are
+    caught too."""
+    if isinstance(config, dict):
+        red: Dict[str, Any] = {}
+        for k, v in config.items():
+            if any(hint in str(k).lower() for hint in _SECRET_PERSONA_KEY_HINTS):
+                red[k] = REDACTED
+            else:
+                red[k] = _redact_persona_config(v)
+        return red
+    if isinstance(config, list):
+        return [_redact_persona_config(v) for v in config]
+    return config
+
+
 def _restore_redacted(incoming: Any, existing: Any) -> Any:
     """Return ``incoming`` with every :data:`REDACTED` sentinel replaced by the
     value at the same path in ``existing``.
@@ -1224,14 +1250,15 @@ def list_active_clients(request: Request) -> List[Dict[str, Any]]:
 
 
 @app.get("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
-def get_client(client_id: int) -> Dict[str, Any]:
+def get_client(client_id: int, request: Request) -> Dict[str, Any]:
     """Get client details by ID.
 
     Args:
         client_id: The client ID to look up.
 
     Returns:
-        Dict with client data.
+        Dict with client data. The connection api_key is included only for
+        admins, mirroring ``GET /clients``.
 
     Raises:
         HTTPException: 404 if client not found.
@@ -1239,7 +1266,8 @@ def get_client(client_id: int) -> Dict[str, Any]:
     with ClientDatabase() as db:
         for client in db:
             if client.client_id == client_id:
-                return _client_to_dict(client)
+                result = _client_to_dict(client)
+                return result if _is_admin(request) else _strip_api_key([result])[0]
     raise HTTPException(status_code=404, detail="Client not found")
 
 
@@ -2522,7 +2550,10 @@ def update_database_profile(name: str, data: DatabaseProfileUpdate) -> Dict[str,
     if data.module is not None:
         profile["module"] = data.module
     if data.config is not None:
-        profile["config"] = data.config
+        # /database/profiles GET redacts credential values unconditionally, so an
+        # edit round-trips REDACTED sentinels back here; restore the real secret
+        # from the existing profile before saving (mirrors POST /config).
+        profile["config"] = _restore_redacted(data.config, profile.get("config"))
 
     _save_profile(name, profile)
     LOG.info(f"Updated database profile '{name}'")
@@ -2943,13 +2974,15 @@ def get_acl_config() -> Dict[str, Any]:
 
 
 @app.get("/persona/config", dependencies=[Depends(verify_credentials)])
-def get_persona_config() -> Dict[str, Any]:
+def get_persona_config(request: Request) -> Dict[str, Any]:
     """Get persona configuration from JSON file.
 
     Returns:
-        Dict with persona configuration including llm, persona, memory, and solvers.
+        Dict with persona configuration including llm, persona, memory, and
+        solvers. Embedded LLM-provider keys are redacted for non-admins.
     """
-    return _load_persona_config()
+    config = _load_persona_config()
+    return config if _is_admin(request) else _redact_persona_config(config)
 
 
 @app.put("/persona/config", dependencies=[Depends(require_admin)])
@@ -3482,13 +3515,17 @@ class PersonaCreate(BaseModel):
 
 
 @app.get("/personas", dependencies=[Depends(verify_credentials)])
-def list_personas() -> List[Dict[str, Any]]:
+def list_personas(request: Request) -> List[Dict[str, Any]]:
     """List all available personas.
 
     Returns:
-        List of persona configurations.
+        List of persona configurations. Embedded LLM-provider keys are redacted
+        for non-admins.
     """
-    return _load_persona_files()
+    personas = _load_persona_files()
+    if _is_admin(request):
+        return personas
+    return [_redact_persona_config(p) for p in personas]
 
 
 @app.get("/personas/active", dependencies=[Depends(verify_credentials)])
@@ -3518,14 +3555,15 @@ def get_active_persona() -> Dict[str, Any]:
 
 
 @app.get("/personas/{name}", dependencies=[Depends(verify_credentials)])
-def get_persona(name: str) -> Dict[str, Any]:
+def get_persona(name: str, request: Request) -> Dict[str, Any]:
     """Get a specific persona configuration.
 
     Args:
         name: Persona name.
 
     Returns:
-        Persona configuration.
+        Persona configuration. Embedded LLM-provider keys are redacted for
+        non-admins.
 
     Raises:
         HTTPException: 404 if persona not found.
@@ -3535,7 +3573,7 @@ def get_persona(name: str) -> Dict[str, Any]:
         if persona.get("name") == name or persona.get("_file") == f"{name}.json":
             # Remove internal _file field
             result = {k: v for k, v in persona.items() if not k.startswith("_")}
-            return result
+            return result if _is_admin(request) else _redact_persona_config(result)
 
     raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
 
@@ -3720,15 +3758,16 @@ def test_persona(name: str) -> Dict[str, Any]:
 
 
 @app.get("/personas/{name}/export", dependencies=[Depends(verify_credentials)])
-def export_persona(name: str) -> Dict[str, Any]:
+def export_persona(name: str, request: Request) -> Dict[str, Any]:
     """Export a persona configuration as JSON.
-    
+
     Args:
         name: Persona name.
-        
+
     Returns:
-        Persona configuration for download.
-        
+        Persona configuration for download. Embedded LLM-provider keys are
+        redacted for non-admins.
+
     Raises:
         HTTPException: 404 if persona not found.
     """
@@ -3737,7 +3776,7 @@ def export_persona(name: str) -> Dict[str, Any]:
         if persona.get("name") == name or persona.get("_file") == f"{name}.json":
             # Remove internal fields
             result = {k: v for k, v in persona.items() if not k.startswith("_")}
-            return result
+            return result if _is_admin(request) else _redact_persona_config(result)
 
     raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
 
@@ -3922,25 +3961,40 @@ def _validate_ptype(ptype: str) -> None:
 
 
 @app.get("/presets", dependencies=[Depends(verify_credentials)])
-def list_all_presets() -> Dict[str, Dict[str, Any]]:
-    """All presets grouped by plugin type."""
-    return {t: _list_presets(t) for t in sorted(_PRESET_TYPES)}
+def list_all_presets(request: Request) -> Dict[str, Dict[str, Any]]:
+    """All presets grouped by plugin type.
+
+    A preset ``config`` can embed a plugin provider key (an STT/TTS/agent API
+    key), so it is redacted for non-admins.
+    """
+    presets = {t: _list_presets(t) for t in sorted(_PRESET_TYPES)}
+    if _is_admin(request):
+        return presets
+    return {t: {n: _redact_persona_config(p) for n, p in items.items()}
+            for t, items in presets.items()}
 
 
 @app.get("/presets/{ptype}", dependencies=[Depends(verify_credentials)])
-def list_type_presets(ptype: str) -> Dict[str, Any]:
-    """Presets for one plugin type, plus the installed modules to choose from."""
+def list_type_presets(ptype: str, request: Request) -> Dict[str, Any]:
+    """Presets for one plugin type, plus the installed modules to choose from.
+
+    Preset ``config`` provider keys are redacted for non-admins.
+    """
     _validate_ptype(ptype)
-    return {"presets": _list_presets(ptype), "installed_modules": sorted(_installed_modules_for(ptype))}
+    presets = _list_presets(ptype)
+    if not _is_admin(request):
+        presets = {n: _redact_persona_config(p) for n, p in presets.items()}
+    return {"presets": presets, "installed_modules": sorted(_installed_modules_for(ptype))}
 
 
 @app.get("/presets/{ptype}/{name}", dependencies=[Depends(verify_credentials)])
-def get_preset(ptype: str, name: str) -> Dict[str, Any]:
+def get_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
     _validate_ptype(ptype)
     p = _preset_path(ptype, name)
     if not p.exists():
         raise HTTPException(status_code=404, detail="Preset not found")
-    return json.loads(p.read_text())
+    preset = json.loads(p.read_text())
+    return preset if _is_admin(request) else _redact_persona_config(preset)
 
 
 @app.post("/presets/{ptype}", dependencies=[Depends(require_admin)])
@@ -4391,7 +4445,7 @@ def _ws_endpoint() -> Dict[str, Any]:
     return {"host": "0.0.0.0", "port": 5678, "ssl": False}
 
 
-@app.get("/clients/{client_id}/pairing", dependencies=[Depends(verify_credentials)])
+@app.get("/clients/{client_id}/pairing", dependencies=[Depends(require_admin)])
 def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, Any]:
     """Return a satellite pairing bundle (credentials + hivemind-core endpoint + QR payload).
 
@@ -4857,7 +4911,7 @@ def generate_certs() -> Dict[str, Any]:
 
 # ===================== Pairing QR + topology =====================
 
-@app.get("/clients/{client_id}/pairing/qr.svg", dependencies=[Depends(verify_credentials)])
+@app.get("/clients/{client_id}/pairing/qr.svg", dependencies=[Depends(require_admin)])
 def get_pairing_qr(client_id: int, host: Optional[str] = None) -> Response:
     """Render the client's pairing bundle as a scannable QR code (SVG)."""
     bundle = get_client_pairing(client_id, host=host)

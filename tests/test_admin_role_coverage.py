@@ -352,3 +352,196 @@ def test_operator_startup_error_omits_traceback(client, authz_env):
     finally:
         api._startup_error = prev_err
         api._error_traceback = prev_tb
+
+
+# ------------------------------------- wave-3 operator-reachable secret leaks
+
+def test_operator_client_detail_hides_api_key(client, authz_env, make_client):
+    """GET /clients/{id} must strip the connection api_key for operators,
+    mirroring GET /clients."""
+    created = make_client(name="detail-sat")
+    cid = created["client_id"]
+    resp = client.get(f"/clients/{cid}", headers=authz_env["operator"])
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert "api_key" not in body
+    assert created["api_key"] not in resp.text
+
+
+def test_admin_client_detail_keeps_api_key(client, authz_env, make_client):
+    """Admins still get the api_key from the single-client detail route."""
+    created = make_client(name="detail-admin-sat")
+    cid = created["client_id"]
+    body = client.get(f"/clients/{cid}", headers=authz_env["admin"]).json()
+    assert body.get("api_key") == created["api_key"]
+
+
+def test_operator_pairing_forbidden(client, authz_env, make_client):
+    """GET /clients/{id}/pairing hands out the full connection creds
+    (api_key + password + crypto_key), so it is admin-only."""
+    created = make_client(name="pairing-sat", password="pair-pw",
+                          crypto_key="0123456789abcdef")
+    cid = created["client_id"]
+    resp = client.get(f"/clients/{cid}/pairing", headers=authz_env["operator"])
+    assert resp.status_code == 403, resp.text
+    assert "pair-pw" not in resp.text
+    assert "0123456789abcdef" not in resp.text
+
+
+def test_operator_pairing_qr_forbidden(client, authz_env, make_client):
+    """The QR variant renders the same creds into a scannable image, so it is
+    admin-only too."""
+    created = make_client(name="pairing-qr-sat")
+    cid = created["client_id"]
+    resp = client.get(f"/clients/{cid}/pairing/qr.svg",
+                      headers=authz_env["operator"])
+    assert resp.status_code == 403, resp.text
+
+
+def test_admin_pairing_returns_full_credentials(client, authz_env, make_client):
+    """Admins still get the full pairing bundle."""
+    created = make_client(name="pairing-admin-sat", password="adm-pair-pw",
+                          crypto_key="0123456789abcdef")
+    cid = created["client_id"]
+    resp = client.get(f"/clients/{cid}/pairing", headers=authz_env["admin"])
+    assert resp.status_code == 200, resp.text
+    bundle = resp.json()
+    assert bundle["key"] == created["api_key"]
+    assert bundle["password"] == "adm-pair-pw"
+    assert bundle["crypto_key"] == "0123456789abcdef"
+
+
+LLM_KEY = "sk-operator-must-not-see-this"
+
+
+def _write_persona(name, provider="ovos-solver-openai-plugin"):
+    from hivemind_admin_panel.api import _get_personas_path
+    import json as _json
+    path = _get_personas_path()
+    path.mkdir(parents=True, exist_ok=True)
+    persona = {
+        "name": name,
+        "handlers": [provider],
+        provider: {"api_url": "https://llm.example/v1", "key": LLM_KEY,
+                   "persona": "helpful"},
+        "memory_module": "ovos-agents-short-term-memory-plugin",
+    }
+    file = path / f"{name}.json"
+    file.write_text(_json.dumps(persona, indent=2))
+    return file
+
+
+def test_operator_persona_config_hides_llm_key(client, authz_env):
+    """GET /persona/config must redact the bundled LLM-provider key for
+    operators (the sample persona.json embeds a `key`)."""
+    resp = client.get("/persona/config", headers=authz_env["operator"])
+    assert resp.status_code == 200, resp.text
+    from hivemind_admin_panel.api import _load_persona_config
+    raw_key = _load_persona_config().get("ovos-solver-openai-plugin", {}).get("key")
+    if raw_key:  # only meaningful if the sample carries a key
+        assert raw_key not in resp.text
+
+
+def test_admin_persona_config_keeps_llm_key(client, authz_env):
+    """Admins still get the raw persona config."""
+    resp = client.get("/persona/config", headers=authz_env["admin"])
+    assert resp.status_code == 200, resp.text
+    from hivemind_admin_panel.api import _load_persona_config, REDACTED
+    raw = _load_persona_config().get("ovos-solver-openai-plugin", {})
+    if raw.get("key"):
+        assert resp.json().get("ovos-solver-openai-plugin", {}).get("key") == raw["key"]
+        assert REDACTED not in resp.text or raw["key"] in resp.text
+
+
+def test_operator_persona_get_and_export_hide_llm_key(client, authz_env):
+    """GET /personas, /personas/{name} and /personas/{name}/export must redact
+    the nested LLM-provider key for operators."""
+    from hivemind_admin_panel.api import REDACTED
+    f = _write_persona("leaky-persona")
+    try:
+        listed = client.get("/personas", headers=authz_env["operator"])
+        assert listed.status_code == 200, listed.text
+        assert LLM_KEY not in listed.text
+
+        one = client.get("/personas/leaky-persona", headers=authz_env["operator"])
+        assert one.status_code == 200, one.text
+        assert LLM_KEY not in one.text
+        assert one.json()["ovos-solver-openai-plugin"]["key"] == REDACTED
+
+        exp = client.get("/personas/leaky-persona/export",
+                         headers=authz_env["operator"])
+        assert exp.status_code == 200, exp.text
+        assert LLM_KEY not in exp.text
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_admin_persona_get_keeps_llm_key(client, authz_env):
+    """Admins still get the raw persona key."""
+    f = _write_persona("admin-persona")
+    try:
+        one = client.get("/personas/admin-persona", headers=authz_env["admin"])
+        assert one.status_code == 200, one.text
+        assert one.json()["ovos-solver-openai-plugin"]["key"] == LLM_KEY
+    finally:
+        f.unlink(missing_ok=True)
+
+
+def test_operator_preset_hides_provider_key(client, authz_env):
+    """A preset config can embed a plugin provider key; GET /presets* must
+    redact it for operators."""
+    from hivemind_admin_panel.api import REDACTED
+    resp = client.post(
+        "/presets/agent",
+        json={"name": "leakypreset", "module": "ovos-solver-openai-plugin",
+              "config": {"api_url": "https://llm.example/v1", "key": LLM_KEY}},
+        headers=authz_env["admin"],
+    )
+    assert resp.status_code == 200, resp.text
+    try:
+        one = client.get("/presets/agent/leakypreset",
+                         headers=authz_env["operator"])
+        assert one.status_code == 200, one.text
+        assert LLM_KEY not in one.text
+        assert one.json()["config"]["key"] == REDACTED
+
+        allp = client.get("/presets", headers=authz_env["operator"])
+        assert allp.status_code == 200, allp.text
+        assert LLM_KEY not in allp.text
+
+        typ = client.get("/presets/agent", headers=authz_env["operator"])
+        assert typ.status_code == 200, typ.text
+        assert LLM_KEY not in typ.text
+
+        # admin still sees the real key
+        adm = client.get("/presets/agent/leakypreset",
+                         headers=authz_env["admin"])
+        assert adm.json()["config"]["key"] == LLM_KEY
+    finally:
+        client.delete("/presets/agent/leakypreset", headers=authz_env["admin"])
+
+
+def test_admin_profile_put_roundtrip_preserves_secret(client, authz_env):
+    """PUT /database/profiles/{name} must not clobber the real backend secret
+    with the REDACTED sentinel the redacted GET hands back (Item B)."""
+    secret = "real-db-password"
+    resp = client.post(
+        "/database/profiles",
+        json={"name": "rtprofile", "module": JSON_MODULE,
+              "config": {"name": "clients", "password": secret}},
+        headers=authz_env["admin"],
+    )
+    assert resp.status_code == 200, resp.text
+    try:
+        # admin reads (redacted) then posts the whole object back, as the SPA does
+        got = client.get("/database/profiles/rtprofile",
+                         headers=authz_env["admin"]).json()
+        got["config"]["extra"] = "touched"
+        put = client.put("/database/profiles/rtprofile",
+                         json={"config": got["config"]},
+                         headers=authz_env["admin"])
+        assert put.status_code == 200, put.text
+        from hivemind_admin_panel.api import _load_profile
+        assert _load_profile("rtprofile")["config"]["password"] == secret
+    finally:
+        client.delete("/database/profiles/rtprofile", headers=authz_env["admin"])
