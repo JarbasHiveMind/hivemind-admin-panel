@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.16a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.16a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.15a1...0.1.16a1)
+
+**Merged pull requests:**
+
+- fix: surface ACL denials in Test Chat; drop deprecated blacklist shims [\#60](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/60) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.15a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.15a1) (2026-09-01)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.14a1...0.1.15a1)
