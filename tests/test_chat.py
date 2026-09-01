@@ -100,6 +100,24 @@ def test_chat_start_surfaces_connect_error(client, auth, make_client, monkeypatc
     assert "handshake timed out" in r.json()["detail"]
 
 
+def test_denial_is_surfaced_in_transcript(monkeypatch):
+    """A `hive.policy.denied` bus event must show up as a visible error message,
+    not vanish silently (a blocked utterance would otherwise look identical to
+    a dead agent)."""
+    monkeypatch.setattr(chatmod.ImpersonationSession, "_connect", lambda self, *a, **k: None)
+    sess = chatmod.ImpersonationSession(1, "n", "k", "p", "c", "127.0.0.1", 5678)
+
+    class _Msg:
+        data = {"denied_type": "recognizer_loop:utterance", "reason": "not in allowed_types"}
+
+    sess._on_denied(_Msg())
+    msgs, total = sess.messages()
+    assert total == 1
+    assert msgs[0]["role"] == "error"
+    assert "recognizer_loop:utterance" in msgs[0]["text"]
+    assert "not in this client's allowed message types" in msgs[0]["text"]
+
+
 def test_registry_one_session_per_client(fake_chat):
     a = fake_chat.create(1, "n", "k", "p", "c", "127.0.0.1", 5678)
     b = fake_chat.create(1, "n", "k", "p", "c", "127.0.0.1", 5678)
