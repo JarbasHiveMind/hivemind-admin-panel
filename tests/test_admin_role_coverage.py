@@ -227,3 +227,128 @@ def test_admin_clients_list_keeps_api_key(client, authz_env, make_client):
     make_client(name="apikey-admin-sat")
     clients = client.get("/clients", headers=authz_env["admin"]).json()
     assert any(c.get("api_key") for c in clients)
+
+
+# ------------------------------------------ wave-3 sibling secret-leak sweep
+
+JSON_MODULE = "hivemind-json-db-plugin"
+
+
+def test_operator_config_diff_hides_secrets(client, authz_env):
+    """POST /config/diff must not leak the token secret or admin password to an
+    operator diffing an empty proposal against the current server.json."""
+    from hivemind_admin_panel.api import REDACTED
+    from tests.conftest import ADMIN_PASS
+
+    resp = client.post("/config/diff", json={"config": {}},
+                       headers=authz_env["operator"])
+    assert resp.status_code == 200, resp.text
+    assert TOKEN_SECRET not in resp.text
+    assert ADMIN_PASS not in resp.text
+    removed = resp.json().get("removed", {})
+    assert removed.get("admin_token_secret", REDACTED) == REDACTED
+    assert removed.get("admin_pass", REDACTED) == REDACTED
+
+
+def test_operator_config_backups_diff_hides_secrets(client, authz_env):
+    """GET /config/backups/diff must redact the token secret and admin password
+    on both sides of the snapshot-vs-current comparison."""
+    from hivemind_core.config import get_server_config
+    from tests.conftest import ADMIN_PASS
+
+    snap = client.post("/config/backups",
+                       headers=authz_env["admin"]).json()["file"]
+    cfg = get_server_config()
+    cfg["admin_token_secret"] = "live-" + TOKEN_SECRET
+    cfg.store()
+    try:
+        resp = client.get(f"/config/backups/diff?file={snap}",
+                          headers=authz_env["operator"])
+        assert resp.status_code == 200, resp.text
+        assert TOKEN_SECRET not in resp.text
+        assert "live-" + TOKEN_SECRET not in resp.text
+        assert ADMIN_PASS not in resp.text
+    finally:
+        cfg["admin_token_secret"] = TOKEN_SECRET
+        cfg.store()
+
+
+def _active_db_module():
+    """The database module ``make_client`` (and the injected ClientDatabase)
+    actually writes to, so this file does not depend on cross-test DB state."""
+    from hivemind_core.config import get_server_config
+    return get_server_config().get("database", {}).get(
+        "module", "hivemind-sqlite-db-plugin")
+
+
+def test_operator_db_clients_hides_client_secrets(client, authz_env, make_client):
+    """GET /database/{module}/clients must hide client password/crypto_key and
+    strip the api_key for operators, mirroring GET /clients."""
+    make_client(name="db-secret-sat", password="op-visible-pw",
+                crypto_key="0123456789abcdef")
+    resp = client.get(f"/database/{_active_db_module()}/clients",
+                      headers=authz_env["operator"])
+    assert resp.status_code == 200, resp.text
+    clients = resp.json()
+    assert clients, "operator should still see the client list"
+    assert all("password" not in c for c in clients)
+    assert all("crypto_key" not in c for c in clients)
+    assert all("api_key" not in c for c in clients)
+    assert "op-visible-pw" not in resp.text
+    assert "0123456789abcdef" not in resp.text
+
+
+def test_admin_db_clients_keeps_client_secrets(client, authz_env, make_client):
+    """Admins still get client password/crypto_key from the per-module list."""
+    make_client(name="db-secret-admin-sat", password="adm-pw",
+                crypto_key="0123456789abcdef")
+    clients = client.get(f"/database/{_active_db_module()}/clients",
+                         headers=authz_env["admin"]).json()
+    assert any(c.get("crypto_key") for c in clients)
+
+
+def test_operator_database_profiles_hides_backend_secrets(client, authz_env):
+    """GET /database/profiles* must redact backend connection secrets (SQL DSN,
+    Redis URL, plain password) baked into a profile config."""
+    secret = "s3cr3t-db-pw"
+    dsn = "postgresql://user:p4ss@db.internal/hive"
+    resp = client.post(
+        "/database/profiles",
+        json={"name": "leaky", "module": JSON_MODULE,
+              "config": {"name": "clients", "password": secret, "dsn": dsn}},
+        headers=authz_env["admin"],
+    )
+    assert resp.status_code == 200, resp.text
+    try:
+        listed = client.get("/database/profiles", headers=authz_env["operator"])
+        assert listed.status_code == 200, listed.text
+        assert secret not in listed.text
+        assert dsn not in listed.text
+        one = client.get("/database/profiles/leaky", headers=authz_env["operator"])
+        assert one.status_code == 200, one.text
+        assert secret not in one.text
+        assert dsn not in one.text
+    finally:
+        client.delete("/database/profiles/leaky", headers=authz_env["admin"])
+
+
+def test_operator_startup_error_omits_traceback(client, authz_env):
+    """GET /startup-error must not hand an operator the full traceback (which
+    carries filesystem paths and config internals); admins may see it."""
+    import hivemind_admin_panel.api as api
+
+    prev_err = api._startup_error
+    prev_tb = api._error_traceback
+    api._startup_error = RuntimeError("boom")
+    api._error_traceback = 'File "/home/secret/path/api.py", line 1, in <module>'
+    try:
+        op = client.get("/startup-error", headers=authz_env["operator"])
+        assert op.status_code == 200, op.text
+        assert op.json().get("traceback") is None
+        assert "/home/secret/path" not in op.text
+        adm = client.get("/startup-error", headers=authz_env["admin"])
+        assert adm.status_code == 200, adm.text
+        assert adm.json().get("traceback")
+    finally:
+        api._startup_error = prev_err
+        api._error_traceback = prev_tb
