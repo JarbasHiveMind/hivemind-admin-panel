@@ -24,6 +24,8 @@ Endpoints:
     - /api/stats — Get server statistics (real-time when injected)
 """
 
+import contextlib
+import copy
 import hmac
 import importlib.metadata
 import json
@@ -41,7 +43,9 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from fastapi import FastAPI, HTTPException, Depends, status, BackgroundTasks, Response, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from hivemind_admin_panel._auth import authenticate, verify_token, create_token, audit, read_audit
+from hivemind_admin_panel._auth import (authenticate, verify_token, create_token, audit,
+                                        read_audit, using_default_credentials, is_loopback,
+                                        rotate_token_secret, store_config, protect_config_file)
 from hivemind_admin_panel.version import __version__ as admin_version
 from hivemind_core.config import get_server_config as _get_server_config_raw, _DEFAULT
 
@@ -52,6 +56,29 @@ from hivemind_core.config import get_server_config as _get_server_config_raw, _D
 # construction with a process-local lock; semantics are unchanged (each caller
 # still gets a fresh config object), the races just can't overlap.
 _config_lock = threading.Lock()
+
+# Every client mutation in this file is a read-modify-write: load the whole
+# Client, change one field, hand the whole row back. The database contract has
+# no partial update — `update_item` delegates to `add_item`, which is an
+# `INSERT OR REPLACE` on the SQLite backend — so two overlapping mutations of
+# the *same* client both write a full row and the later one silently discards
+# the earlier field change. The panel drives this from a UI that fires several
+# requests at once (the ACL editor sends one request per permission), so the
+# overlap is routine rather than theoretical.
+#
+# Serialising the read-modify-write in the panel closes it for the process that
+# owns the database. A cross-process fix needs a partial-update or
+# compare-and-set primitive in hivemind-plugin-manager and every backend that
+# implements it.
+_client_write_lock = threading.RLock()
+
+
+@contextlib.contextmanager
+def client_db_write():
+    """A :class:`ClientDatabase` whose read-modify-write cannot interleave."""
+    with _client_write_lock:
+        with ClientDatabase() as db:
+            yield db
 
 
 def get_server_config():
@@ -83,7 +110,7 @@ if TYPE_CHECKING:
     from hivemind_core.service import HiveMindService
     from hivemind_core.protocol import HiveMindListenerProtocol
 
-__all__ = ["app", "init_injected_objects", "get_admin_app"]
+__all__ = ["app", "init_injected_objects", "get_admin_app", "set_startup_error"]
 
 #: HTTP Basic security scheme for authentication
 security = HTTPBasic()
@@ -142,6 +169,24 @@ def init_injected_objects(
         _error_traceback = traceback.format_exc()
 
 
+def set_startup_error(error: Exception) -> None:
+    """Record a startup error without touching already-injected core objects.
+
+    Unlike ``init_injected_objects``, this does not overwrite ``service``/``db``/
+    ``protocol``. It exists for failures that are independent of hivemind-core
+    construction — e.g. the admin UI's own HTTP server failing to bind — which
+    must not wipe a live ``service``/``db``/``protocol`` reference that
+    ``launch_core`` already injected (the hub can be healthy while the panel's
+    own listener is dead).
+
+    Args:
+        error: the exception to surface at ``GET /api/startup-error``.
+    """
+    global _startup_error, _error_traceback
+    _startup_error = error
+    _error_traceback = traceback.format_exc()
+
+
 def get_admin_app() -> FastAPI:
     """Get the FastAPI app instance for admin UI.
 
@@ -151,15 +196,68 @@ def get_admin_app() -> FastAPI:
     return app
 
 
-def _identify(request: Request) -> Optional[tuple]:
+# --------------------------------------------------------------------------- throttle
+#
+# Brute-force protection has to live where the password is checked, not only in
+# POST /auth/login: the API accepts HTTP Basic on every route, so a throttle
+# bolted onto the login endpoint alone is bypassed by guessing against /clients.
+
+_LOGIN_FAILURES: Dict[str, List[float]] = {}
+_LOGIN_WINDOW = 300.0   # seconds
+_LOGIN_MAX_FAILURES = 10
+
+
+def _prune_login_failures(now: float) -> None:
+    """Drop usernames with no recent failures, so the map cannot grow forever."""
+    for name in [n for n, hits in _LOGIN_FAILURES.items()
+                 if not any(now - t < _LOGIN_WINDOW for t in hits)]:
+        del _LOGIN_FAILURES[name]
+
+
+def _login_throttled(username: str) -> bool:
+    now = time.time()
+    _prune_login_failures(now)
+    hits = [t for t in _LOGIN_FAILURES.get(username, []) if now - t < _LOGIN_WINDOW]
+    if hits:
+        _LOGIN_FAILURES[username] = hits
+    return len(hits) >= _LOGIN_MAX_FAILURES
+
+
+def _record_login_failure(username: str) -> None:
+    _LOGIN_FAILURES.setdefault(username, []).append(time.time())
+
+
+def _clear_login_failures(username: str) -> None:
+    _LOGIN_FAILURES.pop(username, None)
+
+
+#: Paths where a browser cannot set an Authorization header (EventSource, <img>).
+_QUERY_TOKEN_PATHS = ("/events", "/pairing/qr.svg")
+
+
+def _allows_query_token(path: str) -> bool:
+    """True for the endpoints that may authenticate via ``?access_token=``."""
+    return any(path.endswith(sfx) for sfx in _QUERY_TOKEN_PATHS)
+
+
+def _identify(request: Request, throttle: bool = False) -> Optional[tuple]:
     """Return (username, role) for a valid Basic or Bearer request, else None.
 
     Also accepts a bearer token via the ``access_token`` query parameter, since
     the browser EventSource API (used by the SSE /events feed) cannot set headers.
+
+    Args:
+        throttle: count and enforce failed Basic attempts. Only the authenticating
+            dependencies pass this; the audit middleware calls ``_identify`` again
+            on the way out and must not double-count or raise there.
     """
     cfg = get_server_config()
     header = request.headers.get("Authorization", "")
-    qtoken = request.query_params.get("access_token")
+    # A token in the query string leaks into access logs, referrers and browser
+    # history, so it is only accepted on the two endpoints a browser cannot send
+    # headers to: the SSE feed (EventSource) and the QR <img> src.
+    qtoken = (request.query_params.get("access_token")
+              if _allows_query_token(request.url.path) else None)
     if qtoken:
         payload = verify_token(cfg, qtoken)
         if payload:
@@ -175,9 +273,16 @@ def _identify(request: Request) -> Optional[tuple]:
             user, _, pw = _b64.b64decode(header[6:]).decode().partition(":")
         except Exception:
             return None
+        if throttle and _login_throttled(user):
+            raise HTTPException(status_code=429,
+                                detail="Too many failed logins; wait 5 minutes")
         role = authenticate(cfg, user, pw)
         if role:
+            if throttle:
+                _clear_login_failures(user)
             return user, role
+        if throttle:
+            _record_login_failure(user)
     return None
 
 
@@ -187,23 +292,21 @@ def verify_credentials(request: Request) -> bool:
     Basic credentials are checked against ``server.json`` (admin_user/admin_pass
     plus any ``users``); bearer tokens are issued by ``POST /auth/login``.
     """
-    if _identify(request) is None:
+    if _identify(request, throttle=True) is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
         )
     return True
 
 
 def require_admin(request: Request) -> bool:
     """Like :func:`verify_credentials` but requires the ``admin`` role."""
-    ident = _identify(request)
+    ident = _identify(request, throttle=True)
     if ident is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
         )
     if ident[1] != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -216,6 +319,11 @@ def _current_user(request: Request) -> str:
     return ident[0] if ident else "anonymous"
 
 
+def _is_admin(request: Request) -> bool:
+    ident = _identify(request)
+    return bool(ident) and ident[1] == "admin"
+
+
 class ClientResponse(BaseModel):
     """Response model for client data."""
 
@@ -224,7 +332,6 @@ class ClientResponse(BaseModel):
     api_key: str
     is_admin: bool
     allowed_types: List[str]
-    message_blacklist: List[str]
     skill_blacklist: List[str]
     intent_blacklist: List[str]
     can_escalate: bool
@@ -262,7 +369,6 @@ class ClientUpdate(BaseModel):
         can_escalate: Permission to send messages upstream.
         can_propagate: Permission to forward messages to siblings.
         allowed_types: List of allowed message types.
-        message_blacklist: List of blacklisted message types.
         skill_blacklist: List of blacklisted skills.
         intent_blacklist: List of blacklisted intents.
     """
@@ -274,8 +380,8 @@ class ClientUpdate(BaseModel):
     is_admin: Optional[bool] = None
     can_escalate: Optional[bool] = None
     can_propagate: Optional[bool] = None
+    can_broadcast: Optional[bool] = None
     allowed_types: Optional[List[str]] = None
-    message_blacklist: Optional[List[str]] = None
     skill_blacklist: Optional[List[str]] = None
     intent_blacklist: Optional[List[str]] = None
 
@@ -686,11 +792,13 @@ def health() -> Dict[str, Any]:
 
 
 @app.get("/startup-error", dependencies=[Depends(verify_credentials)])
-def get_startup_error() -> Dict[str, Any]:
+def get_startup_error(request: Request) -> Dict[str, Any]:
     """Get detailed startup error information if core failed to start.
 
     Returns:
-        Dict with error message, type, and full traceback.
+        Dict with error message, type, and full traceback. The traceback carries
+        filesystem paths and config internals, so it is included only for
+        admins; operators see the error message and type without it.
         Returns 404 if no startup error occurred.
 
     Raises:
@@ -702,12 +810,128 @@ def get_startup_error() -> Dict[str, Any]:
             detail="No startup error recorded"
         )
 
+    is_admin = _is_admin(request)
     return {
         "error": str(_startup_error),
         "error_type": type(_startup_error).__name__,
-        "traceback": _error_traceback,
+        "traceback": _error_traceback if is_admin else None,
         "timestamp": time.time() if _error_traceback else None,
     }
+
+
+def _server_json_path() -> Path:
+    """Path to hivemind-core's server.json."""
+    return Path(xdg_config_home()) / "hivemind-core" / "server.json"
+
+
+def _config_file_error() -> Optional[str]:
+    """Return a message if server.json exists but does not parse, else None.
+
+    ``get_server_config()`` silently falls back to hivemind-core's built-in
+    defaults when the file is corrupt. Writing that back would overwrite the
+    operator's real configuration with defaults, and every read in between
+    reports the defaults as if they were the file.
+    """
+    path = _server_json_path()
+    if not path.exists():
+        return None
+    try:
+        json.loads(path.read_text())
+        return None
+    except Exception as e:
+        return f"{path} is unreadable: {e}"
+
+
+#: Placeholder sent to the client in place of a secret value.
+REDACTED = "********"
+
+#: Top-level server.json keys that must never leave the server over the API.
+#: ``admin_token_secret`` is the HMAC key that signs bearer tokens: anyone who
+#: reads it can forge an ``{"role": "admin"}`` token. ``admin_pass`` is the
+#: primary admin password. The browser needs neither.
+_SECRET_CONFIG_KEYS = ("admin_token_secret", "admin_pass")
+
+
+def _redact_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Deep-copy ``cfg`` with the token-signing secret, admin password and every
+    ``users[*].password`` replaced by :data:`REDACTED`."""
+    red = copy.deepcopy(dict(cfg))
+    for key in _SECRET_CONFIG_KEYS:
+        if key in red:
+            red[key] = REDACTED
+    users = red.get("users")
+    if isinstance(users, list):
+        for u in users:
+            if isinstance(u, dict) and "password" in u:
+                u["password"] = REDACTED
+    return red
+
+
+#: Substrings marking a database-profile config value as a credential. Backend
+#: configs (SQL DSN, Redis URL, plain password) embed connection secrets that an
+#: operator listing profiles must never read.
+_SECRET_PROFILE_KEY_HINTS = ("password", "secret", "dsn", "url", "token", "key")
+
+
+def _redact_profile_config(config: Any) -> Any:
+    """Return a deep copy of a profile ``config`` with credential-bearing values
+    replaced by :data:`REDACTED`. A value is redacted when its key name contains
+    any of :data:`_SECRET_PROFILE_KEY_HINTS`."""
+    if not isinstance(config, dict):
+        return config
+    red = copy.deepcopy(config)
+    for key, value in list(red.items()):
+        low = str(key).lower()
+        if any(hint in low for hint in _SECRET_PROFILE_KEY_HINTS):
+            red[key] = REDACTED
+        elif isinstance(value, dict):
+            red[key] = _redact_profile_config(value)
+    return red
+
+
+#: Substrings marking a persona/solver/preset config value as an LLM-provider
+#: credential. Persona and plugin configs embed provider keys (``key``,
+#: ``api_key``, bearer ``token``) anywhere in their nested structure, so an
+#: operator reading a persona or preset must never see the raw value.
+_SECRET_PERSONA_KEY_HINTS = ("key", "api_key", "token", "secret", "password")
+
+
+def _redact_persona_config(config: Any) -> Any:
+    """Return a deep copy of a persona/preset ``config`` with credential-bearing
+    values replaced by :data:`REDACTED`. A value is redacted when its key name
+    contains any of :data:`_SECRET_PERSONA_KEY_HINTS`; the walk recurses through
+    nested dicts and lists so provider keys buried under a plugin section are
+    caught too."""
+    if isinstance(config, dict):
+        red: Dict[str, Any] = {}
+        for k, v in config.items():
+            if any(hint in str(k).lower() for hint in _SECRET_PERSONA_KEY_HINTS):
+                red[k] = REDACTED
+            else:
+                red[k] = _redact_persona_config(v)
+        return red
+    if isinstance(config, list):
+        return [_redact_persona_config(v) for v in config]
+    return config
+
+
+def _restore_redacted(incoming: Any, existing: Any) -> Any:
+    """Return ``incoming`` with every :data:`REDACTED` sentinel replaced by the
+    value at the same path in ``existing``.
+
+    The SPA reads /config (redacted) and posts the whole object back. Without
+    this, saving any config change would clobber the real signing secret and
+    admin password with the placeholder.
+    """
+    if isinstance(incoming, dict) and isinstance(existing, dict):
+        return {k: (_restore_redacted(v, existing[k]) if k in existing else v)
+                for k, v in incoming.items()}
+    if isinstance(incoming, list) and isinstance(existing, list):
+        return [_restore_redacted(v, existing[i]) if i < len(existing) else v
+                for i, v in enumerate(incoming)]
+    if incoming == REDACTED:
+        return existing
+    return incoming
 
 
 @app.get("/config", dependencies=[Depends(verify_credentials)])
@@ -715,13 +939,21 @@ def get_config() -> Dict[str, Any]:
     """Get server configuration.
 
     Returns:
-        Dict containing full server configuration from server.json.
+        Dict containing server configuration from server.json, with the
+        token-signing secret and passwords redacted.
+
+    Raises:
+        HTTPException: 500 if server.json exists but cannot be parsed — the
+            defaults returned in that case are not the operator's config.
     """
+    err = _config_file_error()
+    if err:
+        raise HTTPException(status_code=500, detail=err)
     cfg = get_server_config()
-    return dict(cfg)
+    return _redact_config(cfg)
 
 
-@app.post("/config", dependencies=[Depends(verify_credentials)])
+@app.post("/config", dependencies=[Depends(require_admin)])
 def set_config(data: ConfigUpdate) -> Dict[str, Any]:
     """Update server configuration.
 
@@ -730,21 +962,28 @@ def set_config(data: ConfigUpdate) -> Dict[str, Any]:
 
     Returns:
         Dict with status field on success.
+
+    Raises:
+        HTTPException: 409 if server.json is unreadable. Writing then would
+            replace the operator's real config with hivemind-core defaults.
     """
+    err = _config_file_error()
+    if err:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Refusing to write the configuration: {err}. "
+                   "Repair or remove the file, or restore a snapshot from "
+                   "/api/config/backups.")
     _snapshot_config()
     cfg = get_server_config()
-    for key, value in data.config.items():
+    incoming = _restore_redacted(data.config, dict(cfg))
+    for key, value in incoming.items():
         cfg[key] = value
-    cfg.store()
+    store_config(cfg)
     return {"status": "ok"}
 
 
 # ===================== Config snapshots / rollback =====================
-
-def _server_json_path() -> Path:
-    """Path to hivemind-core's server.json."""
-    return Path(xdg_config_home()) / "hivemind-core" / "server.json"
-
 
 def _config_backups_dir() -> Path:
     return _server_json_path().parent / "config_backups"
@@ -830,7 +1069,7 @@ def restore_config_backup(data: ConfigRestoreRequest, request: Request) -> Dict[
         for k in list(cfg.keys()):
             cfg.pop(k, None)
     cfg.update(restored)
-    cfg.store()
+    store_config(cfg)
     audit(_current_user(request), "config.restore", file=data.file)
     return {"status": "ok", "restored": data.file}
 
@@ -847,7 +1086,10 @@ def diff_config_backup(file: str) -> Dict[str, Any]:
         snapshot = json.loads(src.read_text())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Corrupt backup: {e}")
-    current = dict(get_server_config())
+    # Redact both sides before diffing so the token-signing secret and admin
+    # password never surface in added/removed/changed for any caller.
+    current = _redact_config(dict(get_server_config()))
+    snapshot = _redact_config(snapshot)
     added = {k: snapshot[k] for k in snapshot if k not in current}
     removed = {k: current[k] for k in current if k not in snapshot}
     changed = {k: {"from": current[k], "to": snapshot[k]}
@@ -868,7 +1110,7 @@ def validate_config_endpoint(data: ConfigUpdate) -> ConfigValidationResult:
     return validate_config(data.config)
 
 
-@app.post("/config/restart", dependencies=[Depends(verify_credentials)])
+@app.post("/config/restart", dependencies=[Depends(require_admin)])
 def restart_service(background_tasks: BackgroundTasks) -> RestartResult:
     """Restart the HiveMind service.
 
@@ -946,9 +1188,8 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
         "api_key": client.api_key,
         "is_admin": bool(client.is_admin),
         "allowed_types": client.allowed_types or [],
-        "message_blacklist": client.message_blacklist or [],
-        "skill_blacklist": client.skill_blacklist or [],
-        "intent_blacklist": client.intent_blacklist or [],
+        "skill_blacklist": client.metadata.get("skill_blacklist", []),
+        "intent_blacklist": client.metadata.get("intent_blacklist", []),
         "can_escalate": bool(client.can_escalate),
         "can_propagate": bool(client.can_propagate),
         "can_broadcast": bool(getattr(client, 'can_broadcast', True)),
@@ -962,23 +1203,38 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
     return result
 
 
+def _strip_api_key(clients: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Drop the connection ``api_key`` from each client dict.
+
+    The api_key is the access credential a satellite uses to connect. Operators
+    may list clients (names, ids, status) but must not read that key; retrieving
+    it stays behind require_admin (``/clients/{id}/credentials``).
+    """
+    for c in clients:
+        c.pop("api_key", None)
+    return clients
+
+
 @app.get("/clients", dependencies=[Depends(verify_credentials)])
-def list_clients() -> List[Dict[str, Any]]:
+def list_clients(request: Request) -> List[Dict[str, Any]]:
     """List all clients including deleted ones.
 
     Returns:
         List of client dictionaries (excludes internal client with id=-1).
-        Deleted clients are marked with deleted=True.
+        Deleted clients are marked with deleted=True. The connection api_key is
+        included only for admins.
     """
     with ClientDatabase() as db:
-        return [_client_to_dict(c) for c in db if c.client_id != -1]
+        clients = [_client_to_dict(c) for c in db if c.client_id != -1]
+    return clients if _is_admin(request) else _strip_api_key(clients)
 
 
 @app.get("/clients/active", dependencies=[Depends(verify_credentials)])
-def list_active_clients() -> List[Dict[str, Any]]:
+def list_active_clients(request: Request) -> List[Dict[str, Any]]:
     """List only active (non-revoked) clients.
-    
-    Revoked clients are those with api_key="REVOKED" or revoked=True.
+
+    Revoked clients are those with api_key="REVOKED" or revoked=True. The
+    connection api_key is included only for admins.
     """
     with ClientDatabase() as db:
         result = []
@@ -990,18 +1246,19 @@ def list_active_clients() -> List[Dict[str, Any]]:
             is_revoked = api_key_str == "REVOKED" or (hasattr(c, 'revoked') and c.revoked)
             if not is_revoked:
                 result.append(_client_to_dict(c))
-        return result
+        return result if _is_admin(request) else _strip_api_key(result)
 
 
 @app.get("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
-def get_client(client_id: int) -> Dict[str, Any]:
+def get_client(client_id: int, request: Request) -> Dict[str, Any]:
     """Get client details by ID.
 
     Args:
         client_id: The client ID to look up.
 
     Returns:
-        Dict with client data.
+        Dict with client data. The connection api_key is included only for
+        admins, mirroring ``GET /clients``.
 
     Raises:
         HTTPException: 404 if client not found.
@@ -1009,12 +1266,13 @@ def get_client(client_id: int) -> Dict[str, Any]:
     with ClientDatabase() as db:
         for client in db:
             if client.client_id == client_id:
-                return _client_to_dict(client)
+                result = _client_to_dict(client)
+                return result if _is_admin(request) else _strip_api_key([result])[0]
     raise HTTPException(status_code=404, detail="Client not found")
 
 
 @app.get(
-    "/clients/{client_id}/credentials", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/credentials", dependencies=[Depends(require_admin)]
 )
 def get_client_credentials(client_id: int) -> Dict[str, Any]:
     """Get client credentials including password and crypto key.
@@ -1041,7 +1299,7 @@ def get_client_credentials(client_id: int) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.post("/clients", dependencies=[Depends(verify_credentials)])
+@app.post("/clients", dependencies=[Depends(require_admin)])
 def add_client(data: ClientCreate) -> Dict[str, Any]:
     """Add a new client.
 
@@ -1076,7 +1334,7 @@ def add_client(data: ClientCreate) -> Dict[str, Any]:
         return _client_to_dict(client, include_secrets=True)
 
 
-@app.put("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
+@app.put("/clients/{client_id}", dependencies=[Depends(require_admin)])
 def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
     """Update client data.
 
@@ -1091,7 +1349,7 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
         HTTPException: 404 if client not found.
         HTTPException: 400 if crypto_key has invalid length.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 if data.name is not None:
@@ -1114,18 +1372,16 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
                     client.can_propagate = data.can_propagate
                 if data.allowed_types is not None:
                     client.allowed_types = data.allowed_types
-                if data.message_blacklist is not None:
-                    client.message_blacklist = data.message_blacklist
                 if data.skill_blacklist is not None:
-                    client.skill_blacklist = data.skill_blacklist
+                    client.metadata["skill_blacklist"] = data.skill_blacklist
                 if data.intent_blacklist is not None:
-                    client.intent_blacklist = data.intent_blacklist
+                    client.metadata["intent_blacklist"] = data.intent_blacklist
                 db.update_item(client)
                 return _client_to_dict(client, include_secrets=True)
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.delete("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
+@app.delete("/clients/{client_id}", dependencies=[Depends(require_admin)])
 def delete_client(client_id: int) -> Dict[str, Any]:
     """Delete a client.
 
@@ -1149,7 +1405,7 @@ def delete_client(client_id: int) -> Dict[str, Any]:
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.post("/clients/{client_id}/rename", dependencies=[Depends(verify_credentials)])
+@app.post("/clients/{client_id}/rename", dependencies=[Depends(require_admin)])
 def rename_client(client_id: int, data: Dict[str, str]) -> Dict[str, Any]:
     """Rename a client.
 
@@ -1167,7 +1423,7 @@ def rename_client(client_id: int, data: Dict[str, str]) -> Dict[str, Any]:
     if not name:
         raise HTTPException(status_code=400, detail="name required")
 
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 client.name = name
@@ -1177,7 +1433,7 @@ def rename_client(client_id: int, data: Dict[str, str]) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/allow-msg", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/allow-msg", dependencies=[Depends(require_admin)]
 )
 def allow_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
     """Allow a message type for a client.
@@ -1193,28 +1449,46 @@ def allow_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/blacklist-msg", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/deny-msg", dependencies=[Depends(require_admin)]
 )
-def blacklist_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
-    """Blacklist a message type for a client.
+def deny_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
+    """Remove a message type from a client's ``allowed_types`` whitelist.
+
+    hivemind-core has no message deny-list: a type the client may not send is
+    simply absent from the whitelist.
 
     Args:
         client_id: The client ID.
-        data: MsgTypeRequest with msg_type to blacklist.
+        data: MsgTypeRequest with the msg_type to remove.
 
     Returns:
         Dict with updated client data.
     """
-    return _modify_msg_type(client_id, data.msg_type, "blacklist")
+    return _modify_msg_type(client_id, data.msg_type, "deny")
+
+
+@app.post(
+    "/clients/{client_id}/blacklist-msg", dependencies=[Depends(require_admin)]
+)
+def blacklist_msg(client_id: int, data: MsgTypeRequest) -> Dict[str, Any]:
+    """Deprecated alias of ``/deny-msg``; the name never matched the behaviour.
+
+    It does not write a blacklist — nothing in hivemind-core reads one. It
+    removes ``msg_type`` from ``allowed_types``.
+    """
+    return _modify_msg_type(client_id, data.msg_type, "deny")
 
 
 def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, Any]:
-    """Modify message type permissions for a client.
+    """Add or remove a message type from a client's ``allowed_types`` whitelist.
+
+    hivemind-core is whitelist-only: there is no message deny-list. "Denying" a
+    type means taking it out of ``allowed_types``.
 
     Args:
         client_id: The client ID.
-        msg_type: Message type to allow or blacklist.
-        action: 'allow' or 'blacklist'.
+        msg_type: Message type to add or remove.
+        action: ``'allow'`` (add) or ``'deny'`` (remove).
 
     Returns:
         Dict with updated client data.
@@ -1222,13 +1496,13 @@ def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, An
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 allowed = client.allowed_types or []
                 if action == "allow" and msg_type not in allowed:
                     allowed.append(msg_type)
-                elif action == "blacklist" and msg_type in allowed:
+                elif action == "deny" and msg_type in allowed:
                     allowed.remove(msg_type)
                 client.allowed_types = allowed
                 db.update_item(client)
@@ -1237,7 +1511,7 @@ def _modify_msg_type(client_id: int, msg_type: str, action: str) -> Dict[str, An
 
 
 @app.post(
-    "/clients/{client_id}/allow-skill", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/allow-skill", dependencies=[Depends(require_admin)]
 )
 def allow_skill(client_id: int, data: SkillRequest) -> Dict[str, Any]:
     """Allow a skill for a client.
@@ -1254,7 +1528,7 @@ def allow_skill(client_id: int, data: SkillRequest) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-skill",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_skill(client_id: int, data: SkillRequest) -> Dict[str, Any]:
     """Blacklist a skill for a client.
@@ -1283,22 +1557,22 @@ def _modify_skill(client_id: int, skill_id: str, action: str) -> Dict[str, Any]:
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
-                blacklist = client.skill_blacklist or []
+                blacklist = client.metadata.get("skill_blacklist", [])
                 if action == "allow" and skill_id in blacklist:
                     blacklist.remove(skill_id)
                 elif action == "blacklist" and skill_id not in blacklist:
                     blacklist.append(skill_id)
-                client.skill_blacklist = blacklist
+                client.metadata["skill_blacklist"] = blacklist
                 db.update_item(client)
                 return _client_to_dict(client)
     raise HTTPException(status_code=404, detail="Client not found")
 
 
 @app.post(
-    "/clients/{client_id}/allow-intent", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/allow-intent", dependencies=[Depends(require_admin)]
 )
 def allow_intent(client_id: int, data: IntentRequest) -> Dict[str, Any]:
     """Allow an intent for a client.
@@ -1315,7 +1589,7 @@ def allow_intent(client_id: int, data: IntentRequest) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-intent",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_intent(client_id: int, data: IntentRequest) -> Dict[str, Any]:
     """Blacklist an intent for a client.
@@ -1344,15 +1618,15 @@ def _modify_intent(client_id: int, intent_id: str, action: str) -> Dict[str, Any
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
-                blacklist = client.intent_blacklist or []
+                blacklist = client.metadata.get("intent_blacklist", [])
                 if action == "allow" and intent_id in blacklist:
                     blacklist.remove(intent_id)
                 elif action == "blacklist" and intent_id not in blacklist:
                     blacklist.append(intent_id)
-                client.intent_blacklist = blacklist
+                client.metadata["intent_blacklist"] = blacklist
                 db.update_item(client)
                 return _client_to_dict(client)
     raise HTTPException(status_code=404, detail="Client not found")
@@ -1360,7 +1634,7 @@ def _modify_intent(client_id: int, intent_id: str, action: str) -> Dict[str, Any
 
 @app.post(
     "/clients/{client_id}/allow-escalate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def allow_escalate(client_id: int) -> Dict[str, Any]:
     """Allow client to escalate messages upstream.
@@ -1376,7 +1650,7 @@ def allow_escalate(client_id: int) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-escalate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_escalate(client_id: int) -> Dict[str, Any]:
     """Block client from escalating messages upstream.
@@ -1392,7 +1666,7 @@ def blacklist_escalate(client_id: int) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/allow-propagate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def allow_propagate(client_id: int) -> Dict[str, Any]:
     """Allow client to propagate messages to siblings.
@@ -1408,7 +1682,7 @@ def allow_propagate(client_id: int) -> Dict[str, Any]:
 
 @app.post(
     "/clients/{client_id}/blacklist-propagate",
-    dependencies=[Depends(verify_credentials)],
+    dependencies=[Depends(require_admin)],
 )
 def blacklist_propagate(client_id: int) -> Dict[str, Any]:
     """Block client from propagating messages to siblings.
@@ -1423,7 +1697,7 @@ def blacklist_propagate(client_id: int) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/make-admin", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/make-admin", dependencies=[Depends(require_admin)]
 )
 def make_admin(client_id: int) -> Dict[str, Any]:
     """Grant admin privileges to a client.
@@ -1438,7 +1712,7 @@ def make_admin(client_id: int) -> Dict[str, Any]:
 
 
 @app.post(
-    "/clients/{client_id}/revoke-admin", dependencies=[Depends(verify_credentials)]
+    "/clients/{client_id}/revoke-admin", dependencies=[Depends(require_admin)]
 )
 def revoke_admin(client_id: int) -> Dict[str, Any]:
     """Revoke admin privileges from a client.
@@ -1466,7 +1740,7 @@ def _modify_flag(client_id: int, flag: str, value: bool) -> Dict[str, Any]:
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 setattr(client, flag, value)
@@ -1758,7 +2032,7 @@ def upgrade_plugin(data: PluginInstallRequest, request: Request) -> PluginInstal
     return PluginInstallResult(success=True, message=msg)
 
 
-@app.post("/plugins/enable", dependencies=[Depends(verify_credentials)])
+@app.post("/plugins/enable", dependencies=[Depends(require_admin)])
 def enable_plugin(data: ConfigUpdateRequest) -> PluginInstallResult:
     """Enable a plugin by updating the configuration.
 
@@ -1835,7 +2109,7 @@ def enable_plugin(data: ConfigUpdateRequest) -> PluginInstallResult:
 
     if config_updated:
         LOG.info(f"Saving configuration to: {cfg.config_path if hasattr(cfg, 'config_path') else 'server.json'}")
-        cfg.store()
+        store_config(cfg)
         LOG.info(f"Plugin {data.module} {'enabled' if data.enabled else 'disabled'} and configuration updated")
         return PluginInstallResult(
             success=True,
@@ -2042,9 +2316,8 @@ def _migrate_clients(
             name=client.name,
             key=client.api_key,
             admin=client.is_admin,
-            intent_blacklist=client.intent_blacklist,
-            skill_blacklist=client.skill_blacklist,
-            message_blacklist=client.message_blacklist,
+            intent_blacklist=client.metadata.get("intent_blacklist", []),
+            skill_blacklist=client.metadata.get("skill_blacklist", []),
             allowed_types=client.allowed_types,
             crypto_key=client.crypto_key,
             password=client.password,
@@ -2182,10 +2455,13 @@ def list_database_profiles() -> Dict[str, Any]:
     _ensure_profiles_initialized()
     profiles = _list_profiles()
     active = _get_active_profile_name()
+    for name, profile in profiles.items():
+        if isinstance(profile, dict) and "config" in profile:
+            profile["config"] = _redact_profile_config(profile.get("config"))
     return {"profiles": profiles, "active": active}
 
 
-@app.post("/database/profiles", dependencies=[Depends(verify_credentials)])
+@app.post("/database/profiles", dependencies=[Depends(require_admin)])
 def create_database_profile(data: DatabaseProfileCreate) -> Dict[str, Any]:
     """Create a new named database profile.
 
@@ -2236,10 +2512,11 @@ def get_database_profile(name: str) -> Dict[str, Any]:
     p = _load_profile(name)
     if p is None:
         raise HTTPException(status_code=404, detail=f"Profile '{name}' not found")
-    return {"name": name, "module": p.get("module"), "config": p.get("config", {})}
+    return {"name": name, "module": p.get("module"),
+            "config": _redact_profile_config(p.get("config", {}))}
 
 
-@app.put("/database/profiles/{name}", dependencies=[Depends(verify_credentials)])
+@app.put("/database/profiles/{name}", dependencies=[Depends(require_admin)])
 def update_database_profile(name: str, data: DatabaseProfileUpdate) -> Dict[str, Any]:
     """Update an existing database profile.
 
@@ -2273,14 +2550,17 @@ def update_database_profile(name: str, data: DatabaseProfileUpdate) -> Dict[str,
     if data.module is not None:
         profile["module"] = data.module
     if data.config is not None:
-        profile["config"] = data.config
+        # /database/profiles GET redacts credential values unconditionally, so an
+        # edit round-trips REDACTED sentinels back here; restore the real secret
+        # from the existing profile before saving (mirrors POST /config).
+        profile["config"] = _restore_redacted(data.config, profile.get("config"))
 
     _save_profile(name, profile)
     LOG.info(f"Updated database profile '{name}'")
     return {"name": name, "module": profile["module"], "config": profile.get("config", {})}
 
 
-@app.delete("/database/profiles/{name}", dependencies=[Depends(verify_credentials)])
+@app.delete("/database/profiles/{name}", dependencies=[Depends(require_admin)])
 def delete_database_profile(name: str) -> Dict[str, Any]:
     """Delete a database profile file.
 
@@ -2314,7 +2594,7 @@ def delete_database_profile(name: str) -> Dict[str, Any]:
     return {"status": "ok"}
 
 
-@app.post("/database/profiles/{name}/test", dependencies=[Depends(verify_credentials)])
+@app.post("/database/profiles/{name}/test", dependencies=[Depends(require_admin)])
 def test_database_profile(name: str) -> DatabaseTestResult:
     """Test connectivity for a saved database profile.
 
@@ -2334,7 +2614,7 @@ def test_database_profile(name: str) -> DatabaseTestResult:
     return _test_db_connectivity(p.get("module", ""), p.get("config", {}))
 
 
-@app.post("/database/profiles/{name}/activate", dependencies=[Depends(verify_credentials)])
+@app.post("/database/profiles/{name}/activate", dependencies=[Depends(require_admin)])
 def activate_database_profile(name: str, data: ActivateProfileRequest) -> ActivateProfileResult:
     """Activate a database profile.
 
@@ -2385,7 +2665,7 @@ def activate_database_profile(name: str, data: ActivateProfileRequest) -> Activa
     # configured directly — no extra tracking key needed.
     cfg = get_server_config()
     cfg["database"] = _build_db_config_key(target)
-    cfg.store()
+    store_config(cfg)
 
     LOG.info(f"Activated database profile '{name}' ({tgt_module}), migrated {clients_migrated} clients")
     return ActivateProfileResult(
@@ -2463,7 +2743,7 @@ def migrate_database(data: DatabaseMigrationRequest, response: Response) -> Data
             clients_migrated = _migrate_clients(source_module, src_kwargs, target_module, {})
 
         cfg["database"] = {"module": target_module}
-        cfg.store()
+        store_config(cfg)
 
         return DatabaseMigrationResult(
             success=True,
@@ -2518,32 +2798,45 @@ class ACLUpdateRequest(BaseModel):
     is_admin: Optional[bool] = None
     can_escalate: Optional[bool] = None
     can_propagate: Optional[bool] = None
+    can_broadcast: Optional[bool] = None
     allowed_types: Optional[List[str]] = None
     skill_blacklist: Optional[List[str]] = None
     intent_blacklist: Optional[List[str]] = None
 
 
 @app.get("/database/{module}/clients", dependencies=[Depends(verify_credentials)])
-def list_db_clients(module: str) -> List[Dict[str, Any]]:
+def list_db_clients(module: str, request: Request) -> List[Dict[str, Any]]:
     """List clients from a specific database module.
-    
+
     Args:
         module: The database module entry point.
-        
+
     Returns:
-        List of client dictionaries.
+        List of client dictionaries. Client password/crypto_key are included
+        only for admins; the connection api_key is stripped for operators,
+        mirroring ``GET /clients``.
     """
     try:
         db_class = DatabaseFactory.get_class(module)
+    except Exception:
+        raise HTTPException(status_code=404,
+                            detail=f"Unknown database module '{module}'")
+    is_admin = _is_admin(request)
+    try:
         db = db_class()
         # Ensure we close if it's a context manager
         if hasattr(db, "__enter__"):
             with db:
-                return [_client_to_dict(c, include_secrets=True) for c in db if c.client_id != -1]
-        return [_client_to_dict(c, include_secrets=True) for c in db if c.client_id != -1]
+                clients = [_client_to_dict(c, include_secrets=is_admin)
+                           for c in db if c.client_id != -1]
+        else:
+            clients = [_client_to_dict(c, include_secrets=is_admin)
+                       for c in db if c.client_id != -1]
+        return clients if is_admin else _strip_api_key(clients)
     except Exception as e:
         LOG.error(f"Failed to list clients for {module}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=502,
+                            detail=f"Database '{module}' could not be read")
 
 
 class CopyClientRequest(BaseModel):
@@ -2552,7 +2845,7 @@ class CopyClientRequest(BaseModel):
     api_key: str
 
 
-@app.post("/database/copy-client", dependencies=[Depends(verify_credentials)])
+@app.post("/database/copy-client", dependencies=[Depends(require_admin)])
 def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
     """Copy a single client from one database to another.
     
@@ -2595,9 +2888,8 @@ def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
         target_client = target_db.get_client_by_api_key(client.api_key)
         if target_client:
             target_client.allowed_types = client.allowed_types
-            target_client.message_blacklist = client.message_blacklist
-            target_client.skill_blacklist = client.skill_blacklist
-            target_client.intent_blacklist = client.intent_blacklist
+            target_client.metadata["skill_blacklist"] = client.metadata.get("skill_blacklist", [])
+            target_client.metadata["intent_blacklist"] = client.metadata.get("intent_blacklist", [])
             target_client.can_escalate = client.can_escalate
             target_client.can_propagate = client.can_propagate
             target_db.update_item(target_client)
@@ -2682,16 +2974,18 @@ def get_acl_config() -> Dict[str, Any]:
 
 
 @app.get("/persona/config", dependencies=[Depends(verify_credentials)])
-def get_persona_config() -> Dict[str, Any]:
+def get_persona_config(request: Request) -> Dict[str, Any]:
     """Get persona configuration from JSON file.
 
     Returns:
-        Dict with persona configuration including llm, persona, memory, and solvers.
+        Dict with persona configuration including llm, persona, memory, and
+        solvers. Embedded LLM-provider keys are redacted for non-admins.
     """
-    return _load_persona_config()
+    config = _load_persona_config()
+    return config if _is_admin(request) else _redact_persona_config(config)
 
 
-@app.put("/persona/config", dependencies=[Depends(verify_credentials)])
+@app.put("/persona/config", dependencies=[Depends(require_admin)])
 def save_persona_config(data: Dict[str, Any]) -> Dict[str, Any]:
     """Save persona configuration to JSON file.
 
@@ -2886,14 +3180,15 @@ def get_client_acl(client_id: int) -> Dict[str, Any]:
                     "is_admin": bool(client.is_admin),
                     "can_escalate": bool(client.can_escalate),
                     "can_propagate": bool(client.can_propagate),
+                    "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                     "allowed_types": client.allowed_types or [],
-                    "skill_blacklist": client.skill_blacklist or [],
-                    "intent_blacklist": client.intent_blacklist or [],
+                    "skill_blacklist": client.metadata.get("skill_blacklist", []),
+                    "intent_blacklist": client.metadata.get("intent_blacklist", []),
                 }
     raise HTTPException(status_code=404, detail=f"Client {client_id} not found")
 
 
-@app.put("/clients/{client_id}/acl", dependencies=[Depends(verify_credentials)])
+@app.put("/clients/{client_id}/acl", dependencies=[Depends(require_admin)])
 def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
     """Update ACL configuration for a specific client.
 
@@ -2907,7 +3202,7 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
     Raises:
         HTTPException: 404 if client not found.
     """
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 # Core permissions
@@ -2917,15 +3212,17 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
                     client.can_escalate = data.can_escalate
                 if data.can_propagate is not None:
                     client.can_propagate = data.can_propagate
+                if data.can_broadcast is not None:
+                    client.can_broadcast = data.can_broadcast
                 # Message whitelist
                 if data.allowed_types is not None:
                     client.allowed_types = data.allowed_types
                 # Skill blacklist
                 if data.skill_blacklist is not None:
-                    client.skill_blacklist = data.skill_blacklist
+                    client.metadata["skill_blacklist"] = data.skill_blacklist
                 # Intent blacklist
                 if data.intent_blacklist is not None:
-                    client.intent_blacklist = data.intent_blacklist
+                    client.metadata["intent_blacklist"] = data.intent_blacklist
                 db.update_item(client)
                 return {
                     "client_id": client.client_id,
@@ -2933,14 +3230,15 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
                     "is_admin": bool(client.is_admin),
                     "can_escalate": bool(client.can_escalate),
                     "can_propagate": bool(client.can_propagate),
+                    "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                     "allowed_types": client.allowed_types or [],
-                    "skill_blacklist": client.skill_blacklist or [],
-                    "intent_blacklist": client.intent_blacklist or [],
+                    "skill_blacklist": client.metadata.get("skill_blacklist", []),
+                    "intent_blacklist": client.metadata.get("intent_blacklist", []),
                 }
     raise HTTPException(status_code=404, detail="Client not found")
 
 
-@app.post("/clients/{client_id}/acl/apply-template", dependencies=[Depends(verify_credentials)])
+@app.post("/clients/{client_id}/acl/apply-template", dependencies=[Depends(require_admin)])
 def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
     """Apply an ACL template to a client.
 
@@ -2968,22 +3266,21 @@ def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
     if not template:
         raise HTTPException(status_code=404, detail=f"Template '{template_name}' not found")
 
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 client.allowed_types = template.get("allowed_types", [])
-                client.message_blacklist = template.get("message_blacklist", [])
-                client.skill_blacklist = template.get("skill_blacklist", [])
-                client.intent_blacklist = template.get("intent_blacklist", [])
+                client.metadata["skill_blacklist"] = template.get("skill_blacklist", [])
+                client.metadata["intent_blacklist"] = template.get("intent_blacklist", [])
                 db.update_item(client)
                 return {
                     "client_id": client.client_id,
                     "name": client.name,
                     "template_applied": template_name,
                     "allowed_types": client.allowed_types or [],
-                    "message_blacklist": client.message_blacklist or [],
-                    "skill_blacklist": client.skill_blacklist or [],
-                    "intent_blacklist": client.intent_blacklist or [],
+                    "skill_blacklist": client.metadata.get("skill_blacklist", []),
+                    "intent_blacklist": client.metadata.get("intent_blacklist", []),
+                    "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                 }
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -3218,13 +3515,17 @@ class PersonaCreate(BaseModel):
 
 
 @app.get("/personas", dependencies=[Depends(verify_credentials)])
-def list_personas() -> List[Dict[str, Any]]:
+def list_personas(request: Request) -> List[Dict[str, Any]]:
     """List all available personas.
 
     Returns:
-        List of persona configurations.
+        List of persona configurations. Embedded LLM-provider keys are redacted
+        for non-admins.
     """
-    return _load_persona_files()
+    personas = _load_persona_files()
+    if _is_admin(request):
+        return personas
+    return [_redact_persona_config(p) for p in personas]
 
 
 @app.get("/personas/active", dependencies=[Depends(verify_credentials)])
@@ -3254,14 +3555,15 @@ def get_active_persona() -> Dict[str, Any]:
 
 
 @app.get("/personas/{name}", dependencies=[Depends(verify_credentials)])
-def get_persona(name: str) -> Dict[str, Any]:
+def get_persona(name: str, request: Request) -> Dict[str, Any]:
     """Get a specific persona configuration.
 
     Args:
         name: Persona name.
 
     Returns:
-        Persona configuration.
+        Persona configuration. Embedded LLM-provider keys are redacted for
+        non-admins.
 
     Raises:
         HTTPException: 404 if persona not found.
@@ -3271,12 +3573,12 @@ def get_persona(name: str) -> Dict[str, Any]:
         if persona.get("name") == name or persona.get("_file") == f"{name}.json":
             # Remove internal _file field
             result = {k: v for k, v in persona.items() if not k.startswith("_")}
-            return result
+            return result if _is_admin(request) else _redact_persona_config(result)
 
     raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
 
 
-@app.post("/personas", dependencies=[Depends(verify_credentials)])
+@app.post("/personas", dependencies=[Depends(require_admin)])
 def create_persona(data: PersonaCreate) -> Dict[str, Any]:
     """Create a new persona.
     
@@ -3326,7 +3628,7 @@ def create_persona(data: PersonaCreate) -> Dict[str, Any]:
     return {**config, "status": "ok", "path": str(persona_path)}
 
 
-@app.put("/personas/{name}", dependencies=[Depends(verify_credentials)])
+@app.put("/personas/{name}", dependencies=[Depends(require_admin)])
 def update_persona(name: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Update an existing persona.
     
@@ -3366,7 +3668,7 @@ def update_persona(name: str, data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-@app.delete("/personas/{name}", dependencies=[Depends(verify_credentials)])
+@app.delete("/personas/{name}", dependencies=[Depends(require_admin)])
 def delete_persona(name: str) -> Dict[str, Any]:
     """Delete a persona.
     
@@ -3456,15 +3758,16 @@ def test_persona(name: str) -> Dict[str, Any]:
 
 
 @app.get("/personas/{name}/export", dependencies=[Depends(verify_credentials)])
-def export_persona(name: str) -> Dict[str, Any]:
+def export_persona(name: str, request: Request) -> Dict[str, Any]:
     """Export a persona configuration as JSON.
-    
+
     Args:
         name: Persona name.
-        
+
     Returns:
-        Persona configuration for download.
-        
+        Persona configuration for download. Embedded LLM-provider keys are
+        redacted for non-admins.
+
     Raises:
         HTTPException: 404 if persona not found.
     """
@@ -3473,12 +3776,12 @@ def export_persona(name: str) -> Dict[str, Any]:
         if persona.get("name") == name or persona.get("_file") == f"{name}.json":
             # Remove internal fields
             result = {k: v for k, v in persona.items() if not k.startswith("_")}
-            return result
+            return result if _is_admin(request) else _redact_persona_config(result)
 
     raise HTTPException(status_code=404, detail=f"Persona '{name}' not found")
 
 
-@app.post("/personas/{name}/activate", dependencies=[Depends(verify_credentials)])
+@app.post("/personas/{name}/activate", dependencies=[Depends(require_admin)])
 def activate_persona(name: str, force: bool = False) -> Dict[str, Any]:
     """Activate a persona as the agent backend.
 
@@ -3550,7 +3853,7 @@ def activate_persona(name: str, force: bool = False) -> Dict[str, Any]:
     # Also set the module if not already set
     config["agent_protocol"]["module"] = "hivemind-persona-agent-plugin"
 
-    config.store()
+    store_config(config)
 
     LOG.info(f"Activated persona '{name}' at {full_path}")
     return {"status": "ok", "active_persona": name, "path": full_path}
@@ -3658,25 +3961,40 @@ def _validate_ptype(ptype: str) -> None:
 
 
 @app.get("/presets", dependencies=[Depends(verify_credentials)])
-def list_all_presets() -> Dict[str, Dict[str, Any]]:
-    """All presets grouped by plugin type."""
-    return {t: _list_presets(t) for t in sorted(_PRESET_TYPES)}
+def list_all_presets(request: Request) -> Dict[str, Dict[str, Any]]:
+    """All presets grouped by plugin type.
+
+    A preset ``config`` can embed a plugin provider key (an STT/TTS/agent API
+    key), so it is redacted for non-admins.
+    """
+    presets = {t: _list_presets(t) for t in sorted(_PRESET_TYPES)}
+    if _is_admin(request):
+        return presets
+    return {t: {n: _redact_persona_config(p) for n, p in items.items()}
+            for t, items in presets.items()}
 
 
 @app.get("/presets/{ptype}", dependencies=[Depends(verify_credentials)])
-def list_type_presets(ptype: str) -> Dict[str, Any]:
-    """Presets for one plugin type, plus the installed modules to choose from."""
+def list_type_presets(ptype: str, request: Request) -> Dict[str, Any]:
+    """Presets for one plugin type, plus the installed modules to choose from.
+
+    Preset ``config`` provider keys are redacted for non-admins.
+    """
     _validate_ptype(ptype)
-    return {"presets": _list_presets(ptype), "installed_modules": sorted(_installed_modules_for(ptype))}
+    presets = _list_presets(ptype)
+    if not _is_admin(request):
+        presets = {n: _redact_persona_config(p) for n, p in presets.items()}
+    return {"presets": presets, "installed_modules": sorted(_installed_modules_for(ptype))}
 
 
 @app.get("/presets/{ptype}/{name}", dependencies=[Depends(verify_credentials)])
-def get_preset(ptype: str, name: str) -> Dict[str, Any]:
+def get_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
     _validate_ptype(ptype)
     p = _preset_path(ptype, name)
     if not p.exists():
         raise HTTPException(status_code=404, detail="Preset not found")
-    return json.loads(p.read_text())
+    preset = json.loads(p.read_text())
+    return preset if _is_admin(request) else _redact_persona_config(preset)
 
 
 @app.post("/presets/{ptype}", dependencies=[Depends(require_admin)])
@@ -3802,7 +4120,7 @@ def apply_preset(ptype: str, name: str, request: Request) -> Dict[str, Any]:
         cfg["network_protocol"] = net
     else:  # stt / tts / ww / vad
         _apply_speech_preset(cfg, ptype, name, module, pconfig)
-    cfg.store()
+    store_config(cfg)
     audit(_current_user(request), "preset.apply", type=ptype, name=name, module=module)
     return {"status": "ok", "applied": f"{ptype}/{name}", "module": module}
 
@@ -3908,14 +4226,22 @@ class LoginRequest(BaseModel):
     password: str
 
 
+#: Failed-login throttle: {username: [timestamps]}. Passwords in server.json are
+#: operator-chosen and unhashed by default, so unlimited guessing is a real risk.
 @app.post("/auth/login")
 def login(data: LoginRequest) -> Dict[str, Any]:
     """Exchange username/password for a signed bearer token (no auth required)."""
     cfg = get_server_config()
+    if _login_throttled(data.username):
+        audit(data.username, "login.throttled")
+        raise HTTPException(status_code=429,
+                            detail="Too many failed logins; wait 5 minutes")
     role = authenticate(cfg, data.username, data.password)
     if not role:
+        _record_login_failure(data.username)
         audit(data.username, "login.failed")
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    _clear_login_failures(data.username)
     token = create_token(cfg, data.username, role)
     audit(data.username, "login.ok", role=role)
     from hivemind_admin_panel._metrics import METRICS
@@ -3959,7 +4285,150 @@ async def _audit_mutations(request: Request, call_next):
     return response
 
 
+# ===================== Request-level security gates =====================
+#
+# These run as middleware so they cover every route, including any added later.
+# A per-route dependency is not enough: the panel has ~130 routes and a forgotten
+# `Depends(...)` is an open door.
+
+_MUTATING = ("POST", "PUT", "PATCH", "DELETE")
+
+#: Content types an HTML <form> can produce. A cross-site form post is the one
+#: CSRF vector that needs no JavaScript, and it can never send application/json.
+_FORM_CONTENT_TYPES = ("application/x-www-form-urlencoded", "multipart/form-data",
+                       "text/plain")
+
+#: Reachable while the shipped default credentials are still in use. Everything
+#: else is refused, so the "change your password" gate cannot be skipped by
+#: talking to the API directly (the browser UI is not a security boundary).
+_SETUP_GATE_ALLOWED = frozenset(("/health", "/auth/login", "/auth/logout", "/auth/me",
+                                 "/auth/password", "/setup/status"))
+
+
+def _gate_path(request: Request) -> str:
+    """The request path relative to this app, for exact allow-list matching.
+
+    The API is mounted under ``/api`` by the launcher, so the raw path carries a
+    prefix that the allow-lists do not. Matching by suffix instead would open a
+    hole: every route ending in a path parameter could be handed the name of an
+    allowed endpoint (``DELETE /api/chat/sessions/health``,
+    ``DELETE /api/personas/health``) and would then skip the gate entirely.
+    """
+    path = request.scope.get("path") or request.url.path
+    root = request.scope.get("root_path") or ""
+    if root and path.startswith(root):
+        path = path[len(root):] or "/"
+    if len(path) > 1 and path.endswith("/"):
+        path = path.rstrip("/") or "/"
+    return path
+
+
+def _json_error(status_code: int, detail: str) -> "JSONResponse":
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=status_code, content={"detail": detail})
+
+
+def _is_cross_site(request: Request) -> bool:
+    """True when the request demonstrably comes from another origin."""
+    fetch_site = request.headers.get("Sec-Fetch-Site", "")
+    if fetch_site in ("cross-site", "same-site"):
+        return True
+    origin = request.headers.get("Origin")
+    if origin:
+        from urllib.parse import urlparse
+        host = request.headers.get("Host", "")
+        if urlparse(origin).netloc != host:
+            return True
+    return False
+
+
+@app.middleware("http")
+async def _csrf_guard(request: Request, call_next):
+    """Refuse cross-site and form-encoded mutations.
+
+    The panel authenticates with HTTP Basic and bearer tokens, both of which a
+    browser may replay on a cross-site request. Body-less POSTs such as
+    ``/clients/{id}/make-admin`` were therefore reachable from any page the
+    operator happened to visit.
+    """
+    if request.method in _MUTATING:
+        ctype = request.headers.get("Content-Type", "").split(";")[0].strip().lower()
+        if ctype in _FORM_CONTENT_TYPES:
+            return _json_error(415, "Mutations must use Content-Type: application/json")
+        if _is_cross_site(request):
+            return _json_error(403, "Cross-site request refused")
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def _default_credentials_gate(request: Request, call_next):
+    """Serve nothing but the password change while defaults are in use (server-side).
+
+    The SPA shows a blocking modal, but that is cosmetic — a client-side gate
+    stops nobody with ``curl``.
+    """
+    if request.method != "OPTIONS" and _gate_path(request) not in _SETUP_GATE_ALLOWED:
+        try:
+            # An unreadable server.json also reads as "defaults"; the config
+            # guard below owns that case and gives a truthful answer.
+            defaults = (not _config_file_error()
+                        and using_default_credentials(get_server_config()))
+        except Exception:  # never lock the panel out on a config read error
+            defaults = False
+        if defaults:
+            return _json_error(
+                403,
+                "Default admin credentials are still in use. Change the admin "
+                "password (POST /api/auth/password) before using the panel.",
+            )
+    return await call_next(request)
+
+
+#: Reachable while server.json cannot be parsed — everything needed to see the
+#: problem and roll back to a snapshot.
+_CONFIG_BROKEN_ALLOWED = frozenset(("/health", "/config", "/config/backups",
+                                    "/config/backups/restore", "/config/backups/diff",
+                                    "/auth/login", "/auth/logout", "/auth/me",
+                                    "/setup/status"))
+
+
+@app.middleware("http")
+async def _broken_config_guard(request: Request, call_next):
+    """Refuse to act on a configuration the panel cannot actually read.
+
+    ``get_server_config()`` falls back to hivemind-core's defaults when
+    server.json is corrupt. Left alone, the panel would then report the defaults
+    as the operator's config and write them back on the next save.
+    """
+    if _gate_path(request) not in _CONFIG_BROKEN_ALLOWED:
+        err = _config_file_error()
+        if err:
+            return _json_error(
+                409, f"{err}. The panel is read-limited until it is repaired: "
+                     "restore a snapshot from /api/config/backups or fix the file.")
+    return await call_next(request)
+
+
 # ===================== Onboarding: pairing + bulk client ops =====================
+
+def _guess_lan_address() -> str:
+    """Best-effort routable address of this host, for a 0.0.0.0 bind.
+
+    Opens an unconnected UDP socket towards a public address to ask the kernel
+    which local interface it would use. No packet is sent.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("8.8.8.8", 80))
+        return sock.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return "127.0.0.1"
+    finally:
+        sock.close()
+
 
 def _ws_endpoint() -> Dict[str, Any]:
     """Resolve hivemind-core's websocket transport host/port/ssl from server config."""
@@ -3976,7 +4445,7 @@ def _ws_endpoint() -> Dict[str, Any]:
     return {"host": "0.0.0.0", "port": 5678, "ssl": False}
 
 
-@app.get("/clients/{client_id}/pairing", dependencies=[Depends(verify_credentials)])
+@app.get("/clients/{client_id}/pairing", dependencies=[Depends(require_admin)])
 def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, Any]:
     """Return a satellite pairing bundle (credentials + hivemind-core endpoint + QR payload).
 
@@ -3988,7 +4457,11 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
             if c.client_id == client_id:
                 ep = _ws_endpoint()
                 advertise = host or (ep["host"] if ep["host"] not in ("0.0.0.0", "") else None)
-                hoststr = advertise or "<CORE-IP>"
+                # 0.0.0.0 means "every interface": pick the address this host is
+                # actually reachable on rather than shipping a <CORE-IP> placeholder
+                # that no satellite can dial.
+                guessed = advertise is None
+                hoststr = advertise or _guess_lan_address()
                 scheme = "wss" if ep["ssl"] else "ws"
                 bundle = {
                     "client_id": c.client_id,
@@ -4005,9 +4478,13 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
                     "key": c.api_key, "password": c.password, "crypto_key": c.crypto_key,
                     "host": hoststr, "port": ep["port"], "ssl": ep["ssl"],
                 })
-                if not advertise:
-                    bundle["note"] = ("hivemind-core bound to 0.0.0.0; pass ?host=<LAN-IP> "
-                                      "before sharing the bundle.")
+                if guessed:
+                    bundle["host"] = hoststr
+                    bundle["host_guessed"] = True
+                    bundle["note"] = (
+                        f"hivemind-core is bound to 0.0.0.0, so the address was guessed "
+                        f"as {hoststr}. Pass ?host=<LAN-IP> if satellites reach this "
+                        f"machine on a different address.")
                 return bundle
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -4019,9 +4496,22 @@ class BulkClientRequest(BaseModel):
     template_name: Optional[str] = None
 
 
-@app.post("/clients/bulk", dependencies=[Depends(verify_credentials)])
+@app.post("/clients/bulk", dependencies=[Depends(require_admin)])
 def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
-    """Apply one action to many clients; returns a per-client result list."""
+    """Apply one action to many clients; returns a per-client result list.
+
+    Not a transaction. The underlying database plugin exposes no multi-row
+    transaction, so a partial failure leaves earlier clients changed. The
+    response therefore reports per-client outcomes and an explicit
+    ``partial`` flag instead of a bare success. Unknown actions and a missing
+    ``template_name`` are rejected up front, so the common way to end up
+    half-applied cannot happen.
+    """
+    known = ("delete", "make_admin", "revoke_admin", "apply_template")
+    if data.action not in known:
+        raise HTTPException(status_code=400, detail=f"unknown action: {data.action}")
+    if data.action == "apply_template" and not data.template_name:
+        raise HTTPException(status_code=400, detail="template_name required")
     results = []
     for cid in data.client_ids:
         try:
@@ -4032,17 +4522,17 @@ def bulk_clients(data: BulkClientRequest) -> Dict[str, Any]:
             elif data.action == "revoke_admin":
                 _modify_flag(cid, "is_admin", False)
             elif data.action == "apply_template":
-                if not data.template_name:
-                    raise HTTPException(status_code=400, detail="template_name required")
                 apply_acl_template(cid, data.template_name)
-            else:
-                raise HTTPException(status_code=400, detail=f"unknown action: {data.action}")
             results.append({"client_id": cid, "ok": True})
         except HTTPException as e:
             results.append({"client_id": cid, "ok": False, "error": e.detail})
         except Exception as e:  # pragma: no cover - defensive
             results.append({"client_id": cid, "ok": False, "error": str(e)})
-    return {"action": data.action, "results": results}
+    failed = [r for r in results if not r["ok"]]
+    return {"action": data.action, "results": results,
+            "applied": len(results) - len(failed),
+            "failed": len(failed),
+            "partial": bool(failed) and len(failed) != len(results)}
 
 
 # ===================== Agent depth: persona chat + engine taxonomy =====================
@@ -4210,7 +4700,7 @@ def list_servers() -> List[Dict[str, Any]]:
     return _load_servers()
 
 
-@app.post("/servers", dependencies=[Depends(verify_credentials)])
+@app.post("/servers", dependencies=[Depends(require_admin)])
 def add_server(data: ServerCreate) -> Dict[str, Any]:
     """Register an external OVOS server endpoint."""
     import uuid
@@ -4222,7 +4712,7 @@ def add_server(data: ServerCreate) -> Dict[str, Any]:
     return entry
 
 
-@app.delete("/servers/{server_id}", dependencies=[Depends(verify_credentials)])
+@app.delete("/servers/{server_id}", dependencies=[Depends(require_admin)])
 def delete_server(server_id: str) -> Dict[str, str]:
     """Remove a registered server."""
     servers = _load_servers()
@@ -4267,9 +4757,15 @@ def server_health(server_id: str) -> Dict[str, Any]:
 
 # ===================== Ops: backup/restore, policy chain, TLS certs =====================
 
-@app.get("/backup", dependencies=[Depends(verify_credentials)])
+@app.get("/backup", dependencies=[Depends(require_admin)])
 def export_backup() -> Dict[str, Any]:
-    """Export a portable bundle: server config + all clients (with secrets) + servers."""
+    """Export a portable bundle: server config + all clients (with secrets) + servers.
+
+    Admin only: the bundle carries every client's password and crypto_key. The
+    token-signing secret and admin password are dropped from the exported config
+    — they are not needed to restore a deployment (the secret regenerates on
+    first use) and must not be written into a portable file.
+    """
     clients = []
     try:
         with ClientDatabase() as db:
@@ -4278,10 +4774,13 @@ def export_backup() -> Dict[str, Any]:
                     clients.append(_client_to_dict(c, include_secrets=True))
     except Exception as e:
         LOG.error(f"backup: client export failed: {e}")
+    cfg = dict(get_server_config())
+    for key in _SECRET_CONFIG_KEYS:
+        cfg.pop(key, None)
     return {
         "version": 1,
         "created_at": time.time(),
-        "config": dict(get_server_config()),
+        "config": cfg,
         "clients": clients,
         "servers": _load_servers(),
     }
@@ -4321,7 +4820,7 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
         cfg = get_server_config()
         for k, v in data.config.items():
             cfg[k] = v
-        cfg.store()
+        store_config(cfg)
     return {"status": "ok", "clients_added": added, "clients_skipped": skipped,
             "config_restored": bool(data.restore_config and data.config)}
 
@@ -4345,7 +4844,7 @@ def set_policy(data: PolicyUpdate) -> Dict[str, Any]:
     policy = cfg.get("policy", {}) or {}
     policy["chain"] = data.chain
     cfg["policy"] = policy
-    cfg.store()
+    store_config(cfg)
     return {"status": "ok", "chain": data.chain}
 
 
@@ -4412,7 +4911,7 @@ def generate_certs() -> Dict[str, Any]:
 
 # ===================== Pairing QR + topology =====================
 
-@app.get("/clients/{client_id}/pairing/qr.svg", dependencies=[Depends(verify_credentials)])
+@app.get("/clients/{client_id}/pairing/qr.svg", dependencies=[Depends(require_admin)])
 def get_pairing_qr(client_id: int, host: Optional[str] = None) -> Response:
     """Render the client's pairing bundle as a scannable QR code (SVG)."""
     bundle = get_client_pairing(client_id, host=host)
@@ -4442,8 +4941,13 @@ def get_topology() -> Dict[str, Any]:
         except Exception:
             online_keys = set()
 
-    nodes = [{"id": "core", "label": "hivemind-core", "type": "core", "online": True}]
+    # `online` for the core node is only knowable when the panel holds the live
+    # protocol. In --no-core mode it is unknown, not True.
+    core_online = _protocol is not None
+    nodes = [{"id": "core", "label": "hivemind-core", "type": "core",
+              "online": core_online if _run_mode != "panel-only" else None}]
     edges = []
+    error = None
     try:
         with ClientDatabase() as db:
             for c in db:
@@ -4465,8 +4969,13 @@ def get_topology() -> Dict[str, Any]:
                 edges.append({"from": "core", "to": nid})
     except Exception as e:
         LOG.error(f"topology: {e}")
+        error = f"client database unreadable: {e}"
     return {"nodes": nodes, "edges": edges,
-            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "core")}
+            "online_count": sum(1 for n in nodes if n.get("online") and n["type"] != "core"),
+            "core_online": nodes[0]["online"],
+            "error": error,
+            "note": (None if _run_mode != "panel-only" else
+                     "panel-only mode: no live protocol, so online status is unknown")}
 
 
 # ===================== Client tags + first-run hint =====================
@@ -4476,10 +4985,10 @@ class TagsRequest(BaseModel):
     tags: List[str]
 
 
-@app.put("/clients/{client_id}/tags", dependencies=[Depends(verify_credentials)])
+@app.put("/clients/{client_id}/tags", dependencies=[Depends(require_admin)])
 def set_client_tags(client_id: int, data: TagsRequest) -> Dict[str, Any]:
     """Set the tag list for a client (stored in client metadata)."""
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
                 meta = dict(getattr(client, "metadata", None) or {})
@@ -4585,7 +5094,7 @@ def provision_bridge(data: BridgeProvision, request: Request) -> Dict[str, Any]:
     access_key = os.urandom(16).hex()
     password = os.urandom(16).hex()
     crypto_key = os.urandom(16).hex()   # 32 chars
-    with ClientDatabase() as db:
+    with client_db_write() as db:
         db.add_client(name, access_key, crypto_key=crypto_key, password=password, admin=False)
         client = db.get_client_by_api_key(access_key)
         client.allowed_types = list(BRIDGE_ALLOW)
@@ -4712,8 +5221,11 @@ def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
                      and cfg.get("admin_pass", "admin") == "admin")
     host = _bound_host or "127.0.0.1"
     loopback = host in ("127.0.0.1", "localhost", "::1", "")
-    # hivemind-core's satellite-facing websocket TLS (independent of the panel's HTTP).
-    core_tls = bool(cfg.get("ssl") or (cfg.get("cert_file") and cfg.get("key_file")))
+    # There is deliberately no check for websocket TLS. HiveMind encrypts its
+    # own payloads end to end — an AES session key on protocol v1/v2 and the
+    # Noise transport on v3 — so ws:// is not cleartext and a satellite on a
+    # plain socket is not exposed. Flagging it taught operators to add TLS for
+    # a problem they did not have, and trained them to ignore this panel.
 
     checks: List[Dict[str, Any]] = [
         {
@@ -4732,14 +5244,6 @@ def _security_checks(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
             "hint": (f"The panel is bound to {host} and reachable from the network. "
                      "Keep it on 127.0.0.1, or put it behind a TLS-terminating, "
                      "authenticating reverse proxy."),
-        },
-        {
-            "id": "core_tls",
-            "label": "hivemind-core websocket TLS configured",
-            "ok": core_tls,
-            "severity": "info",
-            "hint": ("Satellites connect over plain ws://. For untrusted networks, "
-                     "enable TLS (ssl/cert_file/key_file) in server.json."),
         },
     ]
     for c in checks:
@@ -4761,11 +5265,13 @@ def setup_status() -> Dict[str, Any]:
     host = _bound_host or "127.0.0.1"
     exposed = host not in ("127.0.0.1", "localhost", "::1", "")
     clients = 0
+    db_error = None
     try:
         with ClientDatabase() as db:
             clients = sum(1 for c in db if getattr(c, "client_id", -1) != -1)
-    except Exception:
-        pass
+    except Exception as e:
+        LOG.error(f"setup/status: client database unreadable: {e}")
+        db_error = f"client database unreadable: {e}"
     warnings = [c["hint"] for c in checks
                 if not c["ok"] and not c.get("acknowledged")
                 and c["severity"] in ("critical", "warning")]
@@ -4775,8 +5281,10 @@ def setup_status() -> Dict[str, Any]:
                 for c in checks)
     return {
         "default_credentials": default_creds,
-        "has_clients": clients > 0,
-        "client_count": clients,
+        # unknown, not False/0, when the database could not be read
+        "has_clients": None if db_error else clients > 0,
+        "client_count": None if db_error else clients,
+        "database_error": db_error,
         "bound_host": host,
         "exposed": exposed,
         "run_mode": _run_mode,
@@ -4810,7 +5318,7 @@ def setup_ack(data: SetupAck, request: Request) -> Dict[str, Any]:
     if data.id not in acked:
         acked.append(data.id)
         cfg["setup_acked"] = acked
-        cfg.store()
+        store_config(cfg)
         audit(_current_user(request), "setup.ack", id=data.id)
     return setup_status()
 
@@ -4821,7 +5329,7 @@ def setup_unack(check_id: str, request: Request) -> Dict[str, Any]:
     cfg = get_server_config()
     acked = [a for a in (cfg.get("setup_acked", []) or []) if a != check_id]
     cfg["setup_acked"] = acked
-    cfg.store()
+    store_config(cfg)
     audit(_current_user(request), "setup.unack", id=check_id)
     return setup_status()
 
@@ -4846,14 +5354,45 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
+#: Shortest password the panel will store. The panel hands out satellite
+#: credentials and can install arbitrary plugins, so a one-character password is
+#: not a lesser version of the default-credentials problem, it is the same one.
+MIN_PASSWORD_LENGTH = 12
+
+
+def _reject_weak_password(password: str) -> None:
+    """Refuse a new password that leaves the panel effectively unprotected.
+
+    The startup check and the setup gate only recognise the shipped
+    ``admin``/``admin``. Without this, "change the admin password" is satisfied
+    by any single character, and the panel then reports itself as secured.
+    """
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+    if password.strip().lower() in _WEAK_PASSWORDS:
+        raise HTTPException(status_code=422,
+                            detail="That password is one of the known defaults")
+
+
+#: Passwords that appear in this project's own documentation and images.
+_WEAK_PASSWORDS = frozenset((
+    "admin", "password", "hivemind", "changeme", "change-me",
+    "change-me-before-exposing", "adminadmin", "administrator",
+    "passwordpassword", "hivemindadmin", "123456789012",
+))
+
+
 @app.post("/auth/password", dependencies=[Depends(verify_credentials)])
-def change_password(data: PasswordChange, request: Request) -> Dict[str, str]:
+def change_password(data: PasswordChange, request: Request) -> Dict[str, Any]:
     """Change the current user's password (stored hashed with PBKDF2)."""
     from hivemind_admin_panel._auth import hash_password
     cfg = get_server_config()
     user = _current_user(request)
     if not authenticate(cfg, user, data.old_password):
         raise HTTPException(status_code=401, detail="Old password is incorrect")
+    _reject_weak_password(data.new_password)
     hashed = hash_password(data.new_password)
     if cfg.get("admin_user", "admin") == user:
         cfg["admin_pass"] = hashed
@@ -4863,16 +5402,21 @@ def change_password(data: PasswordChange, request: Request) -> Dict[str, str]:
             if u.get("username") == user:
                 u["password"] = hashed
         cfg["users"] = users
-    cfg.store()
+    store_config(cfg)
+    # Bearer tokens are stateless HMAC blobs: without re-keying, every token
+    # minted under the old password stays valid for its full 12h TTL.
+    rotate_token_secret(cfg)
     audit(user, "password.changed")
-    return {"status": "ok"}
+    return {"status": "ok", "tokens_revoked": True}
 
 
 @app.post("/config/diff", dependencies=[Depends(verify_credentials)])
 def config_diff(data: ConfigUpdate) -> Dict[str, Any]:
     """Diff a proposed config against the current server.json (dry-run preview)."""
-    current = dict(get_server_config())
-    proposed = data.config or {}
+    # Redact both sides before diffing so the token-signing secret and admin
+    # password never surface in added/removed/changed for any caller.
+    current = _redact_config(dict(get_server_config()))
+    proposed = _redact_config(data.config or {})
     added = {k: proposed[k] for k in proposed if k not in current}
     removed = {k: current[k] for k in current if k not in proposed}
     changed = {k: {"from": current[k], "to": proposed[k]}

@@ -13,7 +13,7 @@ docker run --rm \
   hivemind-admin-panel
 ```
 
-Open <http://127.0.0.1:8100>. The image is published to GHCR by CI:
+Open [http://127.0.0.1:8100](http://127.0.0.1:8100). CI publishes the image to GHCR:
 
 ```bash
 docker pull ghcr.io/jarbashivemind/hivemind-admin-panel:latest
@@ -32,12 +32,23 @@ docker compose up --build
 
 It defines two services:
 
-- **redis** — the client-database backend (persisted to a named volume);
-- **hivemind** — hivemind-core + admin panel, configured by `docker/server.json` (which
+- **redis**: the client-database backend (persisted to a named volume).
+- **hivemind**: hivemind-core and the admin panel, configured by `docker/server.json` (which
   selects the Redis backend and the admin credentials).
 
-Before exposing anything, edit `docker/server.json` and change `admin_pass`. The
-panel is published on `127.0.0.1:8100` and the websocket transport on `:5678`.
+Edit `docker/server.json` and change `admin_pass` **before the first `up`**. The
+value in the repository is a placeholder and is public, so it protects nothing.
+The file is mounted read-only, so `POST /api/auth/password` cannot rewrite it —
+in this configuration the password is changed by editing the file and restarting
+the container.
+
+The panel's own default-credentials gate does **not** catch this: it recognises
+the shipped `admin`/`admin` only, and the compose placeholder is a different
+string. Nothing will warn you.
+
+The panel is published on `127.0.0.1:8100` only. Reach it through an SSH tunnel
+or put a TLS proxy in front of it. The websocket transport is published on
+`:5678` on all interfaces, because satellites must reach it.
 
 Volumes:
 
@@ -67,7 +78,7 @@ server {
 }
 ```
 
-The panel still enforces its own Basic auth; the proxy can add a second factor.
+The panel still enforces its own Basic auth. The proxy can add a second factor.
 
 ## systemd (standalone panel)
 
@@ -93,9 +104,24 @@ sudo systemctl enable --now hivemind-admin-panel
 This single unit runs hivemind-core and the panel together. Add `--no-core` to the
 `ExecStart` line if hivemind-core is managed by a separate service on the host.
 
----
 
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Security](security.md) | [📖 Docs home](index.md) | [OVOS servers](ovos-servers.md) → |
+### What it looks like
+
+Audio streaming is configured in the binary protocol screen:
+
+![Binary Protocol: the audio transport and its STT, TTS and VAD plugins (widescreen)](img/binary.png)
+
+![Binary Protocol: the audio transport and its STT, TTS and VAD plugins (mobile)](img/binary-mobile.png)
+
+and the listeners a deployment exposes are here:
+
+**Widescreen**
+
+![Network: the listeners a deployment exposes (widescreen)](img/network.png)
+
+**Mobile**
+
+![Network: the listeners a deployment exposes (mobile)](img/network-mobile.png)
+
+---
+[← Security](security.md) · [Home](index.md) · [OVOS servers →](ovos-servers.md)
