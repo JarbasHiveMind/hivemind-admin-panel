@@ -16,6 +16,17 @@ def test_create_admin_client(make_client):
     assert c["is_admin"] is True
 
 
+def test_create_returns_full_secrets(make_client):
+    """POST /clients is the only response that ever carries the plaintext
+    password and crypto_key; the admin panel's "Add Client" reveal UI reads
+    these fields directly off this response. Pin the contract so the UI
+    doesn't silently break if the fields are renamed or dropped."""
+    c = make_client(name="sat-secrets")
+    assert c["api_key"]
+    assert c["password"]
+    assert c["crypto_key"] is not None
+
+
 def test_create_rejects_bad_crypto_key_length(client, auth):
     resp = client.post("/clients", json={"name": "x", "crypto_key": "tooshort"}, headers=auth)
     assert resp.status_code == 400

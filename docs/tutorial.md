@@ -1,8 +1,11 @@
 # Tutorial: zero to hero
 
-A complete, hands-on walkthrough. By the end you'll have launched hivemind-core,
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
+A complete, hands-on walkthrough. By the end you will have launched hivemind-core,
 secured it, paired a satellite, given it a personality, and watched it live. It
-takes ~15 minutes and needs only Python 3.10+.
+takes about 15 minutes and needs only Python 3.10+.
 
 If a term is new, check [Concepts](concepts.md) or the [Glossary](glossary.md).
 
@@ -21,25 +24,25 @@ hivemind-admin-panel --host 127.0.0.1 --port 8100
 ```
 
 That single command starts hivemind-core **in-process** and serves the web UI.
-Open <http://127.0.0.1:8100> and log in — the default credentials are
+Open <http://127.0.0.1:8100> and log in. The default credentials are
 `admin` / `admin`.
 
-> Seeing a warning banner about default credentials? Good — that's the panel
+> Seeing a warning banner about default credentials? Good, that is the panel
 > nudging you to step 3.
 
 ## 3. Lock down the admin login
 
-Default credentials are dangerous — so the panel **forces the issue**. On first
+Default credentials are dangerous, so the panel **forces the issue**. On first
 login with the default password, a modal blocks the whole UI until you set a new
-one (minimum 8 characters, stored hashed). Type a strong password and continue;
-the dashboard's **Security** card then turns green.
+one (minimum 8 characters, stored hashed). Type a strong password and continue.
+The dashboard's **Security** card then turns green.
 
 ![First-run security gate](img/first-run-gate.png)
 
 You can change it again any time:
 
 - In the UI: the Security card's **Change admin password** button, or
-- via the API:
+- through the API:
 
 ```bash
 curl -u admin:admin -X POST http://127.0.0.1:8100/api/auth/password \
@@ -56,7 +59,7 @@ For a read-only colleague, add an **operator** account in `server.json` (see
 ![Clients](img/clients.png)
 
 Go to **Clients → + Add**, give it a name like `kitchen-speaker`. The panel mints
-an **access key** and secrets for you. (Via API:)
+an **access key** and secrets for you. (Through the API:)
 
 ```bash
 curl -u admin:a-strong-password -X POST http://127.0.0.1:8100/api/clients \
@@ -65,8 +68,8 @@ curl -u admin:a-strong-password -X POST http://127.0.0.1:8100/api/clients \
 
 ## 5. Pair it with a QR code
 
-Open the **Topology** page. You'll see hivemind-core in the centre and your new
-satellite around it. **Click the satellite** → a pairing dialog shows a **QR
+Open the **Topology** page. You see hivemind-core in the center and your new
+satellite around it. **Click the satellite** to open a pairing dialog with a **QR
 code** plus the full connection bundle (key, host, port).
 
 - If hivemind-core is bound to `0.0.0.0`, enter your machine's **LAN IP** when
@@ -80,9 +83,9 @@ The satellite connects over the encrypted websocket transport (port 5678).
 
 ![Permissions](img/permissions.png)
 
-A fresh client can't do anything until you allow message types. Go to
+A fresh client cannot do anything until you allow message types. Go to
 **Permissions**, pick `kitchen-speaker`, and **allow** `recognizer_loop:utterance`
-so it can send spoken requests. (Via API:)
+so it can send spoken requests. (Through the API:)
 
 ```bash
 curl -u admin:a-strong-password -X POST \
@@ -98,7 +101,7 @@ Tip: save this as a **template** and apply it to future satellites in one click.
 ![Personas](img/personas.png)
 
 Go to **Personas → + Create**. A persona is an ordered list of **handlers**. For a
-no-GPU start, use a factual/scripted handler; for an LLM, pick an OpenAI-style
+no-GPU start, use a factual or scripted handler. For an LLM, pick an OpenAI-style
 handler and paste your API details. Example persona JSON:
 
 ```jsonc
@@ -116,9 +119,9 @@ the browser.
 
 ## 8. Chat as your satellite
 
-Open **Test Chat**, pick `kitchen-speaker`, and **Start chat**. You're now talking
-to the hub *as that client* — type a message and the agent answers. This proves the
-satellite's ACL and the whole hub→agent path end-to-end, no device required.
+Open **Test Chat**, pick `kitchen-speaker`, and **Start chat**. You are now talking
+to the hub *as that client*. Type a message and the agent answers. This proves the
+satellite's ACL and the whole hub-to-agent path end-to-end, with no device required.
 
 ![Test Chat](img/test-chat.png)
 
@@ -126,34 +129,41 @@ satellite's ACL and the whole hub→agent path end-to-end, no device required.
 
 Open **Monitor**:
 
-- **Metrics** — uptime, active connections, message counts. Tick **live** to
+- **Metrics**: uptime, active connections, message counts. Tick **live** to
   stream updates.
-- **Message inspector / events** — every message your satellite sends appears
+- **Message inspector / events**: every message your satellite sends appears
   here in real time (filter by type or peer).
-- **Core log & audit log** — the hivemind-core log tail, and a record of every
+- **Core log & audit log**: the hivemind-core log tail, and a record of every
   admin change (who did what).
 
-Open **Topology** again — your paired satellite now shows **online**.
+Open **Topology** again. Your paired satellite now shows **online**.
 
 ## 10. Back it up
 
 Before you forget: **Operations → Download backup** saves a bundle (config +
 clients + servers). Restore it any time with **Restore…**.
 
-## You're a hero 🎉
+## Next steps
 
-You've run a secured hivemind-core, onboarded a satellite, given it an ACL and a
+You have run a secured hivemind-core, onboarded a satellite, given it an ACL and a
 persona, and monitored it live. Where to go next:
 
-- **[Operations](operations.md)** — roles, TLS, policy chain, backups in depth.
-- **[OVOS servers](ovos-servers.md)** — offload speech/LLM to networked servers
+- **[Operations](operations.md)**: roles, TLS, policy chain, backups in depth.
+- **[OVOS servers](ovos-servers.md)**: offload speech or LLM work to networked servers
   for a homelab.
-- **[Configuration](configuration.md)** — every `server.json` knob.
-- **[Troubleshooting](troubleshooting.md)** — if anything misbehaved.
+- **[Configuration](configuration.md)**: every `server.json` knob.
+- **[Troubleshooting](troubleshooting.md)**: if anything misbehaved.
+
+
+### What it looks like
+
+**Widescreen**
+
+<!-- duplicate screenshot removed -->
+
+**Mobile**
+
+![Client Management, where satellites are paired and revoked (mobile)](img/clients-mobile.png)
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Getting started](getting-started.md) | [📖 Docs home](index.md) | [Glossary](glossary.md) → |
+[← Getting started](getting-started.md) · [Home](index.md) · [Glossary →](glossary.md)
