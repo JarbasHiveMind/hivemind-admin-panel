@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.19a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.19a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.18a1...0.1.19a1)
+
+**Merged pull requests:**
+
+- fix: recursive hint-based config redaction \(nested database/provider secrets\) [\#66](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/66) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.18a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.18a1) (2026-09-01)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.17a1...0.1.18a1)
