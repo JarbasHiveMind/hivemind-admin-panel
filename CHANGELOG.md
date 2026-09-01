@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.18a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.18a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.17a1...0.1.18a1)
+
+**Merged pull requests:**
+
+- fix: gate/redact remaining operator-reachable secret leaks \(clients pairing/detail, persona LLM keys\) + profile PUT restore [\#64](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/64) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.17a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.17a1) (2026-09-01)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.16a1...0.1.17a1)
