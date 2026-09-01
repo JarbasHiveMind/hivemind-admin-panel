@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.15a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.15a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.14a1...0.1.15a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): toast live-region, dialog semantics, aria-current, keyboard pairing [\#57](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/57) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.14a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.14a1) (2026-09-01)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a3...0.1.14a1)
