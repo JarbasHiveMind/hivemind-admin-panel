@@ -1235,11 +1235,12 @@
             labels = labels || { user: 'you (as client)', assistant: 'hub', system: 'system' };
             const mine = m.role === 'user';
             const sys = m.role === 'system';
+            const err = m.role === 'error';
             const align = mine ? 'flex-end' : 'flex-start';
-            const bg = mine ? 'var(--accent-primary)' : (sys ? 'transparent' : 'var(--bg-hover)');
-            const color = mine ? '#fff' : (sys ? 'var(--text-secondary)' : 'var(--text-primary)');
-            const border = sys ? 'border:1px dashed var(--border-color);' : '';
-            const who = mine ? labels.user : (sys ? labels.system : labels.assistant);
+            const bg = mine ? 'var(--accent-primary)' : (err ? 'var(--accent-danger, #4a1f1f)' : (sys ? 'transparent' : 'var(--bg-hover)'));
+            const color = mine ? '#fff' : (err ? 'var(--accent-danger, #ff6b6b)' : (sys ? 'var(--text-secondary)' : 'var(--text-primary)'));
+            const border = err ? 'border:1px solid var(--accent-danger, #ff6b6b);' : (sys ? 'border:1px dashed var(--border-color);' : '');
+            const who = mine ? labels.user : (err ? '⚠ denied' : (sys ? labels.system : labels.assistant));
             return `<div style="align-self:${align};max-width:80%;">
                       <div style="font-size:10px;color:var(--text-secondary);margin:0 4px 2px;text-align:${mine?'right':'left'};">${who}</div>
                       <div style="background:${bg};color:${color};${border}padding:8px 12px;border-radius:12px;font-size:13px;white-space:pre-wrap;">${esc(m.text)}</div>

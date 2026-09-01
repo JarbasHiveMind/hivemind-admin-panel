@@ -1134,8 +1134,8 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
         "api_key": client.api_key,
         "is_admin": bool(client.is_admin),
         "allowed_types": client.allowed_types or [],
-        "skill_blacklist": client.skill_blacklist or [],
-        "intent_blacklist": client.intent_blacklist or [],
+        "skill_blacklist": client.metadata.get("skill_blacklist", []),
+        "intent_blacklist": client.metadata.get("intent_blacklist", []),
         "can_escalate": bool(client.can_escalate),
         "can_propagate": bool(client.can_propagate),
         "can_broadcast": bool(getattr(client, 'can_broadcast', True)),
@@ -1317,9 +1317,9 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
                 if data.allowed_types is not None:
                     client.allowed_types = data.allowed_types
                 if data.skill_blacklist is not None:
-                    client.skill_blacklist = data.skill_blacklist
+                    client.metadata["skill_blacklist"] = data.skill_blacklist
                 if data.intent_blacklist is not None:
-                    client.intent_blacklist = data.intent_blacklist
+                    client.metadata["intent_blacklist"] = data.intent_blacklist
                 db.update_item(client)
                 return _client_to_dict(client, include_secrets=True)
     raise HTTPException(status_code=404, detail="Client not found")
@@ -1504,12 +1504,12 @@ def _modify_skill(client_id: int, skill_id: str, action: str) -> Dict[str, Any]:
     with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
-                blacklist = client.skill_blacklist or []
+                blacklist = client.metadata.get("skill_blacklist", [])
                 if action == "allow" and skill_id in blacklist:
                     blacklist.remove(skill_id)
                 elif action == "blacklist" and skill_id not in blacklist:
                     blacklist.append(skill_id)
-                client.skill_blacklist = blacklist
+                client.metadata["skill_blacklist"] = blacklist
                 db.update_item(client)
                 return _client_to_dict(client)
     raise HTTPException(status_code=404, detail="Client not found")
@@ -1565,12 +1565,12 @@ def _modify_intent(client_id: int, intent_id: str, action: str) -> Dict[str, Any
     with client_db_write() as db:
         for client in db:
             if client.client_id == client_id:
-                blacklist = client.intent_blacklist or []
+                blacklist = client.metadata.get("intent_blacklist", [])
                 if action == "allow" and intent_id in blacklist:
                     blacklist.remove(intent_id)
                 elif action == "blacklist" and intent_id not in blacklist:
                     blacklist.append(intent_id)
-                client.intent_blacklist = blacklist
+                client.metadata["intent_blacklist"] = blacklist
                 db.update_item(client)
                 return _client_to_dict(client)
     raise HTTPException(status_code=404, detail="Client not found")
@@ -2260,8 +2260,8 @@ def _migrate_clients(
             name=client.name,
             key=client.api_key,
             admin=client.is_admin,
-            intent_blacklist=client.intent_blacklist,
-            skill_blacklist=client.skill_blacklist,
+            intent_blacklist=client.metadata.get("intent_blacklist", []),
+            skill_blacklist=client.metadata.get("skill_blacklist", []),
             allowed_types=client.allowed_types,
             crypto_key=client.crypto_key,
             password=client.password,
@@ -2818,8 +2818,8 @@ def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
         target_client = target_db.get_client_by_api_key(client.api_key)
         if target_client:
             target_client.allowed_types = client.allowed_types
-            target_client.skill_blacklist = client.skill_blacklist
-            target_client.intent_blacklist = client.intent_blacklist
+            target_client.metadata["skill_blacklist"] = client.metadata.get("skill_blacklist", [])
+            target_client.metadata["intent_blacklist"] = client.metadata.get("intent_blacklist", [])
             target_client.can_escalate = client.can_escalate
             target_client.can_propagate = client.can_propagate
             target_db.update_item(target_client)
@@ -3110,8 +3110,8 @@ def get_client_acl(client_id: int) -> Dict[str, Any]:
                     "can_propagate": bool(client.can_propagate),
                     "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                     "allowed_types": client.allowed_types or [],
-                    "skill_blacklist": client.skill_blacklist or [],
-                    "intent_blacklist": client.intent_blacklist or [],
+                    "skill_blacklist": client.metadata.get("skill_blacklist", []),
+                    "intent_blacklist": client.metadata.get("intent_blacklist", []),
                 }
     raise HTTPException(status_code=404, detail=f"Client {client_id} not found")
 
@@ -3147,10 +3147,10 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
                     client.allowed_types = data.allowed_types
                 # Skill blacklist
                 if data.skill_blacklist is not None:
-                    client.skill_blacklist = data.skill_blacklist
+                    client.metadata["skill_blacklist"] = data.skill_blacklist
                 # Intent blacklist
                 if data.intent_blacklist is not None:
-                    client.intent_blacklist = data.intent_blacklist
+                    client.metadata["intent_blacklist"] = data.intent_blacklist
                 db.update_item(client)
                 return {
                     "client_id": client.client_id,
@@ -3160,8 +3160,8 @@ def update_client_acl(client_id: int, data: ACLUpdateRequest) -> Dict[str, Any]:
                     "can_propagate": bool(client.can_propagate),
                     "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                     "allowed_types": client.allowed_types or [],
-                    "skill_blacklist": client.skill_blacklist or [],
-                    "intent_blacklist": client.intent_blacklist or [],
+                    "skill_blacklist": client.metadata.get("skill_blacklist", []),
+                    "intent_blacklist": client.metadata.get("intent_blacklist", []),
                 }
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -3198,16 +3198,16 @@ def apply_acl_template(client_id: int, template_name: str) -> Dict[str, Any]:
         for client in db:
             if client.client_id == client_id:
                 client.allowed_types = template.get("allowed_types", [])
-                client.skill_blacklist = template.get("skill_blacklist", [])
-                client.intent_blacklist = template.get("intent_blacklist", [])
+                client.metadata["skill_blacklist"] = template.get("skill_blacklist", [])
+                client.metadata["intent_blacklist"] = template.get("intent_blacklist", [])
                 db.update_item(client)
                 return {
                     "client_id": client.client_id,
                     "name": client.name,
                     "template_applied": template_name,
                     "allowed_types": client.allowed_types or [],
-                    "skill_blacklist": client.skill_blacklist or [],
-                    "intent_blacklist": client.intent_blacklist or [],
+                    "skill_blacklist": client.metadata.get("skill_blacklist", []),
+                    "intent_blacklist": client.metadata.get("intent_blacklist", []),
                     "can_broadcast": bool(getattr(client, "can_broadcast", True)),
                 }
     raise HTTPException(status_code=404, detail="Client not found")
