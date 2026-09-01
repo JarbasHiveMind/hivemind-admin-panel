@@ -545,3 +545,104 @@ def test_admin_profile_put_roundtrip_preserves_secret(client, authz_env):
         assert _load_profile("rtprofile")["config"]["password"] == secret
     finally:
         client.delete("/database/profiles/rtprofile", headers=authz_env["admin"])
+
+
+# ---------------------------------- wave-4 nested config secret-leak sweep
+
+DB_PASSWORD = "nested-db-pw-w4"
+DB_DSN = "postgresql://user:nested-db-pw-w4@db.internal/hive"
+PROVIDER_KEY = "sk-nested-provider-key-w4"
+
+
+@pytest.fixture()
+def nested_secret_env(authz_env):
+    """On top of ``authz_env``, nest a non-sqlite ``database`` backend carrying a
+    password + DSN and a provider ``key`` under ``agent_protocol`` in server.json,
+    mirroring what activate/persona plugins write. Yields the auth headers."""
+    from hivemind_core.config import get_server_config
+
+    cfg = get_server_config()
+    previous = {k: cfg.get(k) for k in ("database", "agent_protocol")}
+    cfg["database"] = {
+        "module": "hivemind-redis-db-plugin",
+        "hivemind-redis-db-plugin": {
+            "host": "db.internal",
+            "port": 6379,
+            "password": DB_PASSWORD,
+            "dsn": DB_DSN,
+        },
+    }
+    cfg["agent_protocol"] = {
+        "module": "hivemind-persona-agent-plugin",
+        "hivemind-persona-agent-plugin": {
+            "persona": {"solvers": [{"module": "ovos-llm", "key": PROVIDER_KEY}]},
+        },
+    }
+    cfg.store()
+    try:
+        yield authz_env
+    finally:
+        for k, v in previous.items():
+            if v is None:
+                cfg.pop(k, None)
+            else:
+                cfg[k] = v
+        cfg.store()
+
+
+def _assert_no_nested_secrets(text):
+    assert DB_PASSWORD not in text
+    assert DB_DSN not in text
+    assert PROVIDER_KEY not in text
+
+
+def test_operator_config_hides_nested_database_and_provider_secrets(
+        client, nested_secret_env):
+    """GET /config must mask the nested DB password/DSN and the provider key
+    buried under agent_protocol for an operator, not just top-level secrets."""
+    resp = client.get("/config", headers=nested_secret_env["operator"])
+    assert resp.status_code == 200, resp.text
+    _assert_no_nested_secrets(resp.text)
+    body = resp.json()
+    db = body["database"]["hivemind-redis-db-plugin"]
+    from hivemind_admin_panel.api import REDACTED
+    assert db["password"] == REDACTED
+    assert db["dsn"] == REDACTED
+    # benign non-secret keys survive
+    assert db["host"] == "db.internal"
+    assert db["port"] == 6379
+
+
+def test_operator_config_diff_hides_nested_secrets(client, nested_secret_env):
+    """POST /config/diff must not leak the nested DB password/DSN or provider
+    key to an operator diffing an empty proposal against the current config."""
+    resp = client.post("/config/diff", json={"config": {}},
+                       headers=nested_secret_env["operator"])
+    assert resp.status_code == 200, resp.text
+    _assert_no_nested_secrets(resp.text)
+
+
+def test_operator_config_backups_diff_hides_nested_secrets(
+        client, nested_secret_env):
+    """GET /config/backups/diff must redact nested backend/provider secrets on
+    both sides of the snapshot-vs-current comparison for an operator."""
+    snap = client.post("/config/backups",
+                       headers=nested_secret_env["admin"]).json()["file"]
+    resp = client.get(f"/config/backups/diff?file={snap}",
+                      headers=nested_secret_env["operator"])
+    assert resp.status_code == 200, resp.text
+    _assert_no_nested_secrets(resp.text)
+
+
+def test_admin_config_roundtrip_preserves_nested_db_password(
+        client, nested_secret_env):
+    """GET /config (redacted) then POST it back must not clobber the real nested
+    DB password with the placeholder: _restore_redacted recurses to restore it."""
+    cfg = client.get("/config", headers=nested_secret_env["admin"]).json()
+    cfg["description"] = "nested-roundtrip"
+    assert client.post("/config", json={"config": cfg},
+                       headers=nested_secret_env["admin"]).status_code == 200
+    from hivemind_core.config import get_server_config
+    db = get_server_config()["database"]["hivemind-redis-db-plugin"]
+    assert db["password"] == DB_PASSWORD
+    assert db["dsn"] == DB_DSN
