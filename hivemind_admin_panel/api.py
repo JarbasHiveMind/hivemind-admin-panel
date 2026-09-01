@@ -25,6 +25,7 @@ Endpoints:
 """
 
 import contextlib
+import copy
 import hmac
 import importlib.metadata
 import json
@@ -316,6 +317,11 @@ def require_admin(request: Request) -> bool:
 def _current_user(request: Request) -> str:
     ident = _identify(request)
     return ident[0] if ident else "anonymous"
+
+
+def _is_admin(request: Request) -> bool:
+    ident = _identify(request)
+    return bool(ident) and ident[1] == "admin"
 
 
 class ClientResponse(BaseModel):
@@ -833,12 +839,57 @@ def _config_file_error() -> Optional[str]:
         return f"{path} is unreadable: {e}"
 
 
+#: Placeholder sent to the client in place of a secret value.
+REDACTED = "********"
+
+#: Top-level server.json keys that must never leave the server over the API.
+#: ``admin_token_secret`` is the HMAC key that signs bearer tokens: anyone who
+#: reads it can forge an ``{"role": "admin"}`` token. ``admin_pass`` is the
+#: primary admin password. The browser needs neither.
+_SECRET_CONFIG_KEYS = ("admin_token_secret", "admin_pass")
+
+
+def _redact_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Deep-copy ``cfg`` with the token-signing secret, admin password and every
+    ``users[*].password`` replaced by :data:`REDACTED`."""
+    red = copy.deepcopy(dict(cfg))
+    for key in _SECRET_CONFIG_KEYS:
+        if key in red:
+            red[key] = REDACTED
+    users = red.get("users")
+    if isinstance(users, list):
+        for u in users:
+            if isinstance(u, dict) and "password" in u:
+                u["password"] = REDACTED
+    return red
+
+
+def _restore_redacted(incoming: Any, existing: Any) -> Any:
+    """Return ``incoming`` with every :data:`REDACTED` sentinel replaced by the
+    value at the same path in ``existing``.
+
+    The SPA reads /config (redacted) and posts the whole object back. Without
+    this, saving any config change would clobber the real signing secret and
+    admin password with the placeholder.
+    """
+    if isinstance(incoming, dict) and isinstance(existing, dict):
+        return {k: (_restore_redacted(v, existing[k]) if k in existing else v)
+                for k, v in incoming.items()}
+    if isinstance(incoming, list) and isinstance(existing, list):
+        return [_restore_redacted(v, existing[i]) if i < len(existing) else v
+                for i, v in enumerate(incoming)]
+    if incoming == REDACTED:
+        return existing
+    return incoming
+
+
 @app.get("/config", dependencies=[Depends(verify_credentials)])
 def get_config() -> Dict[str, Any]:
     """Get server configuration.
 
     Returns:
-        Dict containing full server configuration from server.json.
+        Dict containing server configuration from server.json, with the
+        token-signing secret and passwords redacted.
 
     Raises:
         HTTPException: 500 if server.json exists but cannot be parsed — the
@@ -848,7 +899,7 @@ def get_config() -> Dict[str, Any]:
     if err:
         raise HTTPException(status_code=500, detail=err)
     cfg = get_server_config()
-    return dict(cfg)
+    return _redact_config(cfg)
 
 
 @app.post("/config", dependencies=[Depends(require_admin)])
@@ -874,7 +925,8 @@ def set_config(data: ConfigUpdate) -> Dict[str, Any]:
                    "/api/config/backups.")
     _snapshot_config()
     cfg = get_server_config()
-    for key, value in data.config.items():
+    incoming = _restore_redacted(data.config, dict(cfg))
+    for key, value in incoming.items():
         cfg[key] = value
     store_config(cfg)
     return {"status": "ok"}
@@ -1097,23 +1149,38 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
     return result
 
 
+def _strip_api_key(clients: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Drop the connection ``api_key`` from each client dict.
+
+    The api_key is the access credential a satellite uses to connect. Operators
+    may list clients (names, ids, status) but must not read that key; retrieving
+    it stays behind require_admin (``/clients/{id}/credentials``).
+    """
+    for c in clients:
+        c.pop("api_key", None)
+    return clients
+
+
 @app.get("/clients", dependencies=[Depends(verify_credentials)])
-def list_clients() -> List[Dict[str, Any]]:
+def list_clients(request: Request) -> List[Dict[str, Any]]:
     """List all clients including deleted ones.
 
     Returns:
         List of client dictionaries (excludes internal client with id=-1).
-        Deleted clients are marked with deleted=True.
+        Deleted clients are marked with deleted=True. The connection api_key is
+        included only for admins.
     """
     with ClientDatabase() as db:
-        return [_client_to_dict(c) for c in db if c.client_id != -1]
+        clients = [_client_to_dict(c) for c in db if c.client_id != -1]
+    return clients if _is_admin(request) else _strip_api_key(clients)
 
 
 @app.get("/clients/active", dependencies=[Depends(verify_credentials)])
-def list_active_clients() -> List[Dict[str, Any]]:
+def list_active_clients(request: Request) -> List[Dict[str, Any]]:
     """List only active (non-revoked) clients.
-    
-    Revoked clients are those with api_key="REVOKED" or revoked=True.
+
+    Revoked clients are those with api_key="REVOKED" or revoked=True. The
+    connection api_key is included only for admins.
     """
     with ClientDatabase() as db:
         result = []
@@ -1125,7 +1192,7 @@ def list_active_clients() -> List[Dict[str, Any]]:
             is_revoked = api_key_str == "REVOKED" or (hasattr(c, 'revoked') and c.revoked)
             if not is_revoked:
                 result.append(_client_to_dict(c))
-        return result
+        return result if _is_admin(request) else _strip_api_key(result)
 
 
 @app.get("/clients/{client_id}", dependencies=[Depends(verify_credentials)])
@@ -4597,9 +4664,15 @@ def server_health(server_id: str) -> Dict[str, Any]:
 
 # ===================== Ops: backup/restore, policy chain, TLS certs =====================
 
-@app.get("/backup", dependencies=[Depends(verify_credentials)])
+@app.get("/backup", dependencies=[Depends(require_admin)])
 def export_backup() -> Dict[str, Any]:
-    """Export a portable bundle: server config + all clients (with secrets) + servers."""
+    """Export a portable bundle: server config + all clients (with secrets) + servers.
+
+    Admin only: the bundle carries every client's password and crypto_key. The
+    token-signing secret and admin password are dropped from the exported config
+    — they are not needed to restore a deployment (the secret regenerates on
+    first use) and must not be written into a portable file.
+    """
     clients = []
     try:
         with ClientDatabase() as db:
@@ -4608,10 +4681,13 @@ def export_backup() -> Dict[str, Any]:
                     clients.append(_client_to_dict(c, include_secrets=True))
     except Exception as e:
         LOG.error(f"backup: client export failed: {e}")
+    cfg = dict(get_server_config())
+    for key in _SECRET_CONFIG_KEYS:
+        cfg.pop(key, None)
     return {
         "version": 1,
         "created_at": time.time(),
-        "config": dict(get_server_config()),
+        "config": cfg,
         "clients": clients,
         "servers": _load_servers(),
     }
