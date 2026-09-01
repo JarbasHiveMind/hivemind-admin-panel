@@ -280,6 +280,11 @@
             box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
         }
 
+        #topologyContainer svg g[role="button"]:focus {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;

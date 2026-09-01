@@ -138,6 +138,13 @@
             if (el) _modalOpener = el;
         }, true);
 
+        // click fires for keyboard activation (Enter/Space) too, so this catches
+        // modals opened without a mouse that mousedown above would otherwise miss.
+        document.addEventListener('click', (e) => {
+            const el = e.target.closest && e.target.closest('button, a, [onclick]');
+            if (el) _modalOpener = el;
+        }, true);
+
         // Theme
         function loadTheme() {
             const saved = localStorage.getItem('theme') || 'dark';
@@ -421,8 +428,13 @@
         // Navigation
         function navigate(page) {
             // Update nav
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+                el.removeAttribute('aria-current');
+            });
+            const activeNavItem = document.querySelector(`[data-page="${page}"]`);
+            activeNavItem?.classList.add('active');
+            activeNavItem?.setAttribute('aria-current', 'page');
 
             // Update title
             const titles = {
@@ -483,7 +495,9 @@
                 svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#30363d" stroke-width="1.5"/>`;
                 const centerGlyph = n.bridge ? n.bridge.icon : (n.type === 'admin' ? '★' : '');
                 const sublabel = n.bridge ? `<text x="${x}" y="${y + 50}" text-anchor="middle" font-size="9" fill="var(--text-secondary)">${esc(n.bridge.label)} bridge</text>` : '';
-                svg += `<g style="cursor:pointer;" onclick="pairClient(${n.id.replace('client-','')}, '${jsArg(n.label)}')">
+                svg += `<g style="cursor:pointer;" tabindex="0" role="button" aria-label="Pair satellite ${esc(n.label)}"
+                          onclick="pairClient(${n.id.replace('client-','')}, '${jsArg(n.label)}')"
+                          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pairClient(${n.id.replace('client-','')}, '${jsArg(n.label)}');}">
                           <circle cx="${x}" cy="${y}" r="22" fill="${color}"/>
                           <text x="${x}" y="${y + 38}" text-anchor="middle" font-size="11" fill="currentColor">${esc(n.label)}</text>
                           ${centerGlyph ? `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="13">${centerGlyph}</text>` : ''}
@@ -512,7 +526,7 @@
                     `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
                 document.getElementById('pairModal').style.display = 'flex';
-            } catch (e) { alert('Pairing failed: ' + e.message); }
+            } catch (e) { showToast('Pairing failed: ' + e.message, 'error'); }
         }
         function closePairModal() { document.getElementById('pairModal').style.display = 'none'; }
 
@@ -1076,7 +1090,7 @@
                                 ${isRevoked 
                                     ? `<span style="color: var(--accent-danger); font-size: 12px;">API Key Revoked</span>`
                                     : `<button class="btn btn-secondary btn-sm" onclick="showEditClientModal(${c.client_id})" style="margin-right: 8px;">Edit</button>
-                                       <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.client_id})">Delete</button>`
+                                       <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.client_id}, '${jsArg(c.name)}')">Delete</button>`
                                 }
                             </td>
                         </tr>
@@ -1560,10 +1574,10 @@
             }
         }
 
-        async function deleteClient(id) {
+        async function deleteClient(id, name) {
             showConfirmModal(
                 'Delete Client',
-                'Are you sure you want to delete this client? This action cannot be undone.',
+                `Delete client "${escapeHtml(name ?? '')}" (#${id})? This action cannot be undone.`,
                 async () => {
                     try {
                         await apiCall(`/clients/${id}`, 'DELETE');
@@ -4651,6 +4665,10 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
+            if (type === 'error') {
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+            }
             toast.innerHTML = type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : '⚠️ ';
             toast.innerHTML += escapeHtml(message);
             container.appendChild(toast);
