@@ -34,6 +34,11 @@ const APP_JS_PATH = path.resolve(
   '../../hivemind_admin_panel/static/js/app.js'
 );
 
+const I18N_JS_PATH = path.resolve(
+  __dirname,
+  '../../hivemind_admin_panel/static/js/i18n.js'
+);
+
 const MIN_HTML = `
 <div id="loginScreen"></div>
 <div id="loginError"></div>
@@ -156,6 +161,9 @@ function evalApp() {
 
   _installStubs();
   document.body.innerHTML = MIN_HTML;
+
+  // app.js calls t() (from i18n.js) for translated toast/error strings.
+  window.eval(fs.readFileSync(I18N_JS_PATH, 'utf8')); // eslint-disable-line no-eval
 
   const src = fs.readFileSync(APP_JS_PATH, 'utf8');
   // window.eval runs in the global (window) scope: `function` declarations

@@ -312,7 +312,7 @@
             document.getElementById('frNewPass').value = '';
             document.getElementById('frConfirmPass').value = '';
             err.classList.add('hidden');
-            showToast && showToast('Admin password updated — panel secured', 'success');
+            showToast && showToast(t('toastAdminPasswordUpdatedPanelSecured'), 'success');
             await fetchSetupStatus();
             // The dashboard load was deferred while the gate was up (see enterApp);
             // now that the panel is secured, bring the user to it.
@@ -391,12 +391,12 @@
 
         async function ackCheck(id) {
             try { _setupStatus = await apiCall('/setup/ack', 'POST', { id }); renderSecurityCard(_setupStatus); }
-            catch (e) { showToast('Could not dismiss warning', 'error'); }
+            catch (e) { showToast(t('toastCouldNotDismissWarning'), 'error'); }
         }
 
         async function unackCheck(id) {
             try { _setupStatus = await apiCall('/setup/ack/' + encodeURIComponent(id), 'DELETE'); renderSecurityCard(_setupStatus); }
-            catch (e) { showToast('Could not restore warning', 'error'); }
+            catch (e) { showToast(t('toastCouldNotRestoreWarning'), 'error'); }
         }
 
         function updateRunModeBadge(mode) {
@@ -540,7 +540,7 @@
                     `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
                 document.getElementById('pairModal').style.display = 'flex';
-            } catch (e) { showToast('Pairing failed: ' + e.message, 'error'); }
+            } catch (e) { showToast(t('toastPairingFailed') + e.message, 'error'); }
         }
         function closePairModal() { document.getElementById('pairModal').style.display = 'none'; }
 
@@ -560,7 +560,7 @@
 
         async function startPersonaChat() {
             const name = document.getElementById('chatPersona').value;
-            if (!name) { showToast('Pick a persona first', 'error'); return; }
+            if (!name) { showToast(t('toastPickAPersonaFirst'), 'error'); return; }
             const status = document.getElementById('personaChatStatus');
             status.textContent = 'loading persona…';
             try {
@@ -576,7 +576,7 @@
                 document.getElementById('chatMessage').focus();
             } catch (e) {
                 status.textContent = '';
-                showToast('Could not start: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
+                showToast(t('toastCouldNotStart') + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
             }
         }
 
@@ -594,7 +594,7 @@
                 (r.messages || []).forEach(m => box.insertAdjacentHTML('beforeend', _chatBubble(m, labels)));
                 _personaChatSeen = r.total;
                 box.scrollTop = box.scrollHeight;
-            } catch (e) { showToast('Send failed', 'error'); }
+            } catch (e) { showToast(t('toastSendFailed'), 'error'); }
         }
 
         // ===================== Monitor =====================
@@ -748,8 +748,8 @@
         }
 
         async function snapshotConfig() {
-            try { await apiCall('/config/backups', 'POST'); showToast('Snapshot saved'); loadConfigBackups(); }
-            catch (e) { showToast('Snapshot failed', 'error'); }
+            try { await apiCall('/config/backups', 'POST'); showToast(t('toastSnapshotSaved')); loadConfigBackups(); }
+            catch (e) { showToast(t('toastSnapshotFailed'), 'error'); }
         }
 
         async function diffConfigBackup(file) {
@@ -760,17 +760,17 @@
                       `added: ${keys(d.added).join(', ') || '—'}\n` +
                       `removed: ${keys(d.removed).join(', ') || '—'}\n` +
                       `changed: ${keys(d.changed).join(', ') || '—'}`);
-            } catch (e) { showToast('Diff unavailable', 'error'); }
+            } catch (e) { showToast(t('toastDiffUnavailable'), 'error'); }
         }
 
         async function revertConfigBackup(file) {
             if (!confirm(`Revert server.json to ${file}? Your current config is snapshotted first.`)) return;
             try {
                 await apiCall('/config/backups/restore', 'POST', { file });
-                showToast('Config reverted', 'success');
+                showToast(t('toastConfigReverted'), 'success');
                 loadConfigBackups();
                 showRestartRequiredModal();
-            } catch (e) { showToast('Revert failed: ' + (e.message || ''), 'error'); }
+            } catch (e) { showToast(t('toastRevertFailed') + (e.message || ''), 'error'); }
         }
         async function downloadBackup() {
             const data = await apiCall('/backup');
@@ -939,7 +939,7 @@
                 }
                 document.getElementById('networkConfig').innerHTML = html || '<p style="color: var(--text-secondary);">No network protocols configured</p>';
             } catch (e) {
-                showToast('Failed to load dashboard', 'error');
+                showToast(t('toastFailedToLoadDashboard'), 'error');
             }
         }
 
@@ -1074,7 +1074,7 @@
                 filteredClients = [...allClients];
                 renderClientsTable();
             } catch (e) {
-                showToast('Failed to load clients', 'error');
+                showToast(t('toastFailedToLoadClients'), 'error');
             }
         }
 
@@ -1207,7 +1207,7 @@
         async function addClient() {
             const name = document.getElementById('newClientName').value.trim();
             if (!name) {
-                showToast('Please enter a client name', 'error');
+                showToast(t('toastPleaseEnterAClientName'), 'error');
                 return;
             }
 
@@ -1215,7 +1215,7 @@
             if (btn) btn.disabled = true;
             try {
                 const client = await apiCall('/clients', 'POST', { name });
-                showToast('Client added successfully');
+                showToast(t('toastClientAddedSuccessfully'));
                 loadClients();
 
                 // The backend only ever returns these secrets on this one response;
@@ -1237,7 +1237,7 @@
                 document.getElementById('addClientFooter').innerHTML =
                     '<button class="btn btn-primary" onclick="closeAddClientModal()">Done</button>';
             } catch (e) {
-                showToast('Failed to add client', 'error');
+                showToast(t('toastFailedToAddClient'), 'error');
                 if (btn) btn.disabled = false;
             }
         }
@@ -1255,7 +1255,7 @@
                     .filter(c => String(c.api_key).toUpperCase() !== 'REVOKED')
                     .map(c => `<option value="${c.client_id}">${esc(c.name)} (#${c.client_id})${c.is_admin ? ' ★' : ''}</option>`).join('')
                     || '<option value="">no clients — create one first</option>';
-            } catch (e) { showToast('Could not load clients', 'error'); }
+            } catch (e) { showToast(t('toastCouldNotLoadClients'), 'error'); }
         }
 
         function _chatBubble(m, labels) {
@@ -1294,7 +1294,7 @@
                 _startChatPolling();
             } catch (e) {
                 document.getElementById('impersonateStatus').textContent = '';
-                showToast('Impersonation failed: ' + (e.message || ''), 'error');
+                showToast(t('toastImpersonationFailed') + (e.message || ''), 'error');
             } finally { btn.disabled = false; }
         }
 
@@ -1318,7 +1318,7 @@
             try {
                 await apiCall('/chat/sessions/' + _chatSession.session_id + '/say', 'POST', { utterance: text });
                 _pollChatOnce();
-            } catch (e) { showToast('Send failed', 'error'); }
+            } catch (e) { showToast(t('toastSendFailed'), 'error'); }
         }
 
         async function _pollChatOnce() {
@@ -1518,27 +1518,27 @@
             try {
                 if (editName) await apiCall('/presets/' + type + '/' + encodeURIComponent(editName), 'PUT', body);
                 else await apiCall('/presets/' + type, 'POST', body);
-                showToast('Preset saved'); closePresetModal(); _presetType = type; loadPresetsPage();
+                showToast(t('toastPresetSaved')); closePresetModal(); _presetType = type; loadPresetsPage();
             } catch (e) { status.textContent = 'Save failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''); status.style.color = 'var(--accent-danger)'; }
         }
 
         async function testPreset(type, name) {
             try { const r = await apiCall('/presets/' + type + '/' + encodeURIComponent(name) + '/test', 'POST');
                 showToast((r.ok ? '✓ ' : '✗ ') + r.message, r.ok ? 'success' : 'error'); }
-            catch (e) { showToast('Test failed', 'error'); }
+            catch (e) { showToast(t('toastTestFailed'), 'error'); }
         }
         async function deletePreset(type, name) {
             if (!confirm('Delete preset ' + name + '?')) return;
             try { await apiCall('/presets/' + type + '/' + encodeURIComponent(name), 'DELETE'); loadPresetsPage(); }
-            catch (e) { showToast('Delete failed', 'error'); }
+            catch (e) { showToast(t('toastDeleteFailed'), 'error'); }
         }
         async function applyPreset(type, name) {
             if (!confirm('Apply preset "' + name + '" to the live ' + type + ' config?')) return;
             try {
                 const r = await apiCall('/presets/' + type + '/' + encodeURIComponent(name) + '/apply', 'POST');
-                showToast('Applied ' + r.module, 'success');
+                showToast(t('toastApplied') + r.module, 'success');
                 showRestartRequiredModal();
-            } catch (e) { showToast('Apply failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error'); }
+            } catch (e) { showToast(t('toastApplyFailed') + (e.message || '').replace(/^HTTP \d+: /, ''), 'error'); }
         }
 
         // ---- Bridge provisioning preset ----------------------------------------------
@@ -1551,7 +1551,7 @@
             document.getElementById('bridgeName').value = '';
             document.getElementById('bridgeProvisionBtn').disabled = false;
             try { _bridgeCatalog = await apiCall('/bridges/catalog'); }
-            catch (e) { showToast('Could not load bridge catalog', 'error'); return; }
+            catch (e) { showToast(t('toastCouldNotLoadBridgeCatalog'), 'error'); return; }
             sel.innerHTML = _bridgeCatalog.map(b =>
                 `<option value="${esc(b.id)}">${esc(b.icon)} ${esc(b.label)}</option>`).join('');
             renderBridgeNeeds();
@@ -1598,7 +1598,7 @@
                 showToast(`${b.label} bridge client provisioned`, 'success');
                 loadClients();
             } catch (e) {
-                showToast('Provisioning failed', 'error');
+                showToast(t('toastProvisioningFailed'), 'error');
                 btn.disabled = false;
             }
         }
@@ -1610,10 +1610,10 @@
                 async () => {
                     try {
                         await apiCall(`/clients/${id}`, 'DELETE');
-                        showToast('Client deleted');
+                        showToast(t('toastClientDeleted'));
                         loadClients();
                     } catch (e) {
-                        showToast('Failed to delete client: ' + e.message, 'error');
+                        showToast(t('toastFailedToDeleteClient') + e.message, 'error');
                     }
                 }
             );
@@ -1634,7 +1634,7 @@
 
                 document.getElementById('editClientModal').classList.add('active');
             } catch (e) {
-                showToast('Failed to load client details', 'error');
+                showToast(t('toastFailedToLoadClientDetails'), 'error');
             }
         }
 
@@ -1653,11 +1653,11 @@
 
             try {
                 await apiCall(`/clients/${clientId}`, 'PUT', data);
-                showToast('Client updated successfully');
+                showToast(t('toastClientUpdatedSuccessfully'));
                 closeEditClientModal();
                 loadClients();
             } catch (e) {
-                showToast('Failed to update client: ' + e.message, 'error');
+                showToast(t('toastFailedToUpdateClient') + e.message, 'error');
             }
         }
 
@@ -1668,7 +1668,7 @@
                 renderEncodings(config.allowed_encodings || []);
                 renderCiphers(config.allowed_ciphers || []);
             } catch (e) {
-                showToast('Failed to load encodings', 'error');
+                showToast(t('toastFailedToLoadEncodings'), 'error');
             }
         }
 
@@ -1685,7 +1685,7 @@
                 renderDatabaseProfiles();
                 renderDatabaseBackendsReference();
             } catch (e) {
-                showToast('Failed to load database page', 'error');
+                showToast(t('toastFailedToLoadDatabasePage'), 'error');
             }
         }
 
@@ -1866,7 +1866,7 @@
 
         async function testProfileInModal() {
             const module = document.getElementById('profileModule').value;
-            if (!module) { showToast('Select a backend first', 'error'); return; }
+            if (!module) { showToast(t('toastSelectABackendFirst'), 'error'); return; }
             const config = _collectProfileConfig(module);
             const statusDiv = document.getElementById('profileTestStatus');
             statusDiv.classList.remove('hidden');
@@ -1895,11 +1895,11 @@
             const isEdit = !!editName;
             const name = isEdit ? editName : document.getElementById('profileName').value.trim();
             const module = document.getElementById('profileModule').value;
-            if (!name) { showToast('Profile name is required', 'error'); return; }
-            if (!module) { showToast('Select a backend first', 'error'); return; }
+            if (!name) { showToast(t('toastProfileNameIsRequired'), 'error'); return; }
+            if (!module) { showToast(t('toastSelectABackendFirst'), 'error'); return; }
             const statusDiv = document.getElementById('profileTestStatus');
             if (statusDiv.classList.contains('hidden') || !statusDiv.classList.contains('success')) {
-                showToast('Test the connection first before saving', 'error');
+                showToast(t('toastTestTheConnectionFirstBeforeSaving'), 'error');
                 return;
             }
             const config = _collectProfileConfig(module);
@@ -1914,7 +1914,7 @@
                 closeProfileModal();
                 loadDatabasePage();
             } catch (e) {
-                showToast('Failed to save profile: ' + e.message, 'error');
+                showToast(t('toastFailedToSaveProfile') + e.message, 'error');
             }
         }
 
@@ -1963,7 +1963,7 @@
                 showToast(`Profile '${name}' deleted`);
                 loadDatabasePage();
             } catch (e) {
-                showToast('Failed to delete: ' + e.message, 'error');
+                showToast(t('toastFailedToDelete') + e.message, 'error');
             }
         }
 
@@ -1990,7 +1990,7 @@
                 ]);
                 renderNetworkProtocols(plugins, config);
             } catch (e) {
-                showToast('Failed to load network page', 'error');
+                showToast(t('toastFailedToLoadNetworkPage'), 'error');
             }
         }
 
@@ -2026,7 +2026,7 @@
                 // Render solver plugins (OVOS plugins used by personas)
                 renderSolverPluginsFromAPI();
             } catch (e) {
-                showToast('Failed to load voice plugins: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadVoicePlugins') + e.message, 'error');
             }
         }
 
@@ -2246,7 +2246,7 @@
                     binaryProtocolDisabledMessage.classList.remove('hidden');
                 }
             } catch (e) {
-                showToast('Failed to load binary protocol page: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadBinaryProtocolPage') + e.message, 'error');
             }
         }
 
@@ -2319,7 +2319,7 @@
                 loadBinaryPage();           // reflect the new module in the selects
                 showRestartRequiredModal();
             } catch (e) {
-                showToast('Apply failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
+                showToast(t('toastApplyFailed') + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
             }
         }
 
@@ -2328,7 +2328,7 @@
             const module = config.binary_protocol?.module;
             
             if (!module) {
-                showToast('No binary protocol provider active', 'error');
+                showToast(t('toastNoBinaryProtocolProviderActive'), 'error');
                 return;
             }
 
@@ -2339,7 +2339,7 @@
             const wwName = document.getElementById('activeWWName').value.trim() || 'hey_mycroft';
 
             if (!sttModule || !ttsModule || !wwModule || !vadModule) {
-                showToast('Please select all voice components', 'error');
+                showToast(t('toastPleaseSelectAllVoiceComponents'), 'error');
                 return;
             }
 
@@ -2361,10 +2361,10 @@
                     config: { [module]: pluginConfig }
                 });
                 
-                showToast('Voice configuration updated successfully');
+                showToast(t('toastVoiceConfigurationUpdatedSuccessfully'));
                 showRestartRequiredModal();
             } catch (e) {
-                showToast('Failed to update configuration: ' + e.message, 'error');
+                showToast(t('toastFailedToUpdateConfiguration') + e.message, 'error');
             }
         }
 
@@ -2400,7 +2400,7 @@
                     activePersonaSection.classList.add('hidden');
                 }
             } catch (e) {
-                showToast('Failed to load personas: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadPersonas') + e.message, 'error');
             }
         }
 
@@ -2914,18 +2914,18 @@
             const statusDiv = document.getElementById('createPersonaStatus');
 
             if (!name) {
-                showToast('Persona name is required', 'error');
+                showToast(t('toastPersonaNameIsRequired'), 'error');
                 return;
             }
 
             if (selectedSolvers.length === 0) {
-                showToast('At least one solver plugin must be selected', 'error');
+                showToast(t('toastAtLeastOneSolverPluginMustBeSelected'), 'error');
                 return;
             }
 
             // Collect and validate all per-solver configs before saving
             if (!_collectAllSolverConfigs()) {
-                showToast('Fix JSON errors in plugin configuration before saving', 'error');
+                showToast(t('toastFixJsonErrorsInPluginConfigurationBeforeSaving'), 'error');
                 return;
             }
 
@@ -2948,7 +2948,7 @@
                 if (raw) {
                     let memCfg;
                     try { memCfg = JSON.parse(raw); }
-                    catch (e) { showToast('Memory config is not valid JSON', 'error'); return; }
+                    catch (e) { showToast(t('toastMemoryConfigIsNotValidJson'), 'error'); return; }
                     if (memCfg && Object.keys(memCfg).length > 0) personaConfig[memoryModule] = memCfg;
                 }
             }
@@ -2961,11 +2961,11 @@
                 if (editName) {
                     // Update existing
                     await apiCall(`/personas/${editName}`, 'PUT', personaConfig);
-                    showToast('Persona updated successfully');
+                    showToast(t('toastPersonaUpdatedSuccessfully'));
                 } else {
                     // Create new
                     await apiCall('/personas', 'POST', personaConfig);
-                    showToast('Persona created successfully');
+                    showToast(t('toastPersonaCreatedSuccessfully'));
                 }
 
                 closeCreatePersonaModal();
@@ -2973,7 +2973,7 @@
             } catch (e) {
                 statusDiv.classList.add('error');
                 statusDiv.innerHTML = `✗ Failed to save: ${escapeHtml(e.message)}`;
-                showToast('Failed to save persona: ' + e.message, 'error');
+                showToast(t('toastFailedToSavePersona') + e.message, 'error');
             }
         }
 
@@ -3012,7 +3012,7 @@
                 renderSelectedSolvers();
                 renderSolverConfigSections();
             } catch (e) {
-                showToast('Failed to load persona: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadPersona') + e.message, 'error');
             }
         }
 
@@ -3023,10 +3023,10 @@
                 async () => {
                     try {
                         await apiCall(`/personas/${name}`, 'DELETE');
-                        showToast('Persona deleted successfully');
+                        showToast(t('toastPersonaDeletedSuccessfully'));
                         loadPersonasPage();
                     } catch (e) {
-                        showToast('Failed to delete persona: ' + e.message, 'error');
+                        showToast(t('toastFailedToDeletePersona') + e.message, 'error');
                     }
                 }
             );
@@ -3046,9 +3046,9 @@
                 link.click();
                 URL.revokeObjectURL(url);
 
-                showToast('Persona exported successfully');
+                showToast(t('toastPersonaExportedSuccessfully'));
             } catch (e) {
-                showToast('Failed to export persona: ' + e.message, 'error');
+                showToast(t('toastFailedToExportPersona') + e.message, 'error');
             }
         }
 
@@ -3059,7 +3059,7 @@
                 document.getElementById('previewPersonaJson').textContent = JSON.stringify(persona, null, 2);
                 document.getElementById('previewPersonaModal').classList.add('active');
             } catch (e) {
-                showToast('Failed to load persona: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadPersona') + e.message, 'error');
             }
         }
 
@@ -3070,9 +3070,9 @@
         function copyPersonaJson() {
             const jsonText = document.getElementById('previewPersonaJson').textContent;
             navigator.clipboard.writeText(jsonText).then(() => {
-                showToast('JSON copied to clipboard');
+                showToast(t('toastJsonCopiedToClipboard'));
             }).catch(() => {
-                showToast('Failed to copy JSON', 'error');
+                showToast(t('toastFailedToCopyJson'), 'error');
             });
         }
 
@@ -3213,7 +3213,7 @@
             const statusDiv = document.getElementById('activePersonaStatus');
 
             if (!name) {
-                showToast('Please select a persona', 'error');
+                showToast(t('toastPleaseSelectAPersona'), 'error');
                 return;
             }
 
@@ -3227,7 +3227,7 @@
                 showRestartRequiredModal();
             } catch (e) {
                 statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ Failed: ${escapeHtml(e.message)}</span>`;
-                showToast('Failed to activate persona: ' + e.message, 'error');
+                showToast(t('toastFailedToActivatePersona') + e.message, 'error');
             }
         }
 
@@ -3245,7 +3245,7 @@
 
                 renderAgentProtocols(plugins, config, personas);
             } catch (e) {
-                showToast('Failed to load agent protocols: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadAgentProtocols') + e.message, 'error');
             }
         }
 
@@ -3312,10 +3312,10 @@
                     port: parseInt(document.getElementById('ovosBusPort').value)
                 };
                 await apiCall('/config', 'POST', { config });
-                showToast('OVOS agent configuration saved');
+                showToast(t('toastOvosAgentConfigurationSaved'));
                 showRestartRequiredModal();
             } catch (e) {
-                showToast('Failed to save OVOS config: ' + e.message, 'error');
+                showToast(t('toastFailedToSaveOvosConfig') + e.message, 'error');
             }
         }
 
@@ -3398,12 +3398,12 @@
             const ciphers = Array.from(cipherCheckboxes).map(cb => cb.value);
 
             if (encodings.length === 0) {
-                showToast('At least one encoding must be enabled', 'error');
+                showToast(t('toastAtLeastOneEncodingMustBeEnabled'), 'error');
                 return;
             }
 
             if (ciphers.length === 0) {
-                showToast('At least one cipher must be enabled', 'error');
+                showToast(t('toastAtLeastOneCipherMustBeEnabled'), 'error');
                 return;
             }
 
@@ -3414,10 +3414,10 @@
                         allowed_ciphers: ciphers
                     }
                 });
-                showToast('Encodings and ciphers updated');
+                showToast(t('toastEncodingsAndCiphersUpdated'));
                 showRestartRequiredModal();
             } catch (e) {
-                showToast('Failed to save: ' + e.message, 'error');
+                showToast(t('toastFailedToSave') + e.message, 'error');
             }
         }
 
@@ -3442,7 +3442,7 @@
                     renderVoicePlugins(plugins, 'vad', 'vadPluginsContainer');
                 }
             } catch (e) {
-                showToast('Failed to load plugins', 'error');
+                showToast(t('toastFailedToLoadPlugins'), 'error');
             }
         }
 
@@ -3815,12 +3815,12 @@
             const accepted = document.getElementById('pluginDisclaimerCheckbox').checked;
             
             if (!packageName) {
-                showToast('Please enter a plugin package name', 'error');
+                showToast(t('toastPleaseEnterAPluginPackageName'), 'error');
                 return;
             }
             
             if (!accepted) {
-                showToast('You must accept the disclaimer to continue', 'error');
+                showToast(t('toastYouMustAcceptTheDisclaimerToContinue'), 'error');
                 return;
             }
             
@@ -3916,10 +3916,10 @@
                     statusEl.innerHTML = '<span class="status-dot"></span><span>Connected</span>';
                     return;
                 }
-                showToast('Restart initiated. Reconnecting...');
+                showToast(t('toastRestartInitiatedReconnecting'));
                 setTimeout(() => location.reload(), 3000);
             } catch (e) {
-                showToast('Failed to restart: ' + e.message, 'error');
+                showToast(t('toastFailedToRestart') + e.message, 'error');
                 // Reset status on error
                 updateHealthStatus();
             }
@@ -3943,7 +3943,7 @@
                 showToast(r.message, 'success');
                 _refreshPluginViews();
                 showRestartRequiredModal();
-            } catch (e) { showToast('Upgrade failed: ' + (e.message || ''), 'error'); }
+            } catch (e) { showToast(t('toastUpgradeFailed') + (e.message || ''), 'error'); }
         }
 
         async function uninstallPlugin(pkg) {
@@ -3957,7 +3957,7 @@
                 showRestartRequiredModal();
             } catch (e) {
                 // surface the active-module guard message clearly
-                showToast('Uninstall blocked: ' + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
+                showToast(t('toastUninstallBlocked') + (e.message || '').replace(/^HTTP \d+: /, ''), 'error');
             }
         }
 
@@ -3965,7 +3965,7 @@
             // For persona agent, show persona selection dropdown
             if (module.includes('persona') || module.includes('hivemind-persona')) {
                 if (!personas || personas.length === 0) {
-                    showToast('No personas available. Create one first.', 'error');
+                    showToast(t('toastNoPersonasAvailableCreateOneFirst'), 'error');
                     return;
                 }
 
@@ -4048,7 +4048,7 @@
                     loadAgentProtocolsPage();
                 }
             } catch (e) {
-                showToast('Failed to enable agent protocol: ' + e.message, 'error');
+                showToast(t('toastFailedToEnableAgentProtocol') + e.message, 'error');
             }
         }
 
@@ -4096,7 +4096,7 @@
                     }
                 }
             } catch (e) {
-                showToast('Failed to load OVOS plugins: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadOvosPlugins') + e.message, 'error');
             }
         }
 
@@ -4172,7 +4172,7 @@
                     }
                 });
                 
-                showToast('Binary protocol enabled and configured');
+                showToast(t('toastBinaryProtocolEnabledAndConfigured'));
                 closeEnableBinaryPluginModal();
                 loadBinaryPage();
                 showRestartRequiredModal();
@@ -4242,7 +4242,7 @@
                 document.getElementById('binaryConfigValidation').classList.add('hidden');
                 document.getElementById('enableBinaryPluginModal').classList.add('active');
             } catch (e) {
-                showToast('Failed to load plugin info: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadPluginInfo') + e.message, 'error');
             }
         }
 
@@ -4285,7 +4285,7 @@
                     config: { [module]: pluginConfig }
                 });
 
-                showToast('Binary protocol enabled successfully');
+                showToast(t('toastBinaryProtocolEnabledSuccessfully'));
                 closeEnableBinaryPluginModal();
                 loadBinaryPage();
                 showRestartRequiredModal();
@@ -4312,7 +4312,7 @@
                 loadPlugins();
                 showRestartRequiredModal();
             } catch (e) {
-                showToast('Failed to update binary protocol: ' + e.message, 'error');
+                showToast(t('toastFailedToUpdateBinaryProtocol') + e.message, 'error');
             }
         }
 
@@ -4327,7 +4327,7 @@
                 loadPlugins();
                 showRestartRequiredModal();
             } catch (e) {
-                showToast('Failed to update network protocol: ' + e.message, 'error');
+                showToast(t('toastFailedToUpdateNetworkProtocol') + e.message, 'error');
             }
         }
 
@@ -4469,7 +4469,7 @@
                 renderQuickAddFromConfig('quickSkills', 'quickSkillsContainer', config.common_skills || [], 'aclSkillBlacklist', 'skill');
                 renderQuickAddFromConfig('quickIntents', 'quickIntentsContainer', config.common_intents || [], 'aclIntentBlacklist', 'intent');
             } catch (e) {
-                showToast('Failed to load ACL page: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadAclPage') + e.message, 'error');
                 console.error('ACL page load error:', e);
             }
         }
@@ -4535,7 +4535,7 @@
                 
                 document.getElementById('aclEditor').classList.remove('hidden');
             } catch (e) {
-                showToast('Failed to load client ACL: ' + e.message, 'error');
+                showToast(t('toastFailedToLoadClientAcl') + e.message, 'error');
                 console.error('Error loading ACL:', e);
                 document.getElementById('aclEditor').classList.add('hidden');
             }
@@ -4556,15 +4556,15 @@
 
             try {
                 await apiCall(`/clients/${currentACLClientId}/acl`, 'PUT', data);
-                showToast('ACL updated successfully');
+                showToast(t('toastAclUpdatedSuccessfully'));
             } catch (e) {
-                showToast('Failed to update ACL: ' + e.message, 'error');
+                showToast(t('toastFailedToUpdateAcl') + e.message, 'error');
             }
         }
 
         async function applyACLTemplate(templateName) {
             if (!currentACLClientId) {
-                showToast('Please select a client first', 'error');
+                showToast(t('toastPleaseSelectAClientFirst'), 'error');
                 return;
             }
 
@@ -4577,7 +4577,7 @@
                         showToast(`Template "${templateName}" applied`);
                         loadClientACL();
                     } catch (e) {
-                        showToast('Failed to apply template: ' + e.message, 'error');
+                        showToast(t('toastFailedToApplyTemplate') + e.message, 'error');
                     }
                 }
             );
@@ -4652,9 +4652,9 @@
             try {
                 const defaults = await apiCall('/config/defaults');
                 document.getElementById('configErrorEditor').value = JSON.stringify(defaults, null, 2);
-                showToast('Default configuration loaded');
+                showToast(t('toastDefaultConfigurationLoaded'));
             } catch (e) {
-                showToast('Failed to load defaults', 'error');
+                showToast(t('toastFailedToLoadDefaults'), 'error');
             }
         }
 
@@ -4671,7 +4671,7 @@
                     await apiCall('/config', 'POST', { config });
                     resultDiv.className = 'validation-result success';
                     resultDiv.innerHTML = '<strong>✓ Configuration saved!</strong> You can now restart the service.';
-                    showToast('Configuration saved');
+                    showToast(t('toastConfigurationSaved'));
                 } else {
                     resultDiv.className = 'validation-result error';
                     resultDiv.innerHTML = '<strong>✗ Please fix these errors:</strong><ul>' +
@@ -4704,7 +4704,7 @@
                     showToast(result.message, 'error');
                 }
             } catch (e) {
-                showToast('Failed to restart: ' + e.message, 'error');
+                showToast(t('toastFailedToRestart') + e.message, 'error');
             }
         }
 
