@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HiveMind Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%9D%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -14,12 +15,12 @@
             <p class="subtitle">Sign in to manage your HiveMind server</p>
 
             <div class="form-group">
-                <label>Username</label>
+                <label for="username">Username</label>
                 <input type="text" id="username" placeholder="admin" autocomplete="username">
             </div>
 
             <div class="form-group">
-                <label>Password</label>
+                <label for="password">Password</label>
                 <input type="password" id="password" placeholder="admin" autocomplete="current-password">
             </div>
 
@@ -41,10 +42,10 @@
                 You're signed in with the <strong>default password</strong>. This panel can
                 install software and migrate databases — set a new password before continuing.
             </p>
-            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">New password</label>
+            <label for="frNewPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">New password</label>
             <input id="frNewPass" type="password" autocomplete="new-password" oninput="frScore()" style="width:100%;padding:10px;margin-bottom:6px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
             <div id="frStrength" style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:12px;"><div style="height:100%;width:0;border-radius:2px;background:var(--accent-danger);transition:all .2s;"></div></div>
-            <label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Confirm password</label>
+            <label for="frConfirmPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Confirm password</label>
             <input id="frConfirmPass" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitFirstRunPassword()" style="width:100%;padding:10px;margin-bottom:12px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
             <div id="frError" class="hidden" style="color:var(--accent-danger);font-size:12px;margin-bottom:12px;"></div>
             <button class="btn btn-primary" onclick="submitFirstRunPassword()" style="width:100%;">Set password &amp; continue</button>
@@ -54,7 +55,8 @@
 
     <div id="app" class="app">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1>HiveMind</h1>
                 <div class="version">Admin Panel</div>
@@ -156,6 +158,10 @@
         <main class="main">
             <!-- Topbar -->
             <header class="topbar">
+                <button id="navToggle" class="nav-toggle" onclick="toggleSidebar()"
+                        aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+                    <span aria-hidden="true">☰</span>
+                </button>
                 <h2 id="pageTitle">Dashboard</h2>
                 <div id="restartWarningBanner" class="hidden" style="background: var(--accent-warning); color: #1e1e1e; padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; margin: 0 20px;">
                     <span style="display: flex; align-items: center; gap: 8px;">
@@ -256,7 +262,7 @@
                         <div class="card-header">
                             <h3>Client Management</h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary btn-sm" onclick="showBridgeModal()">💬 Add Bridge</button>
+                                <button class="btn btn-secondary btn-sm" onclick="showBridgeModal()" title="A bridge is a HiveMind satellite whose input and output is a chat room (Matrix, Telegram, etc.). This registers a client and gives you the credentials to run the bridge process.">💬 Add Bridge</button>
                                 <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">+ Add Client</button>
                             </div>
                         </div>
@@ -337,7 +343,7 @@
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label>Select Client</label>
+                                <label for="aclClientSelect">Select Client</label>
                                 <select id="aclClientSelect" onchange="loadClientACL()">
                                     <option value="">Select a client...</option>
                                 </select>
@@ -685,33 +691,33 @@
 
                                 <div id="activeBinaryConfigForm" style="display: grid; gap: 20px;">
                                     <div class="form-group">
-                                        <label>STT (Speech-to-Text) Plugin</label>
+                                        <label for="activeSTTSelect">STT (Speech-to-Text) Plugin</label>
                                         <select id="activeSTTSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>TTS (Text-to-Speech) Plugin</label>
+                                        <label for="activeTTSSelect">TTS (Text-to-Speech) Plugin</label>
                                         <select id="activeTTSSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>Wake Word (e.g., "hey_mycroft")</label>
+                                        <label for="activeWWName">Wake Word (e.g., "hey_mycroft")</label>
                                         <input type="text" id="activeWWName" placeholder="hey_mycroft">
                                     </div>
 
                                     <div class="form-group">
-                                        <label>Wake Word Engine</label>
+                                        <label for="activeWWSelect">Wake Word Engine</label>
                                         <select id="activeWWSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label>VAD (Voice Activity Detection)</label>
+                                        <label for="activeVADSelect">VAD (Voice Activity Detection)</label>
                                         <select id="activeVADSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
@@ -806,26 +812,26 @@
                 </div>
 
                 <!-- Preset create/edit modal -->
-                <div id="presetModal" class="modal-overlay" onclick="if(event.target===this)closePresetModal()">
+                <div id="presetModal" class="modal-overlay" onclick="if(event.target===this)closePresetModal()" role="dialog" aria-modal="true" aria-labelledby="presetModalTitle">
                     <div class="modal" style="max-width:560px;">
                         <div class="modal-header"><h3 id="presetModalTitle">New preset</h3></div>
                         <div class="modal-body">
                             <input type="hidden" id="presetEditName">
-                            <div class="form-group"><label>Plugin type</label>
+                            <div class="form-group"><label for="presetType">Plugin type</label>
                                 <select id="presetType" onchange="onPresetTypeChange()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
-                            <div class="form-group"><label>Preset name</label>
+                            <div class="form-group"><label for="presetName">Preset name</label>
                                 <input id="presetName" placeholder="e.g. whisper-gpu" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></div>
-                            <div class="form-group"><label>Source</label>
+                            <div class="form-group"><label for="presetSource">Source</label>
                                 <select id="presetSource" onchange="onPresetSourceChange()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
                                     <option value="plugin">Local plugin</option>
                                     <option value="server">Registered OVOS server</option>
                                 </select></div>
                             <div id="presetPluginWrap">
-                                <div class="form-group"><label>Module (installed)</label>
+                                <div class="form-group"><label for="presetModule">Module (installed)</label>
                                     <select id="presetModule" onchange="renderPresetFields()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div id="presetServerWrap" style="display:none;">
-                                <div class="form-group"><label>OVOS server</label>
+                                <div class="form-group"><label for="presetServer">OVOS server</label>
                                     <select id="presetServer" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div class="form-group">
@@ -1042,32 +1048,33 @@
     </div>
 
     <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
+    <div id="toastContainer" class="toast-container" role="status" aria-live="polite"></div>
 
     <!-- Add Client Modal -->
-    <div id="addClientModal" class="modal-overlay" onclick="if(event.target===this)closeAddClientModal()">
+    <div id="addClientModal" class="modal-overlay" onclick="if(event.target===this)closeAddClientModal()" role="dialog" aria-modal="true" aria-labelledby="addClientModalLabel">
         <div class="modal">
             <div class="modal-header">
-                <h3>Add New Client</h3>
+                <h3 id="addClientModalLabel">Add New Client</h3>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Client Name</label>
+                <div class="form-group" id="addClientFormGroup">
+                    <label for="newClientName">Client Name</label>
                     <input type="text" id="newClientName" placeholder="HiveMind-Node">
                 </div>
+                <div id="addClientResult" class="hidden"></div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="addClientFooter">
                 <button class="btn btn-secondary" onclick="closeAddClientModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="addClient()">Add Client</button>
+                <button class="btn btn-primary" id="addClientSubmitBtn" onclick="addClient()">Add Client</button>
             </div>
         </div>
     </div>
 
     <!-- Add Bridge Modal -->
-    <div id="bridgeModal" class="modal-overlay" onclick="if(event.target===this)closeBridgeModal()">
+    <div id="bridgeModal" class="modal-overlay" onclick="if(event.target===this)closeBridgeModal()" role="dialog" aria-modal="true" aria-labelledby="bridgeModalLabel">
         <div class="modal" style="max-width: 560px;">
             <div class="modal-header">
-                <h3>💬 Add a chat bridge</h3>
+                <h3 id="bridgeModalLabel">💬 Add a chat bridge</h3>
             </div>
             <div class="modal-body">
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 0;">
@@ -1076,11 +1083,11 @@
                     run the bridge process separately with the bundle below.
                 </p>
                 <div class="form-group">
-                    <label>Platform</label>
+                    <label for="bridgeType">Platform</label>
                     <select id="bridgeType" onchange="renderBridgeNeeds()" style="width:100%;padding:10px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select>
                 </div>
                 <div class="form-group">
-                    <label>Client name (optional)</label>
+                    <label for="bridgeName">Client name (optional)</label>
                     <input type="text" id="bridgeName" placeholder="auto: <platform>-bridge">
                 </div>
                 <div id="bridgeNeeds" style="font-size:12px;color:var(--text-secondary);"></div>
@@ -1094,28 +1101,29 @@
     </div>
 
     <!-- Edit Client Modal -->
-    <div id="editClientModal" class="modal-overlay" onclick="if(event.target===this)closeEditClientModal()">
+    <div id="editClientModal" class="modal-overlay" onclick="if(event.target===this)closeEditClientModal()" role="dialog" aria-modal="true" aria-labelledby="editClientModalLabel">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h3>Edit Client</h3>
+                <h3 id="editClientModalLabel">Edit Client</h3>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editClientId">
                 <div class="form-group">
-                    <label>Client Name</label>
+                    <label for="editClientName">Client Name</label>
                     <input type="text" id="editClientName">
                 </div>
                 <div class="form-group">
-                    <label>API Key</label>
+                    <label for="editClientApiKey">API Key</label>
                     <input type="text" id="editClientApiKey">
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
+                    <label for="editClientPassword">Password</label>
                     <input type="text" id="editClientPassword">
                 </div>
                 <div class="form-group">
-                    <label>Crypto Key (16, 24, or 32 chars)</label>
-                    <input type="text" id="editClientCryptoKey">
+                    <label for="editClientCryptoKey">Crypto Key (legacy, not used with v3 Noise)</label>
+                    <input type="text" id="editClientCryptoKey" placeholder="Leave empty — v3 uses access key + password">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Optional legacy AES pre-shared key (16, 24, or 32 chars). v3 clients authenticate with the access key and password over a Noise handshake and leave this empty.</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1126,14 +1134,14 @@
     </div>
 
     <!-- Install Plugin Modal -->
-    <div id="installPluginModal" class="modal-overlay" onclick="if(event.target===this)closeInstallPluginModal()">
+    <div id="installPluginModal" class="modal-overlay" onclick="if(event.target===this)closeInstallPluginModal()" role="dialog" aria-modal="true" aria-labelledby="installPluginModalLabel">
         <div class="modal">
             <div class="modal-header">
-                <h3>Install Plugin</h3>
+                <h3 id="installPluginModalLabel">Install Plugin</h3>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Package Name</label>
+                    <label for="installPluginPackage">Package Name</label>
                     <input type="text" id="installPluginPackage" placeholder="e.g. ovos-tts-plugin-phoonnx">
                     <small style="color: var(--text-secondary); display: block; margin-top: 8px;">
                         Enter a valid PyPI package name from the HiveMind or OVOS ecosystem.
@@ -1151,10 +1159,10 @@
     <!-- Database Migration Modal -->
 
     <!-- Restart Required Modal -->
-    <div id="restartRequiredModal" class="modal-overlay" onclick="if(event.target===this)closeRestartRequiredModal()">
+    <div id="restartRequiredModal" class="modal-overlay" onclick="if(event.target===this)closeRestartRequiredModal()" role="dialog" aria-modal="true" aria-labelledby="restartRequiredModalLabel">
         <div class="modal" style="max-width: 460px;">
             <div class="modal-header">
-                <h3>Restart Required</h3>
+                <h3 id="restartRequiredModalLabel">Restart Required</h3>
             </div>
             <div class="modal-body" style="text-align: center;">
                 <p style="font-size: 15px; margin-bottom: 12px;">
@@ -1172,7 +1180,7 @@
     </div>
 
     <!-- Confirm Modal -->
-    <div id="confirmModal" class="modal-overlay" onclick="if(event.target===this)closeConfirmModal()">
+    <div id="confirmModal" class="modal-overlay" onclick="if(event.target===this)closeConfirmModal()" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
                 <h3 id="confirmTitle">Confirm</h3>
@@ -1188,10 +1196,10 @@
     </div>
 
     <!-- Install Custom Plugin Modal -->
-    <div id="installCustomPluginModal" class="modal-overlay" onclick="if(event.target===this)closeInstallCustomPluginModal()">
+    <div id="installCustomPluginModal" class="modal-overlay" onclick="if(event.target===this)closeInstallCustomPluginModal()" role="dialog" aria-modal="true" aria-labelledby="installCustomPluginModalLabel">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header" style="background: linear-gradient(135deg, var(--accent-danger), #ff6b6b);">
-                <h3 style="color: white;">⚠️ Install Custom Plugin</h3>
+                <h3 id="installCustomPluginModalLabel" style="color: white;">⚠️ Install Custom Plugin</h3>
             </div>
             <div class="modal-body">
                 <div style="padding: 16px; background: rgba(255, 107, 107, 0.1); border: 2px solid var(--accent-danger); border-radius: var(--radius-sm); margin-bottom: 20px;">
@@ -1216,7 +1224,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Plugin Package Name</label>
+                    <label for="customPluginPackage">Plugin Package Name</label>
                     <input type="text" id="customPluginPackage" placeholder="e.g., ovos-stt-plugin-custom" style="font-family: monospace; font-size: 14px;">
                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
                         💡 Find plugins on <a href="https://pypi.org/search/?q=ovos" target="_blank" style="color: var(--accent-primary);">PyPI</a> or 
@@ -1242,7 +1250,7 @@
 
 
     <!-- Plugin Installation Progress Modal -->
-    <div id="installProgressModal" class="modal-overlay">
+    <div id="installProgressModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="installProgressTitle">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 id="installProgressTitle">📦 Installing Plugin...</h3>
@@ -1277,7 +1285,7 @@
     </div>
 
     <!-- Create / Edit Database Profile Modal -->
-    <div id="profileModal" class="modal-overlay" onclick="if(event.target===this)closeProfileModal()">
+    <div id="profileModal" class="modal-overlay" onclick="if(event.target===this)closeProfileModal()" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
         <div class="modal" style="max-width: 520px;">
             <div class="modal-header">
                 <h3 id="profileModalTitle">Add Database Profile</h3>
@@ -1286,7 +1294,7 @@
                 <input type="hidden" id="profileEditName">
 
                 <div class="form-group">
-                    <label>Profile Name</label>
+                    <label for="profileName">Profile Name</label>
                     <input type="text" id="profileName" placeholder="e.g. production-redis">
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
                         Letters, numbers, hyphens and underscores only.
@@ -1294,7 +1302,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Database Backend</label>
+                    <label for="profileModule">Database Backend</label>
                     <select id="profileModule" onchange="onProfileModuleChange()">
                         <option value="">Select a backend...</option>
                     </select>
@@ -1305,21 +1313,21 @@
                     <h4 style="margin-bottom: 12px; font-size: 14px;">Redis Connection Settings</h4>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Host</label>
+                            <label for="profileRedisHost">Host</label>
                             <input type="text" id="profileRedisHost" value="localhost" placeholder="Redis hostname">
                         </div>
                         <div class="form-group">
-                            <label>Port</label>
+                            <label for="profileRedisPort">Port</label>
                             <input type="number" id="profileRedisPort" value="6379" min="1" max="65535">
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Database Number</label>
+                            <label for="profileRedisDb">Database Number</label>
                             <input type="number" id="profileRedisDb" value="0" min="0" max="15">
                         </div>
                         <div class="form-group">
-                            <label>Password (optional)</label>
+                            <label for="profileRedisPassword">Password (optional)</label>
                             <input type="password" id="profileRedisPassword" placeholder="Leave empty if none">
                         </div>
                     </div>
@@ -1329,14 +1337,14 @@
                 <div id="profileFileSection" class="hidden">
                     <h4 style="margin-bottom: 12px; font-size: 14px;">File Location</h4>
                     <div class="form-group">
-                        <label>Subfolder</label>
+                        <label for="profileFileSubfolder">Subfolder</label>
                         <input type="text" id="profileFileSubfolder" value="hivemind-core" placeholder="hivemind-core">
                         <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
                             Subfolder inside the HiveMind data directory.
                         </p>
                     </div>
                     <div class="form-group">
-                        <label>Database Name</label>
+                        <label for="profileFileName">Database Name</label>
                         <input type="text" id="profileFileName" value="clients" placeholder="clients">
                     </div>
                 </div>
@@ -1352,10 +1360,10 @@
     </div>
 
     <!-- Activate Profile Modal -->
-    <div id="activateProfileModal" class="modal-overlay" onclick="if(event.target===this)closeActivateProfileModal()">
+    <div id="activateProfileModal" class="modal-overlay" onclick="if(event.target===this)closeActivateProfileModal()" role="dialog" aria-modal="true" aria-labelledby="activateProfileModalLabel">
         <div class="modal" style="max-width: 460px;">
             <div class="modal-header">
-                <h3>Activate Profile</h3>
+                <h3 id="activateProfileModalLabel">Activate Profile</h3>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom: 16px;">
@@ -1389,7 +1397,7 @@
     </div>
 
     <!-- Create/Edit Persona Modal -->
-    <div id="createPersonaModal" class="modal-overlay" onclick="if(event.target===this)closeCreatePersonaModal()">
+    <div id="createPersonaModal" class="modal-overlay" onclick="if(event.target===this)closeCreatePersonaModal()" role="dialog" aria-modal="true" aria-labelledby="createPersonaModalTitle">
         <div class="modal" style="max-width: 700px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
                 <h3 id="createPersonaModalTitle">👤 Create Persona</h3>
@@ -1398,12 +1406,12 @@
                 <input type="hidden" id="editPersonaName">
 
                 <div class="form-group">
-                    <label>Persona Name *</label>
+                    <label for="personaName">Persona Name *</label>
                     <input type="text" id="personaName" placeholder="My AI Assistant">
                 </div>
 
                 <div class="form-group">
-                    <label>Description</label>
+                    <label for="personaDescription">Description</label>
                     <textarea id="personaDescription" placeholder="A helpful AI assistant..." style="width: 100%; min-height: 60px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;"></textarea>
                 </div>
 
@@ -1435,13 +1443,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Memory Module</label>
+                    <label for="personaMemoryModule">Memory Module</label>
                     <select id="personaMemoryModule" onchange="onMemoryModuleChange()" style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary);">
                         <option value="ovos-agents-short-term-memory-plugin">ovos-agents-short-term-memory-plugin (Default)</option>
                         <option value="">None (Disable memory)</option>
                     </select>
                     <div id="personaMemoryConfigWrap" style="margin-top:8px;">
-                        <label style="font-size:12px;color:var(--text-secondary);">Memory config (JSON, optional — passed to the memory plugin)</label>
+                        <label for="personaMemoryConfig" style="font-size:12px;color:var(--text-secondary);">Memory config (JSON, optional — passed to the memory plugin)</label>
                         <textarea id="personaMemoryConfig" placeholder='{ "max_history": 10 }' style="width:100%;height:64px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);padding:8px;"></textarea>
                     </div>
                     <div style="display:flex;gap:6px;margin-top:8px;">
@@ -1464,10 +1472,10 @@
     </div>
 
     <!-- Preview Persona Modal -->
-    <div id="previewPersonaModal" class="modal-overlay" onclick="if(event.target===this)closePreviewPersonaModal()">
+    <div id="previewPersonaModal" class="modal-overlay" onclick="if(event.target===this)closePreviewPersonaModal()" role="dialog" aria-modal="true" aria-labelledby="previewPersonaModalLabel">
         <div class="modal" style="max-width: 700px;">
             <div class="modal-header">
-                <h3>👁️ Preview Persona</h3>
+                <h3 id="previewPersonaModalLabel">👁️ Preview Persona</h3>
             </div>
             <div class="modal-body">
                 <pre id="previewPersonaJson" style="background: var(--code-bg); padding: 16px; border-radius: var(--radius-sm); overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto;"></pre>
@@ -1480,10 +1488,10 @@
     </div>
 
     <!-- Test Persona Modal -->
-    <div id="testPersonaModal" class="modal-overlay" onclick="if(event.target===this)closeTestPersonaModal()">
+    <div id="testPersonaModal" class="modal-overlay" onclick="if(event.target===this)closeTestPersonaModal()" role="dialog" aria-modal="true" aria-labelledby="testPersonaModalLabel">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h3>⚠️ Test Persona</h3>
+                <h3 id="testPersonaModalLabel">⚠️ Test Persona</h3>
             </div>
             <div class="modal-body">
                 <div id="testPersonaResults" style="margin-top: 16px;">
@@ -1510,10 +1518,10 @@
     </div>
 
     <!-- Enable Agent Protocol Modal -->
-    <div id="enableAgentModal" class="modal-overlay" onclick="if(event.target===this)closeEnableAgentModal()">
+    <div id="enableAgentModal" class="modal-overlay" onclick="if(event.target===this)closeEnableAgentModal()" role="dialog" aria-modal="true" aria-labelledby="enableAgentModalLabel">
         <div class="modal" style="max-width: 600px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
-                <h3>🤖 Enable Agent Protocol</h3>
+                <h3 id="enableAgentModalLabel">🤖 Enable Agent Protocol</h3>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; max-height: calc(90vh - 140px);">
                 <input type="hidden" id="enableAgentModule">
@@ -1525,7 +1533,7 @@
                             Choose which persona to use for AI conversations. This persona will handle all incoming messages.
                         </p>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>Persona</label>
+                            <label for="enableAgentPersonaSelect">Persona</label>
                             <select id="enableAgentPersonaSelect" style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 14px;">
                                 <option value="">Select a persona...</option>
                             </select>
@@ -1543,10 +1551,10 @@
     </div>
 
     <!-- Enable Binary Protocol Modal -->
-    <div id="enableBinaryPluginModal" class="modal-overlay" onclick="if(event.target===this)closeEnableBinaryPluginModal()">
+    <div id="enableBinaryPluginModal" class="modal-overlay" onclick="if(event.target===this)closeEnableBinaryPluginModal()" role="dialog" aria-modal="true" aria-labelledby="enableBinaryPluginModalLabel">
         <div class="modal" style="max-width: 700px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
-                <h3>📦 Configure Binary Protocol</h3>
+                <h3 id="enableBinaryPluginModalLabel">📦 Configure Binary Protocol</h3>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; max-height: calc(90vh - 140px);">
                 <input type="hidden" id="binaryPluginModule">
@@ -1559,33 +1567,33 @@
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>🎤 STT (Speech-to-Text)</label>
+                            <label for="binarySTTSelect">🎤 STT (Speech-to-Text)</label>
                             <select id="binarySTTSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>🔊 TTS (Text-to-Speech)</label>
+                            <label for="binaryTTSSelect">🔊 TTS (Text-to-Speech)</label>
                             <select id="binaryTTSSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>⏰ Wake Word Name</label>
+                            <label for="binaryWWName">⏰ Wake Word Name</label>
                             <input type="text" id="binaryWWName" value="hey_mycroft" placeholder="hey_mycroft" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>⏰ Wake Word Engine</label>
+                            <label for="binaryWWSelect">⏰ Wake Word Engine</label>
                             <select id="binaryWWSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
-                            <label>🎯 VAD (Voice Activity Detection)</label>
+                            <label for="binaryVADSelect">🎯 VAD (Voice Activity Detection)</label>
                             <select id="binaryVADSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
@@ -1603,17 +1611,17 @@
     </div>
 
     <!-- Enable Plugin Modal -->
-    <div id="enablePluginModal" class="modal-overlay" onclick="if(event.target===this)closeEnablePluginModal()">
+    <div id="enablePluginModal" class="modal-overlay" onclick="if(event.target===this)closeEnablePluginModal()" role="dialog" aria-modal="true" aria-labelledby="enablePluginModalLabel">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>Enable Plugin</h3>
+                <h3 id="enablePluginModalLabel">Enable Plugin</h3>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="enablePluginType">
                 <input type="hidden" id="enablePluginModule">
 
                 <div class="form-group">
-                    <label>Plugin</label>
+                    <label for="enablePluginName">Plugin</label>
                     <input type="text" id="enablePluginName" readonly style="background: var(--bg-hover);">
                 </div>
 
@@ -1622,11 +1630,11 @@
                     <h4 style="margin: 16px 0 12px; font-size: 14px;">Network Configuration</h4>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label>Host</label>
+                            <label for="networkHost">Host</label>
                             <input type="text" id="networkHost" value="0.0.0.0">
                         </div>
                         <div class="form-group">
-                            <label>Port</label>
+                            <label for="networkPort">Port</label>
                             <input type="number" id="networkPort" value="5678">
                         </div>
                     </div>
