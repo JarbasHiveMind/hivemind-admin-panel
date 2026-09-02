@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.0a1) (2026-09-02)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.20a1...0.2.0a1)
+
+**Merged pull requests:**
+
+- feat: translate the full admin UI \(complete es/pt beyond the sidebar\) [\#70](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/70) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.20a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.20a1) (2026-09-02)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.19a1...0.1.20a1)
