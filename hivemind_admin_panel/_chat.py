@@ -40,6 +40,7 @@ class ImpersonationSession:
         )
         self.bus.on_mycroft("speak", self._on_speak)
         self.bus.on_mycroft("hive.complete_intent_failure", self._on_fail)
+        self.bus.on_mycroft("hive.policy.denied", self._on_denied)
 
         def _do():
             try:
@@ -65,6 +66,18 @@ class ImpersonationSession:
 
     def _on_fail(self, message):
         self._append("system", "the hub reported no skill/agent handled that utterance")
+
+    def _on_denied(self, message):
+        try:
+            denied_type = message.data.get("denied_type") or "that message"
+            reason = message.data.get("reason") or "not permitted"
+        except Exception:
+            denied_type, reason = "that message", "not permitted"
+        self._append(
+            "error",
+            f"Blocked: '{denied_type}' is not in this client's allowed message "
+            f"types — add it in Permissions. ({reason})",
+        )
 
     def _append(self, role: str, text: str):
         with self._lock:
