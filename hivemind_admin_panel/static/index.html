@@ -12,20 +12,20 @@
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <h1>HiveMind Admin</h1>
-            <p class="subtitle">Sign in to manage your HiveMind server</p>
+            <p class="subtitle" data-i18n="loginSubtitle">Sign in to manage your HiveMind server</p>
 
             <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" placeholder="admin" autocomplete="username">
+                <label for="username" data-i18n="username">Username</label>
+                <input type="text" id="username" placeholder="admin" autocomplete="username" data-i18n-placeholder="usernamePh">
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="admin" autocomplete="current-password">
+                <label for="password" data-i18n="password">Password</label>
+                <input type="password" id="password" placeholder="admin" autocomplete="current-password" data-i18n-placeholder="passwordPh">
             </div>
 
             <button class="btn btn-primary" onclick="login()">
-                <span>Sign In</span>
+                <span data-i18n="signIn">Sign In</span>
             </button>
 
             <div id="loginError" class="error-msg hidden"></div>
@@ -37,19 +37,19 @@
     <div id="firstRunModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;align-items:center;justify-content:center;">
         <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-md);max-width:460px;width:90%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.5);">
             <div style="font-size:34px;text-align:center;margin-bottom:8px;">🔐</div>
-            <h2 style="margin:0 0 6px;text-align:center;">Secure your panel</h2>
+            <h2 style="margin:0 0 6px;text-align:center;" data-i18n="secureYourPanel">Secure your panel</h2>
             <p style="color:var(--text-secondary);font-size:13px;text-align:center;margin:0 0 18px;">
-                You're signed in with the <strong>default password</strong>. This panel can
-                install software and migrate databases — set a new password before continuing.
+                <span data-i18n-html="firstRunWarning">You're signed in with the <strong>default password</strong>. This panel can
+                install software and migrate databases — set a new password before continuing.</span>
             </p>
-            <label for="frNewPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">New password</label>
+            <label for="frNewPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;" data-i18n="newPassword">New password</label>
             <input id="frNewPass" type="password" autocomplete="new-password" oninput="frScore()" style="width:100%;padding:10px;margin-bottom:6px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
             <div id="frStrength" style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:12px;"><div style="height:100%;width:0;border-radius:2px;background:var(--accent-danger);transition:all .2s;"></div></div>
-            <label for="frConfirmPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Confirm password</label>
+            <label for="frConfirmPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;" data-i18n="confirmPassword">Confirm password</label>
             <input id="frConfirmPass" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitFirstRunPassword()" style="width:100%;padding:10px;margin-bottom:12px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
             <div id="frError" class="hidden" style="color:var(--accent-danger);font-size:12px;margin-bottom:12px;"></div>
-            <button class="btn btn-primary" onclick="submitFirstRunPassword()" style="width:100%;">Set password &amp; continue</button>
-            <p style="color:var(--text-secondary);font-size:11px;text-align:center;margin:12px 0 0;">Stored hashed (PBKDF2). Minimum 8 characters.</p>
+            <button class="btn btn-primary" onclick="submitFirstRunPassword()" style="width:100%;" data-i18n="setPasswordContinue">Set password &amp; continue</button>
+            <p style="color:var(--text-secondary);font-size:11px;text-align:center;margin:12px 0 0;" data-i18n="storedHashed">Stored hashed (PBKDF2). Minimum 8 characters.</p>
         </div>
     </div>
 
@@ -59,7 +59,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1>HiveMind</h1>
-                <div class="version">Admin Panel</div>
+                <div class="version" data-i18n="adminPanel">Admin Panel</div>
             </div>
 
             <nav class="nav">
@@ -138,7 +138,7 @@
                     <option value="nord">❄️ Nord</option>
                     <option value="dracula">🧛 Dracula</option>
                 </select>
-                <select id="langSelect" onchange="setLang(this.value)" title="Language" style="flex: 1; padding: 8px; background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-sm); cursor: pointer;">
+                <select id="langSelect" onchange="setLang(this.value)" title="Language" data-i18n-title="language" style="flex: 1; padding: 8px; background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-sm); cursor: pointer;">
                     <option value="en">🇬🇧 EN</option>
                     <option value="es">🇪🇸 ES</option>
                     <option value="pt">🇵🇹 PT</option>
@@ -159,24 +159,24 @@
             <!-- Topbar -->
             <header class="topbar">
                 <button id="navToggle" class="nav-toggle" onclick="toggleSidebar()"
-                        aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+                        aria-label="Open navigation" data-i18n-aria-label="openNavigation" aria-expanded="false" aria-controls="sidebar">
                     <span aria-hidden="true">☰</span>
                 </button>
-                <h2 id="pageTitle">Dashboard</h2>
+                <h2 id="pageTitle" data-i18n="dashboard">Dashboard</h2>
                 <div id="restartWarningBanner" class="hidden" style="background: var(--accent-warning); color: #1e1e1e; padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 12px; margin: 0 20px;">
                     <span style="display: flex; align-items: center; gap: 8px;">
-                        ⚠️ Restart Required
+                        <span data-i18n="restartRequiredBanner">⚠️ Restart Required</span>
                     </span>
-                    <button class="btn btn-sm" style="background: rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.2); padding: 2px 8px; font-size: 11px; color: #1e1e1e;" onclick="showRestartConfirm()">Restart Now</button>
+                    <button class="btn btn-sm" style="background: rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.2); padding: 2px 8px; font-size: 11px; color: #1e1e1e;" onclick="showRestartConfirm()" data-i18n="restartNow">Restart Now</button>
                 </div>
                 <div class="topbar-actions">
                     <span id="runModeBadge" class="hidden" title="" style="font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--bg-hover); border: 1px solid var(--border-color); color: var(--text-secondary); white-space: nowrap; cursor: help;"></span>
-                    <button class="btn btn-danger btn-sm" onclick="showRestartConfirm()" title="Restart HiveMind-core">
-                        🔄 Restart HiveMind
+                    <button class="btn btn-danger btn-sm" onclick="showRestartConfirm()" title="Restart HiveMind-core" data-i18n-title="restartHivemindTitle">
+                        🔄 <span data-i18n="restartHivemind">Restart HiveMind</span>
                     </button>
                     <div id="connectionStatus" class="status-indicator status-offline">
                         <span class="status-dot"></span>
-                        <span>Disconnected</span>
+                        <span data-i18n="disconnected">Disconnected</span>
                     </div>
                 </div>
             </header>
@@ -192,28 +192,28 @@
                             <div class="stat-icon blue">👥</div>
                             <div class="stat-info">
                                 <div class="value" id="statClients">-</div>
-                                <div class="label">Total Clients</div>
+                                <div class="label" data-i18n="totalClients">Total Clients</div>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon green">🔗</div>
                             <div class="stat-info">
                                 <div class="value" id="statConnections">-</div>
-                                <div class="label">Active Connections</div>
+                                <div class="label" data-i18n="activeConnections">Active Connections</div>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon yellow">🌐</div>
                             <div class="stat-info">
                                 <div class="value" id="statProtocols">-</div>
-                                <div class="label">Network Protocols</div>
+                                <div class="label" data-i18n="networkProtocolsLabel">Network Protocols</div>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon purple">📦</div>
                             <div class="stat-info">
                                 <div class="value" id="statVersion">-</div>
-                                <div class="label">HiveMind Version</div>
+                                <div class="label" data-i18n="hivemindVersion">HiveMind Version</div>
                             </div>
                         </div>
                     </div>
@@ -221,21 +221,21 @@
                     <!-- Network Configuration -->
                     <div class="card" style="margin-top: 24px;">
                         <div class="card-header">
-                            <h3>Network Configuration</h3>
+                            <h3 data-i18n="networkConfiguration">Network Configuration</h3>
                         </div>
                         <div class="card-body">
-                            <div id="networkConfig">Loading...</div>
+                            <div id="networkConfig" data-i18n="loadingEllipsis">Loading...</div>
                         </div>
                     </div>
 
                     <!-- Active Plugins Row -->
                     <div class="card" style="margin-top: 24px;">
                         <div class="card-header">
-                            <h3>⚙️ Active Plugins</h3>
+                            <h3>⚙️ <span data-i18n="activePlugins">Active Plugins</span></h3>
                         </div>
                         <div class="card-body">
                             <div id="activePluginsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-                                <div class="empty-state"><div class="spinner"></div><p>Loading active plugins...</p></div>
+                                <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingActivePlugins">Loading active plugins...</p></div>
                             </div>
                         </div>
                     </div>
@@ -243,14 +243,14 @@
                     <!-- Installed Plugins Count -->
                     <div class="card" style="margin-top: 24px;">
                         <div class="card-header">
-                            <h3>🔌 Installed Plugins</h3>
+                            <h3>🔌 <span data-i18n="installedPlugins">Installed Plugins</span></h3>
                             <button class="btn btn-secondary btn-sm" onclick="navigate('voice-plugins')">
-                                📦 Manage Plugins
+                                📦 <span data-i18n="managePlugins">Manage Plugins</span>
                             </button>
                         </div>
                         <div class="card-body">
                             <div id="pluginStatusGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
-                                <div class="empty-state"><div class="spinner"></div><p>Loading plugins...</p></div>
+                                <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingPlugins">Loading plugins...</p></div>
                             </div>
                         </div>
                     </div>
@@ -260,22 +260,22 @@
                 <div id="clientsPage" class="page">
                     <div class="card">
                         <div class="card-header">
-                            <h3>Client Management</h3>
+                            <h3 data-i18n="clientManagement">Client Management</h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary btn-sm" onclick="showBridgeModal()" title="A bridge is a HiveMind satellite whose input and output is a chat room (Matrix, Telegram, etc.). This registers a client and gives you the credentials to run the bridge process.">💬 Add Bridge</button>
-                                <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">+ Add Client</button>
+                                <button class="btn btn-secondary btn-sm" onclick="showBridgeModal()" title="A bridge is a HiveMind satellite whose input and output is a chat room (Matrix, Telegram, etc.). This registers a client and gives you the credentials to run the bridge process." data-i18n-title="addBridgeTitle">💬 <span data-i18n="addBridge">Add Bridge</span></button>
+                                <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">+ <span data-i18n="addClient">Add Client</span></button>
                             </div>
                         </div>
                         <div class="card-body">
                             <div class="toolbar">
                                 <div class="search-box">
-                                    <input type="text" id="clientSearch" placeholder="Search clients..." oninput="filterClients()">
+                                    <input type="text" id="clientSearch" placeholder="Search clients..." oninput="filterClients()" data-i18n-placeholder="searchClientsPh">
                                 </div>
                                 <select id="clientFilter" onchange="filterClients()" style="padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary);">
-                                    <option value="all">All Clients</option>
-                                    <option value="admin">Admin Only</option>
-                                    <option value="escalate">Can Escalate</option>
-                                    <option value="propagate">Can Propagate</option>
+                                    <option value="all" data-i18n="allClients">All Clients</option>
+                                    <option value="admin" data-i18n="adminOnly">Admin Only</option>
+                                    <option value="escalate" data-i18n="canEscalateFilter">Can Escalate</option>
+                                    <option value="propagate" data-i18n="canPropagateFilter">Can Propagate</option>
                                 </select>
                             </div>
 
@@ -283,13 +283,13 @@
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Name</th>
-                                            <th>API Key</th>
-                                            <th>Admin</th>
-                                            <th>Escalate</th>
-                                            <th>Propagate</th>
-                                            <th>Actions</th>
+                                            <th data-i18n="colId">ID</th>
+                                            <th data-i18n="colName">Name</th>
+                                            <th data-i18n="colApiKey">API Key</th>
+                                            <th data-i18n="colAdmin">Admin</th>
+                                            <th data-i18n="colEscalate">Escalate</th>
+                                            <th data-i18n="colPropagate">Propagate</th>
+                                            <th data-i18n="colActions">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="clientsTable"></tbody>
@@ -299,8 +299,8 @@
                             <div class="pagination">
                                 <div class="pagination-info" id="paginationInfo">Showing 0-0 of 0</div>
                                 <div class="pagination-buttons">
-                                    <button class="btn btn-secondary btn-sm" onclick="prevPage()" id="prevBtn">Previous</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="nextPage()" id="nextBtn">Next</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="prevPage()" id="prevBtn" data-i18n="previous">Previous</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="nextPage()" id="nextBtn" data-i18n="next">Next</button>
                                 </div>
                             </div>
                         </div>
@@ -312,24 +312,24 @@
                     <!-- How ACL Works -->
                     <div class="card" style="margin-bottom: 24px; border-left: 4px solid var(--accent-primary);">
                         <div class="card-body">
-                            <h3 style="margin-bottom: 12px;">📋 How Access Control Works</h3>
+                            <h3 style="margin-bottom: 12px;">📋 <span data-i18n="howAclWorks">How Access Control Works</span></h3>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <strong style="color: var(--accent-success);">Messages</strong>
+                                    <strong style="color: var(--accent-success);" data-i18n="aclMessages">Messages</strong>
                                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                                        <strong>Whitelist mode</strong> — By default, ALL messages are blocked. You must explicitly allow each message type the client can send.
+                                        <span data-i18n-html="aclMessagesHelp"><strong>Whitelist mode</strong> — By default, ALL messages are blocked. You must explicitly allow each message type the client can send.</span>
                                     </p>
                                 </div>
                                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <strong style="color: var(--accent-warning);">Skills</strong>
+                                    <strong style="color: var(--accent-warning);" data-i18n="aclSkills">Skills</strong>
                                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                                        <strong>Blacklist mode</strong> — All skills are allowed by default. Add skill IDs to block specific skills.
+                                        <span data-i18n-html="aclSkillsHelp"><strong>Blacklist mode</strong> — All skills are allowed by default. Add skill IDs to block specific skills.</span>
                                     </p>
                                 </div>
                                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <strong style="color: var(--accent-danger);">Intents</strong>
+                                    <strong style="color: var(--accent-danger);" data-i18n="aclIntents">Intents</strong>
                                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                                        <strong>Blacklist mode</strong> — All intents are allowed by default. Add intent IDs to block specific intents.
+                                        <span data-i18n-html="aclIntentsHelp"><strong>Blacklist mode</strong> — All intents are allowed by default. Add intent IDs to block specific intents.</span>
                                     </p>
                                 </div>
                             </div>
@@ -338,14 +338,14 @@
 
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
-                            <h3>🔒 Access Control Lists</h3>
-                            <span style="color: var(--text-secondary); font-size: 13px;">Manage permissions for clients</span>
+                            <h3>🔒 <span data-i18n="accessControlLists">Access Control Lists</span></h3>
+                            <span style="color: var(--text-secondary); font-size: 13px;" data-i18n="managePermissionsForClients">Manage permissions for clients</span>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="aclClientSelect">Select Client</label>
+                                <label for="aclClientSelect" data-i18n="selectClient">Select Client</label>
                                 <select id="aclClientSelect" onchange="loadClientACL()">
-                                    <option value="">Select a client...</option>
+                                    <option value="" data-i18n="selectClientEllipsis">Select a client...</option>
                                 </select>
                             </div>
 
@@ -353,37 +353,37 @@
                                 <!-- HiveMind Core Permissions -->
                                 <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--accent-primary);">
                                     <div class="card-header" style="padding: 12px 16px;">
-                                        <h4 style="font-size: 14px;">HiveMind Core Permissions</h4>
+                                        <h4 style="font-size: 14px;" data-i18n="hivemindCorePermissions">HiveMind Core Permissions</h4>
                                     </div>
                                     <div class="card-body">
-                                        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                                        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;" data-i18n="permissionsControlIntro">
                                             These permissions control what this client can do within the HiveMind network.
                                         </p>
                                         <div style="display: grid; gap: 16px;">
                                             <label style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); cursor: pointer;">
                                                 <input type="checkbox" id="aclIsAdmin" style="width: auto; margin-top: 2px;">
                                                 <div>
-                                                    <strong>Administrator</strong>
+                                                    <strong data-i18n="administrator">Administrator</strong>
                                                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                                        Admin clients can modify the OpenVoiceOS "default" session like if they originated from inside OVOS itself. You probably do not want this!
+                                                        <span data-i18n="administratorHelp">Admin clients can modify the OpenVoiceOS "default" session like if they originated from inside OVOS itself. You probably do not want this!</span>
                                                     </p>
                                                 </div>
                                             </label>
                                             <label style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); cursor: pointer;">
                                                 <input type="checkbox" id="aclCanEscalate" style="width: auto; margin-top: 2px;">
                                                 <div>
-                                                    <strong>Can Escalate</strong>
+                                                    <strong data-i18n="canEscalate">Can Escalate</strong>
                                                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                                        Allows this client to send messages <strong>upstream</strong> to parent nodes. In a mesh network, this lets satellites send voice commands to their hivemind-core for processing. Without this, the client can only receive messages.
+                                                        <span data-i18n-html="canEscalateHelp">Allows this client to send messages <strong>upstream</strong> to parent nodes. In a mesh network, this lets satellites send voice commands to their hivemind-core for processing. Without this, the client can only receive messages.</span>
                                                     </p>
                                                 </div>
                                             </label>
                                             <label style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); cursor: pointer;">
                                                 <input type="checkbox" id="aclCanPropagate" style="width: auto; margin-top: 2px;">
                                                 <div>
-                                                    <strong>Can Propagate</strong>
+                                                    <strong data-i18n="canPropagate">Can Propagate</strong>
                                                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                                        Allows this client to <strong>forward</strong> messages to sibling nodes. This enables peer-to-peer communication where one satellite can relay messages to another without going through hivemind-core. Used for distributed coordination.
+                                                        <span data-i18n-html="canPropagateHelp">Allows this client to <strong>forward</strong> messages to sibling nodes. This enables peer-to-peer communication where one satellite can relay messages to another without going through hivemind-core. Used for distributed coordination.</span>
                                                     </p>
                                                 </div>
                                             </label>
@@ -393,7 +393,7 @@
 
                                 <!-- ACL Templates -->
                                 <div style="margin-bottom: 16px; padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <h4 style="margin-bottom: 12px; font-size: 14px;">Quick Templates</h4>
+                                    <h4 style="margin-bottom: 12px; font-size: 14px;" data-i18n="quickTemplates">Quick Templates</h4>
                                     <div id="aclTemplatesContainer" style="display: flex; flex-wrap: wrap; gap: 8px;">
                                         <!-- Templates loaded from API -->
                                     </div>
@@ -402,15 +402,15 @@
                                 <!-- Allowed Message Types (Whitelist) -->
                                 <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--accent-success);">
                                     <div class="card-header" style="padding: 12px 16px;">
-                                        <h4 style="font-size: 14px;">✅ Allowed Message Types <span style="color: var(--accent-success);">(Whitelist)</span></h4>
+                                        <h4 style="font-size: 14px;">✅ <span data-i18n="allowedMessageTypes">Allowed Message Types</span> <span style="color: var(--accent-success);" data-i18n="whitelistParen">(Whitelist)</span></h4>
                                     </div>
                                     <div class="card-body">
                                         <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
-                                            <strong>By default, ALL messages are blocked.</strong> Add message types here that this client is allowed to send. One message type per line.
+                                            <span data-i18n-html="allowedMessageTypesHelp"><strong>By default, ALL messages are blocked.</strong> Add message types here that this client is allowed to send. One message type per line.</span>
                                         </p>
                                         <textarea id="aclAllowedTypes" style="width: 100%; min-height: 80px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;" placeholder="recognizer_loop:utterance&#10;speak"></textarea>
                                         <div style="margin-top: 12px;" id="quickMessagesContainer">
-                                            <span style="color: var(--text-secondary); font-size: 12px;">Quick add:</span>
+                                            <span style="color: var(--text-secondary); font-size: 12px;" data-i18n="quickAdd">Quick add:</span>
                                             <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;" id="quickMessages"></div>
                                         </div>
                                     </div>
@@ -419,15 +419,15 @@
                                 <!-- Skill Blacklist -->
                                 <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--accent-warning);">
                                     <div class="card-header" style="padding: 12px 16px;">
-                                        <h4 style="font-size: 14px;">🚫 Skill Blacklist</h4>
+                                        <h4 style="font-size: 14px;">🚫 <span data-i18n="skillBlacklist">Skill Blacklist</span></h4>
                                     </div>
                                     <div class="card-body">
                                         <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
-                                            <strong>All skills are allowed by default.</strong> Add skill IDs here to block specific skills from being triggered by this client. One skill ID per line.
+                                            <span data-i18n-html="skillBlacklistHelp"><strong>All skills are allowed by default.</strong> Add skill IDs here to block specific skills from being triggered by this client. One skill ID per line.</span>
                                         </p>
                                         <textarea id="aclSkillBlacklist" style="width: 100%; min-height: 60px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;" placeholder="skill-id.to.block"></textarea>
                                         <div style="margin-top: 12px; display: none;" id="quickSkillsContainer">
-                                            <span style="color: var(--text-secondary); font-size: 12px;">Quick add:</span>
+                                            <span style="color: var(--text-secondary); font-size: 12px;" data-i18n="quickAdd">Quick add:</span>
                                             <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;" id="quickSkills"></div>
                                         </div>
                                     </div>
@@ -436,23 +436,23 @@
                                 <!-- Intent Blacklist -->
                                 <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--accent-danger);">
                                     <div class="card-header" style="padding: 12px 16px;">
-                                        <h4 style="font-size: 14px;">🚫 Intent Blacklist</h4>
+                                        <h4 style="font-size: 14px;">🚫 <span data-i18n="intentBlacklist">Intent Blacklist</span></h4>
                                     </div>
                                     <div class="card-body">
                                         <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
-                                            <strong>All intents are allowed by default.</strong> Add intent IDs here to block specific intents from being triggered by this client. One intent ID per line.
+                                            <span data-i18n-html="intentBlacklistHelp"><strong>All intents are allowed by default.</strong> Add intent IDs here to block specific intents from being triggered by this client. One intent ID per line.</span>
                                         </p>
                                         <textarea id="aclIntentBlacklist" style="width: 100%; min-height: 60px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;" placeholder="intent.id.to.block"></textarea>
                                         <div style="margin-top: 12px; display: none;" id="quickIntentsContainer">
-                                            <span style="color: var(--text-secondary); font-size: 12px;">Quick add:</span>
+                                            <span style="color: var(--text-secondary); font-size: 12px;" data-i18n="quickAdd">Quick add:</span>
                                             <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;" id="quickIntents"></div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div style="display: flex; gap: 12px;">
-                                    <button class="btn btn-primary" onclick="saveClientACL()">Save ACL Changes</button>
-                                    <button class="btn btn-secondary" onclick="resetACLForm()">Reset</button>
+                                    <button class="btn btn-primary" onclick="saveClientACL()" data-i18n="saveAclChanges">Save ACL Changes</button>
+                                    <button class="btn btn-secondary" onclick="resetACLForm()" data-i18n="reset">Reset</button>
                                 </div>
                             </div>
                         </div>
@@ -463,39 +463,39 @@
                 <div id="personasPage" class="page">
                     <!-- Persona test chat (multi-turn, memory accumulates) -->
                     <div class="card" style="margin-bottom: 24px;">
-                        <div class="card-header"><h3>💬 Test a persona</h3></div>
+                        <div class="card-header"><h3>💬 <span data-i18n="testAPersona">Test a persona</span></h3></div>
                         <div class="card-body">
-                            <p style="font-size:12px;color:var(--text-secondary);margin-top:0;">A live multi-turn conversation: the persona instance (and its memory module) is kept across turns. <strong>New session</strong> starts a fresh instance, clearing memory.</p>
+                            <p style="font-size:12px;color:var(--text-secondary);margin-top:0;" data-i18n-html="personaChatIntro">A live multi-turn conversation: the persona instance (and its memory module) is kept across turns. <strong>New session</strong> starts a fresh instance, clearing memory.</p>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
                                 <select id="chatPersona" style="padding:8px;min-width:180px;"></select>
-                                <button id="personaChatStartBtn" class="btn btn-primary btn-sm" onclick="startPersonaChat()">Start chat</button>
-                                <button id="personaChatNewBtn" class="btn btn-secondary btn-sm hidden" onclick="startPersonaChat()">New session</button>
+                                <button id="personaChatStartBtn" class="btn btn-primary btn-sm" onclick="startPersonaChat()" data-i18n="startChat">Start chat</button>
+                                <button id="personaChatNewBtn" class="btn btn-secondary btn-sm hidden" onclick="startPersonaChat()" data-i18n="newSession">New session</button>
                                 <span id="personaChatStatus" style="font-size:12px;color:var(--text-secondary);"></span>
                             </div>
                             <div id="personaChatTranscript" style="border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-secondary);min-height:160px;max-height:42vh;overflow-y:auto;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
-                                <div style="color:var(--text-secondary);font-size:13px;margin:auto;">Pick a persona and start a chat.</div>
+                                <div style="color:var(--text-secondary);font-size:13px;margin:auto;" data-i18n="pickPersonaStartChat">Pick a persona and start a chat.</div>
                             </div>
                             <div style="display:flex;gap:8px;">
-                                <input id="chatMessage" placeholder="Ask the persona something…" disabled style="flex:1;min-width:200px;padding:10px;"
+                                <input id="chatMessage" placeholder="Ask the persona something…" disabled data-i18n-placeholder="askPersonaPh" style="flex:1;min-width:200px;padding:10px;"
                                        onkeydown="if(event.key==='Enter')sendPersonaChat()">
-                                <button id="personaChatSendBtn" class="btn btn-primary" onclick="sendPersonaChat()" disabled>Send</button>
+                                <button id="personaChatSendBtn" class="btn btn-primary" onclick="sendPersonaChat()" disabled data-i18n="send">Send</button>
                             </div>
                         </div>
                     </div>
                     <!-- Persona List -->
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
-                            <h3>👤 Personas</h3>
+                            <h3>👤 <span data-i18n="personas">Personas</span></h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-primary btn-sm" onclick="showCreatePersonaModal()">+ Create Persona</button>
+                                <button class="btn btn-primary btn-sm" onclick="showCreatePersonaModal()">+ <span data-i18n="createPersona">Create Persona</span></button>
                             </div>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
-                                Create and manage AI personas. Each persona has its own personality, solver plugins, and configuration.
+                                <span data-i18n="personasIntro">Create and manage AI personas. Each persona has its own personality, solver plugins, and configuration.</span>
                             </p>
                             <div id="personasList" style="display: grid; gap: 12px;">
-                                <div class="empty-state"><div class="spinner"></div><p>Loading personas...</p></div>
+                                <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingPersonas">Loading personas...</p></div>
                             </div>
                         </div>
                     </div>
@@ -504,17 +504,17 @@
                     <div id="activePersonaSection" class="hidden">
                         <div class="card" style="border-left: 4px solid var(--accent-success);">
                             <div class="card-header">
-                                <h3>⭐ Active Persona</h3>
+                                <h3>⭐ <span data-i18n="activePersona">Active Persona</span></h3>
                             </div>
                             <div class="card-body">
                                 <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
-                                    Select which persona to use for AI conversations.
+                                    <span data-i18n="selectPersonaIntro">Select which persona to use for AI conversations.</span>
                                 </p>
                                 <div style="display: flex; gap: 12px; align-items: center;">
                                     <select id="activePersonaSelect" style="flex: 1; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary);">
-                                        <option value="">Select a persona...</option>
+                                        <option value="" data-i18n="selectAPersonaEllipsis">Select a persona...</option>
                                     </select>
-                                    <button class="btn btn-primary" onclick="activatePersona()">Activate</button>
+                                    <button class="btn btn-primary" onclick="activatePersona()" data-i18n="activate">Activate</button>
                                 </div>
                                 <div id="activePersonaStatus" style="margin-top: 12px; font-size: 13px;"></div>
                             </div>
@@ -526,16 +526,16 @@
                 <div id="agentsPage" class="page">
                     <div class="card">
                         <div class="card-header">
-                            <h3>🤖 Agent Protocol</h3>
+                            <h3>🤖 <span data-i18n="agentProtocol">Agent Protocol</span></h3>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                                Select the AI backend for message processing. Only one agent protocol can be active at a time.
+                                <span data-i18n="agentProtocolIntro">Select the AI backend for message processing. Only one agent protocol can be active at a time.</span>
                             </p>
                             <div id="agentProtocolsContainer">
                                 <div class="empty-state">
                                     <div class="spinner"></div>
-                                    <p>Loading agent protocols...</p>
+                                    <p data-i18n="loadingAgentProtocols">Loading agent protocols...</p>
                                 </div>
                             </div>
                         </div>
@@ -546,36 +546,36 @@
                 <div id="databasePage" class="page">
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
-                            <h3>🗄️ Database Profiles</h3>
-                            <span id="activeDbBadge" class="badge badge-success">✓ Active</span>
+                            <h3>🗄️ <span data-i18n="databaseProfiles">Database Profiles</span></h3>
+                            <span id="activeDbBadge" class="badge badge-success">✓ <span data-i18n="active">Active</span></span>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                                Configure named database profiles. Each profile stores a backend type and its connection settings.
-                                Activate a profile to make it the live database — optionally migrating existing clients.
+                                <span data-i18n="databaseProfilesIntro">Configure named database profiles. Each profile stores a backend type and its connection settings.
+                                Activate a profile to make it the live database — optionally migrating existing clients.</span>
                             </p>
 
                             <!-- Active profile info banner -->
                             <div id="activeProfileBanner" style="display:none; padding: 12px 16px; background: rgba(99,179,237,0.1); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
                                 <span style="font-size: 20px;">✅</span>
                                 <div>
-                                    <div style="font-weight: 600; font-size: 14px;">Active: <span id="activeProfileNameLabel"></span></div>
+                                    <div style="font-weight: 600; font-size: 14px;"><span data-i18n="activeColon">Active:</span> <span id="activeProfileNameLabel"></span></div>
                                     <div style="font-size: 12px; color: var(--text-secondary);"><span id="activeProfileModuleLabel"></span></div>
                                 </div>
                             </div>
 
                             <!-- Profiles list header -->
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                                <h4 style="margin: 0; font-size: 14px; color: var(--text-secondary);">Saved Profiles</h4>
-                                <button class="btn btn-primary btn-sm" onclick="showCreateProfileModal()">+ Add Profile</button>
+                                <h4 style="margin: 0; font-size: 14px; color: var(--text-secondary);" data-i18n="savedProfiles">Saved Profiles</h4>
+                                <button class="btn btn-primary btn-sm" onclick="showCreateProfileModal()">+ <span data-i18n="addProfile">Add Profile</span></button>
                             </div>
                             <div id="databaseProfilesContainer">
-                                <div class="empty-state"><div class="spinner"></div><p>Loading profiles...</p></div>
+                                <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingProfiles">Loading profiles...</p></div>
                             </div>
 
                             <!-- Available backends (collapsed reference) -->
                             <details style="margin-top: 24px;">
-                                <summary style="cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none;">Available backends (install status)</summary>
+                                <summary style="cursor: pointer; font-size: 13px; color: var(--text-secondary); user-select: none;" data-i18n="availableBackends">Available backends (install status)</summary>
                                 <div id="databaseBackendsContainer" style="margin-top: 12px; display: grid; gap: 8px;"></div>
                             </details>
                         </div>
@@ -586,17 +586,17 @@
                 <div id="networkPage" class="page">
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
-                            <h3>🌐 Network Protocols</h3>
-                            <span style="color: var(--text-secondary); font-size: 13px;">Enable or disable transport protocols</span>
+                            <h3>🌐 <span data-i18n="networkProtocolsTitle">Network Protocols</span></h3>
+                            <span style="color: var(--text-secondary); font-size: 13px;" data-i18n="enableDisableTransport">Enable or disable transport protocols</span>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                                Network protocols handle incoming connections from HiveMind clients. Multiple protocols can run simultaneously.
+                                <span data-i18n="networkProtocolsIntro">Network protocols handle incoming connections from HiveMind clients. Multiple protocols can run simultaneously.</span>
                             </p>
                             <div id="protocolsContainer">
                                 <div class="empty-state">
                                     <div class="spinner"></div>
-                                    <p>Loading protocols...</p>
+                                    <p data-i18n="loadingProtocols">Loading protocols...</p>
                                 </div>
                             </div>
                         </div>
@@ -607,60 +607,60 @@
                 <div id="voice-pluginsPage" class="page">
                     <div class="card">
                         <div class="card-header">
-                            <h3>🎙️ OpenVoiceOS Plugins</h3>
+                            <h3>🎙️ <span data-i18n="voice">OpenVoiceOS Plugins</span></h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-primary btn-sm" onclick="showInstallCustomPluginModal()">📦 Install Custom Plugin</button>
+                                <button class="btn btn-primary btn-sm" onclick="showInstallCustomPluginModal()">📦 <span data-i18n="installCustomPlugin">Install Custom Plugin</span></button>
                             </div>
                         </div>
                         <div class="card-body">
                             <div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-bottom: 20px; border-left: 4px solid var(--accent-primary);">
                                 <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                                    Install Speech-to-Text, Text-to-Speech, Wake Word, VAD, and Agent plugins here.
-                                    Once installed, they can be configured in the <strong>Binary Protocol</strong> or <strong>AI Agents</strong> tabs.
+                                    <span data-i18n-html="voicePluginsIntro">Install Speech-to-Text, Text-to-Speech, Wake Word, VAD, and Agent plugins here.
+                                    Once installed, they can be configured in the <strong>Binary Protocol</strong> or <strong>AI Agents</strong> tabs.</span>
                                 </p>
                             </div>
 
                             <!-- Voice Plugin Sub-tabs -->
                             <div class="tabs" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 4px;">
-                                <button class="tab-item active" onclick="switchVoicePluginTab('stt')" id="sttTab">STT</button>
-                                <button class="tab-item" onclick="switchVoicePluginTab('tts')" id="ttsTab">TTS</button>
-                                <button class="tab-item" onclick="switchVoicePluginTab('ww')" id="wwTab">Wake Word</button>
-                                <button class="tab-item" onclick="switchVoicePluginTab('vad')" id="vadTab">VAD</button>
-                                <button class="tab-item" onclick="switchVoicePluginTab('solvers')" id="solversTab">Agents</button>
+                                <button class="tab-item active" onclick="switchVoicePluginTab('stt')" id="sttTab" data-i18n="stt">STT</button>
+                                <button class="tab-item" onclick="switchVoicePluginTab('tts')" id="ttsTab" data-i18n="tts">TTS</button>
+                                <button class="tab-item" onclick="switchVoicePluginTab('ww')" id="wwTab" data-i18n="wakeWord">Wake Word</button>
+                                <button class="tab-item" onclick="switchVoicePluginTab('vad')" id="vadTab" data-i18n="vad">VAD</button>
+                                <button class="tab-item" onclick="switchVoicePluginTab('solvers')" id="solversTab" data-i18n="agentsTab">Agents</button>
                             </div>
 
                             <div id="sttVoiceSection" class="voice-tab-content">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);">Speech-to-Text (STT)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="sttFull">Speech-to-Text (STT)</h4>
                                 <div id="sttPluginsContainer" style="margin-bottom: 24px;">
-                                    <div class="empty-state"><div class="spinner"></div><p>Loading STT plugins...</p></div>
+                                    <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingSttPlugins">Loading STT plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="ttsVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);">Text-to-Speech (TTS)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="ttsFull">Text-to-Speech (TTS)</h4>
                                 <div id="ttsPluginsContainer" style="margin-bottom: 24px;">
-                                    <div class="empty-state"><div class="spinner"></div><p>Loading TTS plugins...</p></div>
+                                    <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingTtsPlugins">Loading TTS plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="wwVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);">Wake Word (WW)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="wakeWordFull">Wake Word (WW)</h4>
                                 <div id="wwPluginsContainer" style="margin-bottom: 24px;">
-                                    <div class="empty-state"><div class="spinner"></div><p>Loading Wake Word plugins...</p></div>
+                                    <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingWwPlugins">Loading Wake Word plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="vadVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);">Voice Activity Detection (VAD)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="vadFull">Voice Activity Detection (VAD)</h4>
                                 <div id="vadPluginsContainer">
-                                    <div class="empty-state"><div class="spinner"></div><p>Loading VAD plugins...</p></div>
+                                    <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingVadPlugins">Loading VAD plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="solversVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);">Agent Plugins</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="agentPlugins">Agent Plugins</h4>
                                 <div id="solversPluginsContainer" style="display: grid; gap: 8px;">
-                                    <div class="empty-state"><div class="spinner"></div><p>Loading Agent plugins...</p></div>
+                                    <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingAgentPlugins">Loading Agent plugins...</p></div>
                                 </div>
                             </div>
                         </div>
@@ -671,53 +671,53 @@
                 <div id="binaryPage" class="page">
                     <div class="card">
                         <div class="card-header">
-                            <h3>📦 Binary Protocol</h3>
-                            <span style="color: var(--text-secondary); font-size: 13px;">Audio and binary data handling for voice I/O</span>
+                            <h3>📦 <span data-i18n="binary">Binary Protocol</span></h3>
+                            <span style="color: var(--text-secondary); font-size: 13px;" data-i18n="binaryProtocolSubtitle">Audio and binary data handling for voice I/O</span>
                         </div>
                         <div class="card-body">
                             <!-- Binary Protocol Provider Status -->
                             <div id="binaryProtocolConfig" style="margin-bottom: 24px;">
                                 <div class="empty-state">
                                     <div class="spinner"></div>
-                                    <p>Loading binary protocol status...</p>
+                                    <p data-i18n="loadingBinaryStatus">Loading binary protocol status...</p>
                                 </div>
                             </div>
 
                             <!-- Active Configuration Section (only shown if binary protocol enabled) -->
                             <div id="ovosPluginsSection" class="hidden">
-                                <h4 style="font-size: 15px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">⚙️ Active Voice Configuration</h4>
+                                <h4 style="font-size: 15px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">⚙️ <span data-i18n="activeVoiceConfiguration">Active Voice Configuration</span></h4>
 
                                 <div id="binaryPresetPickers" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:18px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);border:1px dashed var(--border-color);"></div>
 
                                 <div id="activeBinaryConfigForm" style="display: grid; gap: 20px;">
                                     <div class="form-group">
-                                        <label for="activeSTTSelect">STT (Speech-to-Text) Plugin</label>
+                                        <label for="activeSTTSelect" data-i18n="sttPluginLabel">STT (Speech-to-Text) Plugin</label>
                                         <select id="activeSTTSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="activeTTSSelect">TTS (Text-to-Speech) Plugin</label>
+                                        <label for="activeTTSSelect" data-i18n="ttsPluginLabel">TTS (Text-to-Speech) Plugin</label>
                                         <select id="activeTTSSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="activeWWName">Wake Word (e.g., "hey_mycroft")</label>
+                                        <label for="activeWWName" data-i18n="wakeWordExampleLabel">Wake Word (e.g., "hey_mycroft")</label>
                                         <input type="text" id="activeWWName" placeholder="hey_mycroft">
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="activeWWSelect">Wake Word Engine</label>
+                                        <label for="activeWWSelect" data-i18n="wakeWordEngine">Wake Word Engine</label>
                                         <select id="activeWWSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="activeVADSelect">VAD (Voice Activity Detection)</label>
+                                        <label for="activeVADSelect" data-i18n="vadFull">VAD (Voice Activity Detection)</label>
                                         <select id="activeVADSelect">
                                             <option value="">Loading installed plugins...</option>
                                         </select>
@@ -725,7 +725,7 @@
 
                                     <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
                                         <button class="btn btn-primary" onclick="updateActiveBinaryConfig()">
-                                            <i class="fas fa-save" style="margin-right: 8px;"></i> Save & Update Configuration
+                                            <i class="fas fa-save" style="margin-right: 8px;"></i> <span data-i18n="saveUpdateConfiguration">Save &amp; Update Configuration</span>
                                         </button>
                                     </div>
                                 </div>
@@ -738,20 +738,20 @@
                                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                                             <span style="font-size: 24px;">⚠️</span>
                                             <div>
-                                                <strong style="font-size: 16px; color: var(--accent-warning);">Binary Protocol Not Enabled</strong>
+                                                <strong style="font-size: 16px; color: var(--accent-warning);" data-i18n="binaryProtocolNotEnabled">Binary Protocol Not Enabled</strong>
                                                 <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                                                    Enable the Audio Binary Protocol to use voice I/O features with satellites.
+                                                    <span data-i18n="enableAudioBinaryHelp">Enable the Audio Binary Protocol to use voice I/O features with satellites.</span>
                                                 </p>
                                             </div>
                                         </div>
                                         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                                            <strong>What is Binary Protocol?</strong><br>
-                                            The binary protocol handles audio data from HiveMind satellites. It's required for:
+                                            <strong data-i18n="whatIsBinaryProtocol">What is Binary Protocol?</strong><br>
+                                            <span data-i18n="binaryProtocolRequiredFor">The binary protocol handles audio data from HiveMind satellites. It's required for:</span>
                                         </p>
                                         <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; margin-top: 8px;">
-                                            <li>Voice satellite audio streaming</li>
-                                            <li>Microphone satellite audio capture</li>
-                                            <li>Server-side STT/TTS processing</li>
+                                            <li data-i18n="liVoiceSatelliteStreaming">Voice satellite audio streaming</li>
+                                            <li data-i18n="liMicSatelliteCapture">Microphone satellite audio capture</li>
+                                            <li data-i18n="liServerSideSttTts">Server-side STT/TTS processing</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -764,15 +764,15 @@
                 <div id="encodingsPage" class="page">
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
-                            <h3>🔐 Encoding Schemes</h3>
+                            <h3>🔐 <span data-i18n="encodingSchemes">Encoding Schemes</span></h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary btn-sm" onclick="loadEncodings()">Reset</button>
-                                <button class="btn btn-primary btn-sm" onclick="saveEncodings()">Save Changes</button>
+                                <button class="btn btn-secondary btn-sm" onclick="loadEncodings()" data-i18n="reset">Reset</button>
+                                <button class="btn btn-primary btn-sm" onclick="saveEncodings()" data-i18n="saveChanges">Save Changes</button>
                             </div>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                                Select which encoding schemes are allowed for client connections. Encodings are used to serialize messages between HiveMind nodes. At least one encoding must be enabled.
+                                <span data-i18n="encodingSchemesIntro">Select which encoding schemes are allowed for client connections. Encodings are used to serialize messages between HiveMind nodes. At least one encoding must be enabled.</span>
                             </p>
                             <div id="encodingsContainer" style="display: grid; gap: 12px;">
                                 <!-- Encodings loaded dynamically -->
@@ -782,11 +782,11 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h3>🔒 Cipher Suites</h3>
+                            <h3>🔒 <span data-i18n="cipherSuites">Cipher Suites</span></h3>
                         </div>
                         <div class="card-body">
                             <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                                Select which encryption ciphers are allowed for secure client connections.
+                                <span data-i18n="cipherSuitesIntro">Select which encryption ciphers are allowed for secure client connections.</span>
                             </p>
                             <div id="ciphersContainer" style="display: grid; gap: 12px;">
                                 <!-- Ciphers loaded dynamically -->
@@ -800,13 +800,13 @@
                 <div id="presetsPage" class="page">
                     <div class="card">
                         <div class="card-header">
-                            <h3>🎛️ Plugin presets</h3>
-                            <button class="btn btn-primary btn-sm" onclick="showPresetModal()">+ New preset</button>
+                            <h3>🎛️ <span data-i18n="pluginPresets">Plugin presets</span></h3>
+                            <button class="btn btn-primary btn-sm" onclick="showPresetModal()">+ <span data-i18n="newPreset">New preset</span></button>
                         </div>
                         <div class="card-body">
-                            <p style="font-size:12px;color:var(--text-secondary);margin-top:0;">Named, reusable <code>{module, config}</code> for each plugin type — author once, then select them when configuring (e.g. STT/TTS/wake-word/VAD in the Binary Protocol). A preset can wrap a local plugin or point at a registered OVOS server.</p>
+                            <p style="font-size:12px;color:var(--text-secondary);margin-top:0;" data-i18n-html="presetsIntro">Named, reusable <code>{module, config}</code> for each plugin type — author once, then select them when configuring (e.g. STT/TTS/wake-word/VAD in the Binary Protocol). A preset can wrap a local plugin or point at a registered OVOS server.</p>
                             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="presetTypeTabs"></div>
-                            <div id="presetsContainer">Loading…</div>
+                            <div id="presetsContainer" data-i18n="loadingEllipsisChar">Loading…</div>
                         </div>
                     </div>
                 </div>
@@ -814,29 +814,29 @@
                 <!-- Preset create/edit modal -->
                 <div id="presetModal" class="modal-overlay" onclick="if(event.target===this)closePresetModal()" role="dialog" aria-modal="true" aria-labelledby="presetModalTitle">
                     <div class="modal" style="max-width:560px;">
-                        <div class="modal-header"><h3 id="presetModalTitle">New preset</h3></div>
+                        <div class="modal-header"><h3 id="presetModalTitle" data-i18n="newPreset">New preset</h3></div>
                         <div class="modal-body">
                             <input type="hidden" id="presetEditName">
-                            <div class="form-group"><label for="presetType">Plugin type</label>
+                            <div class="form-group"><label for="presetType" data-i18n="pluginType">Plugin type</label>
                                 <select id="presetType" onchange="onPresetTypeChange()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
-                            <div class="form-group"><label for="presetName">Preset name</label>
+                            <div class="form-group"><label for="presetName" data-i18n="presetName">Preset name</label>
                                 <input id="presetName" placeholder="e.g. whisper-gpu" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></div>
-                            <div class="form-group"><label for="presetSource">Source</label>
+                            <div class="form-group"><label for="presetSource" data-i18n="source">Source</label>
                                 <select id="presetSource" onchange="onPresetSourceChange()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
-                                    <option value="plugin">Local plugin</option>
-                                    <option value="server">Registered OVOS server</option>
+                                    <option value="plugin" data-i18n="localPlugin">Local plugin</option>
+                                    <option value="server" data-i18n="registeredOvosServer">Registered OVOS server</option>
                                 </select></div>
                             <div id="presetPluginWrap">
-                                <div class="form-group"><label for="presetModule">Module (installed)</label>
+                                <div class="form-group"><label for="presetModule" data-i18n="moduleInstalled">Module (installed)</label>
                                     <select id="presetModule" onchange="renderPresetFields()" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div id="presetServerWrap" style="display:none;">
-                                <div class="form-group"><label for="presetServer">OVOS server</label>
+                                <div class="form-group"><label for="presetServer" data-i18n="ovosServer">OVOS server</label>
                                     <select id="presetServer" style="width:100%;padding:10px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select></div>
                             </div>
                             <div class="form-group">
-                                <label style="display:flex;justify-content:space-between;align-items:center;">Config
-                                    <a href="#" id="presetJsonToggle" onclick="event.preventDefault();togglePresetJson()" style="font-size:11px;font-weight:normal;color:var(--accent-primary);">edit as JSON</a>
+                                <label style="display:flex;justify-content:space-between;align-items:center;"><span data-i18n="config">Config</span>
+                                    <a href="#" id="presetJsonToggle" onclick="event.preventDefault();togglePresetJson()" style="font-size:11px;font-weight:normal;color:var(--accent-primary);" data-i18n="editAsJson">edit as JSON</a>
                                 </label>
                                 <div id="presetFields" style="display:grid;gap:10px;"></div>
                                 <textarea id="presetConfig" placeholder='{ "model": "large-v3", "device": "cuda" }' style="display:none;width:100%;height:120px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);padding:8px;"></textarea>
@@ -844,8 +844,8 @@
                             <div id="presetModalStatus" style="font-size:12px;"></div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" onclick="closePresetModal()">Cancel</button>
-                            <button class="btn btn-primary" onclick="savePreset()">Save preset</button>
+                            <button class="btn btn-secondary" onclick="closePresetModal()" data-i18n="cancel">Cancel</button>
+                            <button class="btn btn-primary" onclick="savePreset()" data-i18n="savePreset">Save preset</button>
                         </div>
                     </div>
                 </div>
@@ -853,27 +853,27 @@
                 <!-- Test Chat (impersonate a client) -->
                 <div id="chatPage" class="page">
                     <div class="card">
-                        <div class="card-header"><h3>💬 Test Chat — impersonate a client</h3></div>
+                        <div class="card-header"><h3>💬 <span data-i18n="testChatTitle">Test Chat — impersonate a client</span></h3></div>
                         <div class="card-body">
                             <p style="font-size:12px;color:var(--text-secondary);margin-top:0;">
-                                Pick any registered client and chat through the hub <strong>as that client</strong>.
+                                <span data-i18n-html="testChatIntro">Pick any registered client and chat through the hub <strong>as that client</strong>.
                                 The panel opens a real connection with its credentials, so this exercises the
                                 genuine path — its ACL, routing, and whatever agent (OVOS / persona) is behind the hub.
-                                Requires a running hub (in-process by default).
+                                Requires a running hub (in-process by default).</span>
                             </p>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
                                 <select id="impersonateClient" style="padding:8px;min-width:200px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select>
-                                <button id="impersonateBtn" class="btn btn-primary btn-sm" onclick="startImpersonation()">Start chat</button>
-                                <button id="endImpersonateBtn" class="btn btn-secondary btn-sm hidden" onclick="endImpersonation()">End</button>
+                                <button id="impersonateBtn" class="btn btn-primary btn-sm" onclick="startImpersonation()" data-i18n="startChat">Start chat</button>
+                                <button id="endImpersonateBtn" class="btn btn-secondary btn-sm hidden" onclick="endImpersonation()" data-i18n="end">End</button>
                                 <span id="impersonateStatus" style="font-size:12px;color:var(--text-secondary);"></span>
                             </div>
                             <div id="chatTranscript" style="border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-secondary);min-height:280px;max-height:50vh;overflow-y:auto;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
-                                <div style="color:var(--text-secondary);font-size:13px;margin:auto;">Start a chat to impersonate a client.</div>
+                                <div style="color:var(--text-secondary);font-size:13px;margin:auto;" data-i18n="startChatToImpersonate">Start a chat to impersonate a client.</div>
                             </div>
                             <div style="display:flex;gap:8px;">
-                                <input id="chatInput" placeholder="Type an utterance…" disabled style="flex:1;padding:10px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"
+                                <input id="chatInput" placeholder="Type an utterance…" disabled data-i18n-placeholder="typeUtterancePh" style="flex:1;padding:10px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"
                                        onkeydown="if(event.key==='Enter')sendImpersonationMessage()">
-                                <button id="chatSendBtn" class="btn btn-primary" onclick="sendImpersonationMessage()" disabled>Send</button>
+                                <button id="chatSendBtn" class="btn btn-primary" onclick="sendImpersonationMessage()" disabled data-i18n="send">Send</button>
                             </div>
                         </div>
                     </div>
@@ -881,10 +881,10 @@
 
                 <div id="topologyPage" class="page">
                     <div class="card">
-                        <div class="card-header"><h3>🕸️ Mesh topology</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="loadTopologyPage()">Refresh</button></div>
+                        <div class="card-header"><h3>🕸️ <span data-i18n="meshTopology">Mesh topology</span></h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadTopologyPage()" data-i18n="refresh">Refresh</button></div>
                         <div class="card-body">
-                            <p style="color:var(--text-secondary);margin-bottom:12px;">Click a satellite to generate its pairing QR.</p>
+                            <p style="color:var(--text-secondary);margin-bottom:12px;" data-i18n="clickSatelliteForQr">Click a satellite to generate its pairing QR.</p>
                             <div id="topologyContainer" style="text-align:center;"></div>
                         </div>
                     </div>
@@ -893,10 +893,10 @@
                 <!-- Pairing modal -->
                 <div id="pairModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
                     <div style="background:var(--bg-card,#1c2128);padding:24px;border-radius:12px;max-width:420px;width:90%;text-align:center;">
-                        <h3 style="margin-bottom:12px;">Pair satellite <span id="pairName"></span></h3>
+                        <h3 style="margin-bottom:12px;"><span data-i18n="pairSatellite">Pair satellite</span> <span id="pairName"></span></h3>
                         <div id="pairQr" style="background:#fff;padding:12px;border-radius:8px;display:inline-block;"></div>
                         <pre id="pairBundle" style="text-align:left;font-size:11px;max-height:160px;overflow:auto;margin-top:12px;"></pre>
-                        <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="closePairModal()">Close</button>
+                        <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="closePairModal()" data-i18n="close">Close</button>
                     </div>
                 </div>
 
@@ -904,94 +904,94 @@
                 <div id="monitorPage" class="page">
                     <div class="card" style="margin-bottom:24px;">
                         <div class="card-header">
-                            <h3>📊 Live metrics</h3>
+                            <h3>📊 <span data-i18n="liveMetrics">Live metrics</span></h3>
                             <label style="font-size:13px;color:var(--text-secondary);">
-                                <input type="checkbox" id="monitorLive" onchange="toggleMonitorLive()"> live
+                                <input type="checkbox" id="monitorLive" onchange="toggleMonitorLive()"> <span data-i18n="live">live</span>
                             </label>
                         </div>
-                        <div class="card-body"><div id="metricsContainer">Loading…</div></div>
+                        <div class="card-body"><div id="metricsContainer" data-i18n="loadingEllipsisChar">Loading…</div></div>
                     </div>
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>🔔 Recent events</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="loadMonitorPage()">Refresh</button></div>
-                        <div class="card-body"><div id="eventsContainer">Loading…</div></div>
+                        <div class="card-header"><h3>🔔 <span data-i18n="recentEvents">Recent events</span></h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadMonitorPage()" data-i18n="refresh">Refresh</button></div>
+                        <div class="card-body"><div id="eventsContainer" data-i18n="loadingEllipsisChar">Loading…</div></div>
                     </div>
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>📜 hivemind-core log</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="loadLogs()">Refresh</button></div>
+                        <div class="card-header"><h3>📜 <span data-i18n="hivemindCoreLog">hivemind-core log</span></h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadLogs()" data-i18n="refresh">Refresh</button></div>
                         <div class="card-body"><pre id="logsContainer" style="max-height:320px;overflow:auto;font-size:12px;"></pre></div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h3>🧾 Audit log</h3></div>
-                        <div class="card-body"><div id="auditContainer">Loading…</div></div>
+                        <div class="card-header"><h3>🧾 <span data-i18n="auditLog">Audit log</span></h3></div>
+                        <div class="card-body"><div id="auditContainer" data-i18n="loadingEllipsisChar">Loading…</div></div>
                     </div>
                 </div>
 
                 <!-- OVOS Servers Page -->
                 <div id="serversPage" class="page">
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>🛰️ Register an OVOS server</h3></div>
+                        <div class="card-header"><h3>🛰️ <span data-i18n="registerOvosServer">Register an OVOS server</span></h3></div>
                         <div class="card-body">
                             <p style="color:var(--text-secondary);margin-bottom:12px;">
-                                Register external <a href="https://github.com/OpenVoiceOS/ovos-persona-server" target="_blank">persona</a> /
-                                STT / TTS / translate servers so hivemind-core and homelab can share them.</p>
+                                <span data-i18n-html="registerServerIntro">Register external <a href="https://github.com/OpenVoiceOS/ovos-persona-server" target="_blank">persona</a> /
+                                STT / TTS / translate servers so hivemind-core and homelab can share them.</span></p>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <input id="serverName" placeholder="Name" style="flex:1;min-width:140px;padding:8px;">
+                                <input id="serverName" placeholder="Name" style="flex:1;min-width:140px;padding:8px;" data-i18n-placeholder="name">
                                 <select id="serverType" style="padding:8px;">
                                     <option value="persona">persona</option><option value="stt">stt</option>
                                     <option value="tts">tts</option><option value="translate">translate</option>
                                     <option value="other">other</option>
                                 </select>
                                 <input id="serverUrl" placeholder="http://host:port" style="flex:2;min-width:200px;padding:8px;">
-                                <button class="btn btn-primary btn-sm" onclick="addServer()">Add</button>
+                                <button class="btn btn-primary btn-sm" onclick="addServer()" data-i18n="add">Add</button>
                             </div>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h3>Registered servers</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="loadServersPage()">Refresh</button></div>
-                        <div class="card-body"><div id="serversContainer">Loading…</div></div>
+                        <div class="card-header"><h3 data-i18n="registeredServers">Registered servers</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadServersPage()" data-i18n="refresh">Refresh</button></div>
+                        <div class="card-body"><div id="serversContainer" data-i18n="loadingEllipsisChar">Loading…</div></div>
                     </div>
                 </div>
 
                 <!-- Operations Page -->
                 <div id="opsPage" class="page">
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>💾 Backup &amp; restore</h3></div>
+                        <div class="card-header"><h3>💾 <span data-i18n="backupRestore">Backup &amp; restore</span></h3></div>
                         <div class="card-body">
-                            <button class="btn btn-primary btn-sm" onclick="downloadBackup()">Download backup</button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadBackup()" data-i18n="downloadBackup">Download backup</button>
                             <label class="btn btn-secondary btn-sm" style="margin-left:8px;">
-                                Restore… <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="uploadRestore(this)">
+                                <span data-i18n="restoreEllipsis">Restore…</span> <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="uploadRestore(this)">
                             </label>
                             <div id="opsResult" style="margin-top:12px;color:var(--text-secondary);"></div>
                         </div>
                     </div>
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>🛡️ TLS certificates</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="loadCerts()">Refresh</button></div>
+                        <div class="card-header"><h3>🛡️ <span data-i18n="tlsCertificates">TLS certificates</span></h3>
+                            <button class="btn btn-secondary btn-sm" onclick="loadCerts()" data-i18n="refresh">Refresh</button></div>
                         <div class="card-body">
-                            <div id="certsContainer">Loading…</div>
-                            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="generateCerts()">Generate self-signed</button>
+                            <div id="certsContainer" data-i18n="loadingEllipsisChar">Loading…</div>
+                            <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="generateCerts()" data-i18n="generateSelfSigned">Generate self-signed</button>
                         </div>
                     </div>
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="card-header"><h3>⚖️ Admission policy chain</h3>
-                            <button class="btn btn-primary btn-sm" onclick="savePolicy()">Save</button></div>
+                        <div class="card-header"><h3>⚖️ <span data-i18n="admissionPolicyChain">Admission policy chain</span></h3>
+                            <button class="btn btn-primary btn-sm" onclick="savePolicy()" data-i18n="save">Save</button></div>
                         <div class="card-body">
-                            <p style="color:var(--text-secondary);margin-bottom:8px;">JSON list of policy modules evaluated for every client message.</p>
+                            <p style="color:var(--text-secondary);margin-bottom:8px;" data-i18n="policyChainIntro">JSON list of policy modules evaluated for every client message.</p>
                             <textarea id="policyEditor" style="width:100%;height:140px;font-family:monospace;font-size:12px;"></textarea>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h3>🕗 Config history</h3>
+                        <div class="card-header"><h3>🕗 <span data-i18n="configHistory">Config history</span></h3>
                             <div style="display:flex;gap:8px;">
-                                <button class="btn btn-secondary btn-sm" onclick="snapshotConfig()">Snapshot now</button>
-                                <button class="btn btn-secondary btn-sm" onclick="loadConfigBackups()">Refresh</button>
+                                <button class="btn btn-secondary btn-sm" onclick="snapshotConfig()" data-i18n="snapshotNow">Snapshot now</button>
+                                <button class="btn btn-secondary btn-sm" onclick="loadConfigBackups()" data-i18n="refresh">Refresh</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <p style="color:var(--text-secondary);margin-bottom:8px;">server.json is snapshotted automatically before every config/plugin change. Revert to any point.</p>
-                            <div id="configBackups" style="font-size:13px;">Loading…</div>
+                            <p style="color:var(--text-secondary);margin-bottom:8px;" data-i18n="configHistoryIntro">server.json is snapshotted automatically before every config/plugin change. Revert to any point.</p>
+                            <div id="configBackups" style="font-size:13px;" data-i18n="loadingEllipsisChar">Loading…</div>
                         </div>
                     </div>
                 </div>
@@ -1000,17 +1000,17 @@
                 <div id="errorPage" class="page">
                     <div class="error-page">
                         <div class="error-icon">⚠️</div>
-                        <h2 class="error-title">Core Startup Error</h2>
+                        <h2 class="error-title" data-i18n="coreStartupError">Core Startup Error</h2>
                         <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
-                            HiveMind-core failed to start properly. The admin UI is running in degraded mode.
+                            <span data-i18n="coreStartupErrorIntro">HiveMind-core failed to start properly. The admin UI is running in degraded mode.</span>
                         </p>
 
                         <div class="card">
                             <div class="card-body">
                                 <div id="errorDetails"></div>
                                 <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
-                                    <button class="btn btn-primary" onclick="retryConnection()">Retry Connection</button>
-                                    <button class="btn btn-secondary" onclick="navigate('dashboard')">Go to Dashboard</button>
+                                    <button class="btn btn-primary" onclick="retryConnection()" data-i18n="retryConnection">Retry Connection</button>
+                                    <button class="btn btn-secondary" onclick="navigate('dashboard')" data-i18n="goToDashboard">Go to Dashboard</button>
                                 </div>
                             </div>
                         </div>
@@ -1021,23 +1021,23 @@
                 <div id="configErrorPage" class="page">
                     <div class="error-page">
                         <div class="error-icon">🔧</div>
-                        <h2 class="error-title">Invalid Configuration</h2>
+                        <h2 class="error-title" data-i18n="invalidConfiguration">Invalid Configuration</h2>
                         <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
-                            The current configuration has errors that prevent HiveMind-core from starting.
+                            <span data-i18n="invalidConfigurationIntro">The current configuration has errors that prevent HiveMind-core from starting.</span>
                         </p>
 
                         <div class="card">
                             <div class="card-body">
                                 <div id="configErrorDetails"></div>
 
-                                <h4 style="margin: 24px 0 12px;">Edit Configuration</h4>
+                                <h4 style="margin: 24px 0 12px;" data-i18n="editConfiguration">Edit Configuration</h4>
                                 <textarea id="configErrorEditor" class="config-editor" style="min-height: 300px;"></textarea>
                                 <div id="configErrorValidation" class="validation-result hidden"></div>
 
                                 <div style="display: flex; gap: 12px; margin-top: 16px;">
-                                    <button class="btn btn-primary" onclick="validateAndSaveErrorConfig()">Validate & Save</button>
-                                    <button class="btn btn-secondary" onclick="loadDefaultsToErrorEditor()">Load Defaults</button>
-                                    <button class="btn btn-success" onclick="restartService()">Restart Service</button>
+                                    <button class="btn btn-primary" onclick="validateAndSaveErrorConfig()" data-i18n="validateAndSave">Validate &amp; Save</button>
+                                    <button class="btn btn-secondary" onclick="loadDefaultsToErrorEditor()" data-i18n="loadDefaults">Load Defaults</button>
+                                    <button class="btn btn-success" onclick="restartService()" data-i18n="restartService">Restart Service</button>
                                 </div>
                             </div>
                         </div>
@@ -1054,18 +1054,18 @@
     <div id="addClientModal" class="modal-overlay" onclick="if(event.target===this)closeAddClientModal()" role="dialog" aria-modal="true" aria-labelledby="addClientModalLabel">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="addClientModalLabel">Add New Client</h3>
+                <h3 id="addClientModalLabel" data-i18n="addNewClient">Add New Client</h3>
             </div>
             <div class="modal-body">
                 <div class="form-group" id="addClientFormGroup">
-                    <label for="newClientName">Client Name</label>
-                    <input type="text" id="newClientName" placeholder="HiveMind-Node">
+                    <label for="newClientName" data-i18n="clientName">Client Name</label>
+                    <input type="text" id="newClientName" placeholder="HiveMind-Node" data-i18n-placeholder="hivemindNodePh">
                 </div>
                 <div id="addClientResult" class="hidden"></div>
             </div>
             <div class="modal-footer" id="addClientFooter">
-                <button class="btn btn-secondary" onclick="closeAddClientModal()">Cancel</button>
-                <button class="btn btn-primary" id="addClientSubmitBtn" onclick="addClient()">Add Client</button>
+                <button class="btn btn-secondary" onclick="closeAddClientModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" id="addClientSubmitBtn" onclick="addClient()" data-i18n="addClient">Add Client</button>
             </div>
         </div>
     </div>
@@ -1074,28 +1074,28 @@
     <div id="bridgeModal" class="modal-overlay" onclick="if(event.target===this)closeBridgeModal()" role="dialog" aria-modal="true" aria-labelledby="bridgeModalLabel">
         <div class="modal" style="max-width: 560px;">
             <div class="modal-header">
-                <h3 id="bridgeModalLabel">💬 Add a chat bridge</h3>
+                <h3 id="bridgeModalLabel">💬 <span data-i18n="addChatBridge">Add a chat bridge</span></h3>
             </div>
             <div class="modal-body">
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 0;">
-                    A bridge is a HiveMind <strong>satellite</strong> whose I/O is a chat room.
+                    <span data-i18n-html="bridgeModalIntro">A bridge is a HiveMind <strong>satellite</strong> whose I/O is a chat room.
                     This provisions a ready client (credentials + utterance permission); you then
-                    run the bridge process separately with the bundle below.
+                    run the bridge process separately with the bundle below.</span>
                 </p>
                 <div class="form-group">
-                    <label for="bridgeType">Platform</label>
+                    <label for="bridgeType" data-i18n="platform">Platform</label>
                     <select id="bridgeType" onchange="renderBridgeNeeds()" style="width:100%;padding:10px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);"></select>
                 </div>
                 <div class="form-group">
-                    <label for="bridgeName">Client name (optional)</label>
-                    <input type="text" id="bridgeName" placeholder="auto: <platform>-bridge">
+                    <label for="bridgeName" data-i18n="clientNameOptional">Client name (optional)</label>
+                    <input type="text" id="bridgeName" placeholder="auto: <platform>-bridge" data-i18n-placeholder="autoPlatformBridgePh">
                 </div>
                 <div id="bridgeNeeds" style="font-size:12px;color:var(--text-secondary);"></div>
                 <div id="bridgeResult" class="hidden" style="margin-top:12px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeBridgeModal()">Close</button>
-                <button id="bridgeProvisionBtn" class="btn btn-primary" onclick="provisionBridge()">Provision client</button>
+                <button class="btn btn-secondary" onclick="closeBridgeModal()" data-i18n="close">Close</button>
+                <button id="bridgeProvisionBtn" class="btn btn-primary" onclick="provisionBridge()" data-i18n="provisionClient">Provision client</button>
             </div>
         </div>
     </div>
@@ -1104,31 +1104,31 @@
     <div id="editClientModal" class="modal-overlay" onclick="if(event.target===this)closeEditClientModal()" role="dialog" aria-modal="true" aria-labelledby="editClientModalLabel">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h3 id="editClientModalLabel">Edit Client</h3>
+                <h3 id="editClientModalLabel" data-i18n="editClient">Edit Client</h3>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editClientId">
                 <div class="form-group">
-                    <label for="editClientName">Client Name</label>
+                    <label for="editClientName" data-i18n="clientName">Client Name</label>
                     <input type="text" id="editClientName">
                 </div>
                 <div class="form-group">
-                    <label for="editClientApiKey">API Key</label>
+                    <label for="editClientApiKey" data-i18n="colApiKey">API Key</label>
                     <input type="text" id="editClientApiKey">
                 </div>
                 <div class="form-group">
-                    <label for="editClientPassword">Password</label>
+                    <label for="editClientPassword" data-i18n="password">Password</label>
                     <input type="text" id="editClientPassword">
                 </div>
                 <div class="form-group">
-                    <label for="editClientCryptoKey">Crypto Key (legacy, not used with v3 Noise)</label>
-                    <input type="text" id="editClientCryptoKey" placeholder="Leave empty — v3 uses access key + password">
-                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Optional legacy AES pre-shared key (16, 24, or 32 chars). v3 clients authenticate with the access key and password over a Noise handshake and leave this empty.</div>
+                    <label for="editClientCryptoKey" data-i18n="cryptoKeyLegacy">Crypto Key (legacy, not used with v3 Noise)</label>
+                    <input type="text" id="editClientCryptoKey" placeholder="Leave empty — v3 uses access key + password" data-i18n-placeholder="cryptoKeyPh">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;" data-i18n="cryptoKeyHelp">Optional legacy AES pre-shared key (16, 24, or 32 chars). v3 clients authenticate with the access key and password over a Noise handshake and leave this empty.</div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeEditClientModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveClientEdit()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="closeEditClientModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="saveClientEdit()" data-i18n="saveChangesBtn">Save Changes</button>
             </div>
         </div>
     </div>
@@ -1137,21 +1137,21 @@
     <div id="installPluginModal" class="modal-overlay" onclick="if(event.target===this)closeInstallPluginModal()" role="dialog" aria-modal="true" aria-labelledby="installPluginModalLabel">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="installPluginModalLabel">Install Plugin</h3>
+                <h3 id="installPluginModalLabel" data-i18n="installPlugin">Install Plugin</h3>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="installPluginPackage">Package Name</label>
-                    <input type="text" id="installPluginPackage" placeholder="e.g. ovos-tts-plugin-phoonnx">
+                    <label for="installPluginPackage" data-i18n="packageName">Package Name</label>
+                    <input type="text" id="installPluginPackage" placeholder="e.g. ovos-tts-plugin-phoonnx" data-i18n-placeholder="ovosTtsExamplePh">
                     <small style="color: var(--text-secondary); display: block; margin-top: 8px;">
-                        Enter a valid PyPI package name from the HiveMind or OVOS ecosystem.
+                        <span data-i18n="pypiPackageHelp">Enter a valid PyPI package name from the HiveMind or OVOS ecosystem.</span>
                     </small>
                 </div>
                 <div id="installPluginStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeInstallPluginModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="installPlugin()">Install</button>
+                <button class="btn btn-secondary" onclick="closeInstallPluginModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="installPlugin()" data-i18n="install">Install</button>
             </div>
         </div>
     </div>
@@ -1162,19 +1162,19 @@
     <div id="restartRequiredModal" class="modal-overlay" onclick="if(event.target===this)closeRestartRequiredModal()" role="dialog" aria-modal="true" aria-labelledby="restartRequiredModalLabel">
         <div class="modal" style="max-width: 460px;">
             <div class="modal-header">
-                <h3 id="restartRequiredModalLabel">Restart Required</h3>
+                <h3 id="restartRequiredModalLabel" data-i18n="restartRequired">Restart Required</h3>
             </div>
             <div class="modal-body" style="text-align: center;">
                 <p style="font-size: 15px; margin-bottom: 12px;">
-                    Configuration has been updated, but HiveMind-core needs a <strong>restart</strong> for changes to take effect.
+                    <span data-i18n-html="restartRequiredIntro">Configuration has been updated, but HiveMind-core needs a <strong>restart</strong> for changes to take effect.</span>
                 </p>
                 <p style="font-size: 13px; color: var(--text-secondary);">
-                    Active client connections will be interrupted during restart.
+                    <span data-i18n="restartInterruptWarning">Active client connections will be interrupted during restart.</span>
                 </p>
             </div>
             <div class="modal-footer" style="justify-content: center;">
-                <button class="btn btn-secondary" onclick="closeRestartRequiredModal()">Later</button>
-                <button class="btn btn-primary" onclick="restartNow()">Restart Now</button>
+                <button class="btn btn-secondary" onclick="closeRestartRequiredModal()" data-i18n="later">Later</button>
+                <button class="btn btn-primary" onclick="restartNow()" data-i18n="restartNow">Restart Now</button>
             </div>
         </div>
     </div>
@@ -1183,14 +1183,14 @@
     <div id="confirmModal" class="modal-overlay" onclick="if(event.target===this)closeConfirmModal()" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h3 id="confirmTitle">Confirm</h3>
+                <h3 id="confirmTitle" data-i18n="confirm">Confirm</h3>
             </div>
             <div class="modal-body">
                 <p id="confirmMessage" style="font-size: 14px;"></p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
-                <button class="btn btn-primary" id="confirmBtn" onclick="executeConfirm()">Confirm</button>
+                <button class="btn btn-secondary" onclick="closeConfirmModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" id="confirmBtn" onclick="executeConfirm()" data-i18n="confirm">Confirm</button>
             </div>
         </div>
     </div>
@@ -1199,50 +1199,50 @@
     <div id="installCustomPluginModal" class="modal-overlay" onclick="if(event.target===this)closeInstallCustomPluginModal()" role="dialog" aria-modal="true" aria-labelledby="installCustomPluginModalLabel">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header" style="background: linear-gradient(135deg, var(--accent-danger), #ff6b6b);">
-                <h3 id="installCustomPluginModalLabel" style="color: white;">⚠️ Install Custom Plugin</h3>
+                <h3 id="installCustomPluginModalLabel" style="color: white;">⚠️ <span data-i18n="installCustomPlugin">Install Custom Plugin</span></h3>
             </div>
             <div class="modal-body">
                 <div style="padding: 16px; background: rgba(255, 107, 107, 0.1); border: 2px solid var(--accent-danger); border-radius: var(--radius-sm); margin-bottom: 20px;">
-                    <h4 style="color: var(--accent-danger); margin-bottom: 12px; font-size: 15px;">🚨 SECURITY WARNING - READ CAREFULLY</h4>
+                    <h4 style="color: var(--accent-danger); margin-bottom: 12px; font-size: 15px;">🚨 <span data-i18n="securityWarningTitle">SECURITY WARNING - READ CAREFULLY</span></h4>
                     <ul style="font-size: 13px; color: var(--text-primary); line-height: 1.8; margin: 0; padding-left: 20px;">
-                        <li><strong>Unverified Code:</strong> Custom plugins are NOT vetted by HiveMind or OpenVoiceOS.</li>
-                        <li><strong>Security Risk:</strong> Malicious plugins can steal data, compromise your system, or expose your network.</li>
-                        <li><strong>No Warranty:</strong> Installing third-party plugins voids all warranties. Use at YOUR OWN RISK.</li>
-                        <li><strong>Compatibility:</strong> Plugins may break your installation or conflict with existing components.</li>
-                        <li><strong>Support:</strong> No support is provided for issues caused by custom plugins.</li>
+                        <li data-i18n-html="warnUnverifiedCode"><strong>Unverified Code:</strong> Custom plugins are NOT vetted by HiveMind or OpenVoiceOS.</li>
+                        <li data-i18n-html="warnSecurityRisk"><strong>Security Risk:</strong> Malicious plugins can steal data, compromise your system, or expose your network.</li>
+                        <li data-i18n-html="warnNoWarranty"><strong>No Warranty:</strong> Installing third-party plugins voids all warranties. Use at YOUR OWN RISK.</li>
+                        <li data-i18n-html="warnCompatibility"><strong>Compatibility:</strong> Plugins may break your installation or conflict with existing components.</li>
+                        <li data-i18n-html="warnSupport"><strong>Support:</strong> No support is provided for issues caused by custom plugins.</li>
                     </ul>
                 </div>
 
                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-bottom: 20px;">
-                    <strong style="font-size: 13px;">✅ Recommended Safety Steps:</strong>
+                    <strong style="font-size: 13px;">✅ <span data-i18n="recommendedSafetySteps">Recommended Safety Steps:</span></strong>
                     <ul style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0 0 20px;">
-                        <li>Only install plugins from trusted sources (official OVOS org, verified developers)</li>
-                        <li>Review the plugin's source code on GitHub before installing</li>
-                        <li>Check community feedback and reviews</li>
-                        <li>Test in a sandbox environment first if possible</li>
+                        <li data-i18n="safetyTrustedSources">Only install plugins from trusted sources (official OVOS org, verified developers)</li>
+                        <li data-i18n="safetyReviewSource">Review the plugin's source code on GitHub before installing</li>
+                        <li data-i18n="safetyCheckFeedback">Check community feedback and reviews</li>
+                        <li data-i18n="safetyTestSandbox">Test in a sandbox environment first if possible</li>
                     </ul>
                 </div>
 
                 <div class="form-group">
-                    <label for="customPluginPackage">Plugin Package Name</label>
-                    <input type="text" id="customPluginPackage" placeholder="e.g., ovos-stt-plugin-custom" style="font-family: monospace; font-size: 14px;">
+                    <label for="customPluginPackage" data-i18n="pluginPackageName">Plugin Package Name</label>
+                    <input type="text" id="customPluginPackage" placeholder="e.g., ovos-stt-plugin-custom" style="font-family: monospace; font-size: 14px;" data-i18n-placeholder="ovosSttExamplePh">
                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                        💡 Find plugins on <a href="https://pypi.org/search/?q=ovos" target="_blank" style="color: var(--accent-primary);">PyPI</a> or 
-                        <a href="https://github.com/OpenVoiceOS" target="_blank" style="color: var(--accent-primary);">GitHub</a>
+                        💡 <span data-i18n-html="findPluginsOn">Find plugins on <a href="https://pypi.org/search/?q=ovos" target="_blank" style="color: var(--accent-primary);">PyPI</a> or
+                        <a href="https://github.com/OpenVoiceOS" target="_blank" style="color: var(--accent-primary);">GitHub</a></span>
                     </p>
                 </div>
 
                 <label style="display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; cursor: pointer;">
                     <input type="checkbox" id="pluginDisclaimerCheckbox" style="width: auto; margin-top: 3px;">
                     <span style="font-size: 13px; color: var(--text-secondary);">
-                        I understand the risks and accept full responsibility. I know that installing untrusted software can lead to data loss, security breaches, and system compromise.
+                        <span data-i18n="acceptRisksDisclaimer">I understand the risks and accept full responsibility. I know that installing untrusted software can lead to data loss, security breaches, and system compromise.</span>
                     </span>
                 </label>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeInstallCustomPluginModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="closeInstallCustomPluginModal()" data-i18n="cancel">Cancel</button>
                 <button class="btn btn-danger" id="installCustomPluginBtn" onclick="installCustomPlugin()" disabled style="opacity: 0.5; cursor: not-allowed;">
-                    ⚠️ I Accept The Risks - Install Plugin
+                    ⚠️ <span data-i18n="acceptRisksInstall">I Accept The Risks - Install Plugin</span>
                 </button>
             </div>
         </div>
@@ -1253,7 +1253,7 @@
     <div id="installProgressModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="installProgressTitle">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
-                <h3 id="installProgressTitle">📦 Installing Plugin...</h3>
+                <h3 id="installProgressTitle">📦 <span data-i18n="installingPlugin">Installing Plugin...</span></h3>
             </div>
             <div class="modal-body">
                 <div style="margin-bottom: 16px;">
@@ -1269,17 +1269,17 @@
                 <div id="installStatusMessage" style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); min-height: 60px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
-                        <span style="font-size: 13px;">Starting installation...</span>
+                        <span style="font-size: 13px;" data-i18n="startingInstallation">Starting installation...</span>
                     </div>
                 </div>
 
                 <div id="installErrorDetails" class="hidden" style="margin-top: 16px; padding: 12px; background: rgba(255, 107, 107, 0.1); border: 1px solid var(--accent-danger); border-radius: var(--radius-sm);">
-                    <strong style="color: var(--accent-danger); font-size: 13px;">❌ Installation Error</strong>
+                    <strong style="color: var(--accent-danger); font-size: 13px;">❌ <span data-i18n="installationError">Installation Error</span></strong>
                     <pre id="installErrorText" style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; white-space: pre-wrap; word-break: break-word;"></pre>
                 </div>
             </div>
             <div class="modal-footer" id="installProgressFooter">
-                <button class="btn btn-secondary" onclick="closeInstallProgressModal()" disabled>Close</button>
+                <button class="btn btn-secondary" onclick="closeInstallProgressModal()" disabled data-i18n="close">Close</button>
             </div>
         </div>
     </div>
@@ -1288,63 +1288,63 @@
     <div id="profileModal" class="modal-overlay" onclick="if(event.target===this)closeProfileModal()" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
         <div class="modal" style="max-width: 520px;">
             <div class="modal-header">
-                <h3 id="profileModalTitle">Add Database Profile</h3>
+                <h3 id="profileModalTitle" data-i18n="addDatabaseProfile">Add Database Profile</h3>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="profileEditName">
 
                 <div class="form-group">
-                    <label for="profileName">Profile Name</label>
-                    <input type="text" id="profileName" placeholder="e.g. production-redis">
+                    <label for="profileName" data-i18n="profileName">Profile Name</label>
+                    <input type="text" id="profileName" placeholder="e.g. production-redis" data-i18n-placeholder="productionRedisPh">
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
-                        Letters, numbers, hyphens and underscores only.
+                        <span data-i18n="lettersNumbersHyphens">Letters, numbers, hyphens and underscores only.</span>
                     </p>
                 </div>
 
                 <div class="form-group">
-                    <label for="profileModule">Database Backend</label>
+                    <label for="profileModule" data-i18n="databaseBackend">Database Backend</label>
                     <select id="profileModule" onchange="onProfileModuleChange()">
-                        <option value="">Select a backend...</option>
+                        <option value="" data-i18n="selectABackendEllipsis">Select a backend...</option>
                     </select>
                 </div>
 
                 <!-- Redis config -->
                 <div id="profileRedisSection" class="hidden">
-                    <h4 style="margin-bottom: 12px; font-size: 14px;">Redis Connection Settings</h4>
+                    <h4 style="margin-bottom: 12px; font-size: 14px;" data-i18n="redisConnectionSettings">Redis Connection Settings</h4>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label for="profileRedisHost">Host</label>
-                            <input type="text" id="profileRedisHost" value="localhost" placeholder="Redis hostname">
+                            <label for="profileRedisHost" data-i18n="host">Host</label>
+                            <input type="text" id="profileRedisHost" value="localhost" placeholder="Redis hostname" data-i18n-placeholder="redisHostnamePh">
                         </div>
                         <div class="form-group">
-                            <label for="profileRedisPort">Port</label>
+                            <label for="profileRedisPort" data-i18n="port">Port</label>
                             <input type="number" id="profileRedisPort" value="6379" min="1" max="65535">
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label for="profileRedisDb">Database Number</label>
+                            <label for="profileRedisDb" data-i18n="databaseNumber">Database Number</label>
                             <input type="number" id="profileRedisDb" value="0" min="0" max="15">
                         </div>
                         <div class="form-group">
-                            <label for="profileRedisPassword">Password (optional)</label>
-                            <input type="password" id="profileRedisPassword" placeholder="Leave empty if none">
+                            <label for="profileRedisPassword" data-i18n="passwordOptional">Password (optional)</label>
+                            <input type="password" id="profileRedisPassword" placeholder="Leave empty if none" data-i18n-placeholder="leaveEmptyIfNonePh">
                         </div>
                     </div>
                 </div>
 
                 <!-- File-based config -->
                 <div id="profileFileSection" class="hidden">
-                    <h4 style="margin-bottom: 12px; font-size: 14px;">File Location</h4>
+                    <h4 style="margin-bottom: 12px; font-size: 14px;" data-i18n="fileLocation">File Location</h4>
                     <div class="form-group">
-                        <label for="profileFileSubfolder">Subfolder</label>
+                        <label for="profileFileSubfolder" data-i18n="subfolder">Subfolder</label>
                         <input type="text" id="profileFileSubfolder" value="hivemind-core" placeholder="hivemind-core">
                         <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
-                            Subfolder inside the HiveMind data directory.
+                            <span data-i18n="subfolderHelp">Subfolder inside the HiveMind data directory.</span>
                         </p>
                     </div>
                     <div class="form-group">
-                        <label for="profileFileName">Database Name</label>
+                        <label for="profileFileName" data-i18n="databaseName">Database Name</label>
                         <input type="text" id="profileFileName" value="clients" placeholder="clients">
                     </div>
                 </div>
@@ -1352,9 +1352,9 @@
                 <div id="profileTestStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
-                <button class="btn btn-secondary" onclick="testProfileInModal()">Test Connection</button>
-                <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">Save Profile</button>
+                <button class="btn btn-secondary" onclick="closeProfileModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-secondary" onclick="testProfileInModal()" data-i18n="testConnection">Test Connection</button>
+                <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()" data-i18n="saveProfile">Save Profile</button>
             </div>
         </div>
     </div>
@@ -1363,34 +1363,34 @@
     <div id="activateProfileModal" class="modal-overlay" onclick="if(event.target===this)closeActivateProfileModal()" role="dialog" aria-modal="true" aria-labelledby="activateProfileModalLabel">
         <div class="modal" style="max-width: 460px;">
             <div class="modal-header">
-                <h3 id="activateProfileModalLabel">Activate Profile</h3>
+                <h3 id="activateProfileModalLabel" data-i18n="activateProfile">Activate Profile</h3>
             </div>
             <div class="modal-body">
                 <p style="margin-bottom: 16px;">
-                    Activate profile <strong id="activateProfileNameLabel"></strong>?
+                    <span data-i18n="activateProfileQuestion">Activate profile</span> <strong id="activateProfileNameLabel"></strong>?
                 </p>
 
                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-bottom: 16px;">
                     <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
                         <input type="checkbox" id="migrateDataToggle" checked style="margin-top: 3px; flex-shrink: 0;">
                         <div>
-                            <div style="font-weight: 600; font-size: 13px;">Copy clients from current active database</div>
+                            <div style="font-weight: 600; font-size: 13px;" data-i18n="copyClientsFromActiveDb">Copy clients from current active database</div>
                             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                                Recommended: keeps all existing clients accessible after switching backends.
+                                <span data-i18n="copyClientsHelp">Recommended: keeps all existing clients accessible after switching backends.</span>
                             </div>
                         </div>
                     </label>
                 </div>
 
                 <div style="padding: 10px 12px; background: rgba(255,193,7,0.08); border-left: 3px solid var(--accent-warning); border-radius: 4px; font-size: 13px; color: var(--text-secondary);">
-                    A service restart will be required after activation.
+                    <span data-i18n="serviceRestartRequired">A service restart will be required after activation.</span>
                 </div>
 
                 <div id="activateProfileStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeActivateProfileModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmActivateProfile()">Activate</button>
+                <button class="btn btn-secondary" onclick="closeActivateProfileModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmActivateProfile()" data-i18n="activate">Activate</button>
             </div>
             <input type="hidden" id="activateProfileTarget">
         </div>
@@ -1400,61 +1400,61 @@
     <div id="createPersonaModal" class="modal-overlay" onclick="if(event.target===this)closeCreatePersonaModal()" role="dialog" aria-modal="true" aria-labelledby="createPersonaModalTitle">
         <div class="modal" style="max-width: 700px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
-                <h3 id="createPersonaModalTitle">👤 Create Persona</h3>
+                <h3 id="createPersonaModalTitle">👤 <span data-i18n="createPersona">Create Persona</span></h3>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; max-height: calc(90vh - 140px);">
                 <input type="hidden" id="editPersonaName">
 
                 <div class="form-group">
-                    <label for="personaName">Persona Name *</label>
-                    <input type="text" id="personaName" placeholder="My AI Assistant">
+                    <label for="personaName" data-i18n="personaNameRequired">Persona Name *</label>
+                    <input type="text" id="personaName" placeholder="My AI Assistant" data-i18n-placeholder="myAiAssistantPh">
                 </div>
 
                 <div class="form-group">
-                    <label for="personaDescription">Description</label>
-                    <textarea id="personaDescription" placeholder="A helpful AI assistant..." style="width: 100%; min-height: 60px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;"></textarea>
+                    <label for="personaDescription" data-i18n="description">Description</label>
+                    <textarea id="personaDescription" placeholder="A helpful AI assistant..." data-i18n-placeholder="helpfulAiAssistantPh" style="width: 100%; min-height: 60px; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 13px;"></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label>Agent Plugins *</label>
+                    <label data-i18n="agentPluginsRequired">Agent Plugins *</label>
                     <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
-                        Select agent plugins and arrange them in order. They will be tried from top to bottom until one produces a response.
+                        <span data-i18n="agentPluginsHelp">Select agent plugins and arrange them in order. They will be tried from top to bottom until one produces a response.</span>
                     </p>
 
                     <!-- Available Solvers -->
                     <div style="margin-bottom: 12px;">
-                        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 8px;">Available Agents:</label>
+                        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 8px;" data-i18n="availableAgents">Available Agents:</label>
                         <div id="personaAvailableSolvers" style="display: grid; gap: 8px; max-height: 150px; overflow-y: auto; padding: 8px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                            <div class="empty-state"><div class="spinner"></div><p>Loading agent plugins...</p></div>
+                            <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingAgentPlugins">Loading agent plugins...</p></div>
                         </div>
                     </div>
 
                     <!-- Selected Solvers (Ordered) -->
                     <div>
-                        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 8px;">Selected Agents (drag to reorder):</label>
+                        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 8px;" data-i18n="selectedAgentsDragReorder">Selected Agents (drag to reorder):</label>
                         <div id="personaSelectedSolvers" style="display: flex; flex-direction: column; gap: 8px; min-height: 100px; padding: 8px; background: var(--bg-primary); border: 2px dashed var(--border-color); border-radius: var(--radius-sm);">
-                            <div class="empty-state" style="opacity: 0.5;">No agents selected. Click agents above to add them.</div>
+                            <div class="empty-state" style="opacity: 0.5;" data-i18n="noAgentsSelected">No agents selected. Click agents above to add them.</div>
                         </div>
                     </div>
 
                     <p style="font-size: 11px; color: var(--accent-warning); margin-top: 8px;">
-                        💡 Tip: Click a agent to add/remove it. Drag selected agents to reorder.
+                        💡 <span data-i18n="agentTipClickDrag">Tip: Click a agent to add/remove it. Drag selected agents to reorder.</span>
                     </p>
                 </div>
 
                 <div class="form-group">
-                    <label for="personaMemoryModule">Memory Module</label>
+                    <label for="personaMemoryModule" data-i18n="memoryModule">Memory Module</label>
                     <select id="personaMemoryModule" onchange="onMemoryModuleChange()" style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary);">
-                        <option value="ovos-agents-short-term-memory-plugin">ovos-agents-short-term-memory-plugin (Default)</option>
-                        <option value="">None (Disable memory)</option>
+                        <option value="ovos-agents-short-term-memory-plugin">ovos-agents-short-term-memory-plugin (<span data-i18n="default_">Default</span>)</option>
+                        <option value="" data-i18n="noneDisableMemory">None (Disable memory)</option>
                     </select>
                     <div id="personaMemoryConfigWrap" style="margin-top:8px;">
-                        <label for="personaMemoryConfig" style="font-size:12px;color:var(--text-secondary);">Memory config (JSON, optional — passed to the memory plugin)</label>
+                        <label for="personaMemoryConfig" style="font-size:12px;color:var(--text-secondary);" data-i18n="memoryConfigHelp">Memory config (JSON, optional — passed to the memory plugin)</label>
                         <textarea id="personaMemoryConfig" placeholder='{ "max_history": 10 }' style="width:100%;height:64px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);padding:8px;"></textarea>
                     </div>
                     <div style="display:flex;gap:6px;margin-top:8px;">
-                        <input id="personaMemoryInstall" placeholder="install a memory plugin (e.g. ovos-memory-plugins)" style="flex:1;font-size:12px;padding:8px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);">
-                        <button class="btn btn-secondary btn-sm" onclick="installMemoryPlugin()">Install</button>
+                        <input id="personaMemoryInstall" placeholder="install a memory plugin (e.g. ovos-memory-plugins)" data-i18n-placeholder="installMemoryPluginPh" style="flex:1;font-size:12px;padding:8px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);">
+                        <button class="btn btn-secondary btn-sm" onclick="installMemoryPlugin()" data-i18n="install">Install</button>
                     </div>
                 </div>
 
@@ -1465,8 +1465,8 @@
                 <div id="createPersonaStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeCreatePersonaModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="savePersona()">Save Persona</button>
+                <button class="btn btn-secondary" onclick="closeCreatePersonaModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="savePersona()" data-i18n="savePersona">Save Persona</button>
             </div>
         </div>
     </div>
@@ -1475,14 +1475,14 @@
     <div id="previewPersonaModal" class="modal-overlay" onclick="if(event.target===this)closePreviewPersonaModal()" role="dialog" aria-modal="true" aria-labelledby="previewPersonaModalLabel">
         <div class="modal" style="max-width: 700px;">
             <div class="modal-header">
-                <h3 id="previewPersonaModalLabel">👁️ Preview Persona</h3>
+                <h3 id="previewPersonaModalLabel">👁️ <span data-i18n="previewPersona">Preview Persona</span></h3>
             </div>
             <div class="modal-body">
                 <pre id="previewPersonaJson" style="background: var(--code-bg); padding: 16px; border-radius: var(--radius-sm); overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto;"></pre>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closePreviewPersonaModal()">Close</button>
-                <button class="btn btn-primary" onclick="copyPersonaJson()">📋 Copy JSON</button>
+                <button class="btn btn-secondary" onclick="closePreviewPersonaModal()" data-i18n="close">Close</button>
+                <button class="btn btn-primary" onclick="copyPersonaJson()">📋 <span data-i18n="copyJson">Copy JSON</span></button>
             </div>
         </div>
     </div>
@@ -1491,11 +1491,11 @@
     <div id="testPersonaModal" class="modal-overlay" onclick="if(event.target===this)closeTestPersonaModal()" role="dialog" aria-modal="true" aria-labelledby="testPersonaModalLabel">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h3 id="testPersonaModalLabel">⚠️ Test Persona</h3>
+                <h3 id="testPersonaModalLabel">⚠️ <span data-i18n="testPersona">Test Persona</span></h3>
             </div>
             <div class="modal-body">
                 <div id="testPersonaResults" style="margin-top: 16px;">
-                    <div class="empty-state"><div class="spinner"></div><p>Loading persona configuration...</p></div>
+                    <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingPersonaConfiguration">Loading persona configuration...</p></div>
                 </div>
 
                 <div id="testPersonaStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
@@ -1503,16 +1503,16 @@
                 <!-- Confirmation buttons (shown after initial load) -->
                 <div id="testPersonaConfirm" class="hidden" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
                     <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                        Do you want to proceed with testing this persona configuration?
+                        <span data-i18n="proceedTestPersonaQuestion">Do you want to proceed with testing this persona configuration?</span>
                     </p>
                     <div style="display: flex; gap: 12px;">
-                        <button class="btn btn-primary" onclick="confirmTestPersona()">Yes, Proceed with Test</button>
-                        <button class="btn btn-secondary" onclick="closeTestPersonaModal()">Cancel</button>
+                        <button class="btn btn-primary" onclick="confirmTestPersona()" data-i18n="yesProceedWithTest">Yes, Proceed with Test</button>
+                        <button class="btn btn-secondary" onclick="closeTestPersonaModal()" data-i18n="cancel">Cancel</button>
                     </div>
                 </div>
             </div>
             <div class="modal-footer" style="display: none;">
-                <button class="btn btn-secondary" onclick="closeTestPersonaModal()">Close</button>
+                <button class="btn btn-secondary" onclick="closeTestPersonaModal()" data-i18n="close">Close</button>
             </div>
         </div>
     </div>
@@ -1521,21 +1521,21 @@
     <div id="enableAgentModal" class="modal-overlay" onclick="if(event.target===this)closeEnableAgentModal()" role="dialog" aria-modal="true" aria-labelledby="enableAgentModalLabel">
         <div class="modal" style="max-width: 600px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
-                <h3 id="enableAgentModalLabel">🤖 Enable Agent Protocol</h3>
+                <h3 id="enableAgentModalLabel">🤖 <span data-i18n="enableAgentProtocol">Enable Agent Protocol</span></h3>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; max-height: calc(90vh - 140px);">
                 <input type="hidden" id="enableAgentModule">
                 
                 <div id="enableAgentPersonaConfig" style="display: none;">
                     <div style="padding: 16px; background: rgba(100, 255, 218, 0.1); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); margin-bottom: 16px;">
-                        <h4 style="color: var(--accent-primary); margin-bottom: 8px; font-size: 14px;">👤 Select Persona</h4>
+                        <h4 style="color: var(--accent-primary); margin-bottom: 8px; font-size: 14px;">👤 <span data-i18n="selectPersona">Select Persona</span></h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                            Choose which persona to use for AI conversations. This persona will handle all incoming messages.
+                            <span data-i18n="choosePersonaHelp">Choose which persona to use for AI conversations. This persona will handle all incoming messages.</span>
                         </p>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label for="enableAgentPersonaSelect">Persona</label>
+                            <label for="enableAgentPersonaSelect" data-i18n="persona_">Persona</label>
                             <select id="enableAgentPersonaSelect" style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 14px;">
-                                <option value="">Select a persona...</option>
+                                <option value="" data-i18n="selectAPersonaEllipsis">Select a persona...</option>
                             </select>
                         </div>
                     </div>
@@ -1544,8 +1544,8 @@
                 <div id="enableAgentStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer" style="flex-shrink: 0;">
-                <button class="btn btn-secondary" onclick="closeEnableAgentModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmEnableAgent()">Enable Agent</button>
+                <button class="btn btn-secondary" onclick="closeEnableAgentModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmEnableAgent()" data-i18n="enableAgent">Enable Agent</button>
             </div>
         </div>
     </div>
@@ -1554,46 +1554,46 @@
     <div id="enableBinaryPluginModal" class="modal-overlay" onclick="if(event.target===this)closeEnableBinaryPluginModal()" role="dialog" aria-modal="true" aria-labelledby="enableBinaryPluginModalLabel">
         <div class="modal" style="max-width: 700px; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="flex-shrink: 0;">
-                <h3 id="enableBinaryPluginModalLabel">📦 Configure Binary Protocol</h3>
+                <h3 id="enableBinaryPluginModalLabel">📦 <span data-i18n="configureBinaryProtocol">Configure Binary Protocol</span></h3>
             </div>
             <div class="modal-body" style="flex: 1; overflow-y: auto; max-height: calc(90vh - 140px);">
                 <input type="hidden" id="binaryPluginModule">
                 
                 <div style="padding: 16px; background: rgba(100, 255, 218, 0.1); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); margin-bottom: 16px;">
-                    <h4 style="color: var(--accent-primary); margin-bottom: 8px; font-size: 14px;">🎙️ Voice Configuration</h4>
+                    <h4 style="color: var(--accent-primary); margin-bottom: 8px; font-size: 14px;">🎙️ <span data-i18n="voiceConfiguration">Voice Configuration</span></h4>
                     <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
-                        Select plugins for each voice processing category. All categories are required.
+                        <span data-i18n="selectPluginsEachCategory">Select plugins for each voice processing category. All categories are required.</span>
                     </p>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label for="binarySTTSelect">🎤 STT (Speech-to-Text)</label>
+                            <label for="binarySTTSelect">🎤 <span data-i18n="sttFull">STT (Speech-to-Text)</span></label>
                             <select id="binarySTTSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label for="binaryTTSSelect">🔊 TTS (Text-to-Speech)</label>
+                            <label for="binaryTTSSelect">🔊 <span data-i18n="ttsFull">TTS (Text-to-Speech)</span></label>
                             <select id="binaryTTSSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label for="binaryWWName">⏰ Wake Word Name</label>
+                            <label for="binaryWWName">⏰ <span data-i18n="wakeWordName">Wake Word Name</span></label>
                             <input type="text" id="binaryWWName" value="hey_mycroft" placeholder="hey_mycroft" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label for="binaryWWSelect">⏰ Wake Word Engine</label>
+                            <label for="binaryWWSelect">⏰ <span data-i18n="wakeWordEngine">Wake Word Engine</span></label>
                             <select id="binaryWWSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
                         </div>
                         
                         <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
-                            <label for="binaryVADSelect">🎯 VAD (Voice Activity Detection)</label>
+                            <label for="binaryVADSelect">🎯 <span data-i18n="vadFull">VAD (Voice Activity Detection)</span></label>
                             <select id="binaryVADSelect" style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;">
                                 <option value="">Loading...</option>
                             </select>
@@ -1604,8 +1604,8 @@
                 <div id="binaryConfigValidation" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer" style="flex-shrink: 0;">
-                <button class="btn btn-secondary" onclick="closeEnableBinaryPluginModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmEnableBinaryProtocol()">Enable Binary Protocol</button>
+                <button class="btn btn-secondary" onclick="closeEnableBinaryPluginModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmEnableBinaryProtocol()" data-i18n="enableBinaryProtocol">Enable Binary Protocol</button>
             </div>
         </div>
     </div>
@@ -1614,41 +1614,41 @@
     <div id="enablePluginModal" class="modal-overlay" onclick="if(event.target===this)closeEnablePluginModal()" role="dialog" aria-modal="true" aria-labelledby="enablePluginModalLabel">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
-                <h3 id="enablePluginModalLabel">Enable Plugin</h3>
+                <h3 id="enablePluginModalLabel" data-i18n="enablePlugin">Enable Plugin</h3>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="enablePluginType">
                 <input type="hidden" id="enablePluginModule">
 
                 <div class="form-group">
-                    <label for="enablePluginName">Plugin</label>
+                    <label for="enablePluginName" data-i18n="plugin_">Plugin</label>
                     <input type="text" id="enablePluginName" readonly style="background: var(--bg-hover);">
                 </div>
 
                 <!-- Network Protocol Config -->
                 <div id="networkProtocolConfig" class="hidden">
-                    <h4 style="margin: 16px 0 12px; font-size: 14px;">Network Configuration</h4>
+                    <h4 style="margin: 16px 0 12px; font-size: 14px;" data-i18n="networkConfiguration">Network Configuration</h4>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                         <div class="form-group">
-                            <label for="networkHost">Host</label>
+                            <label for="networkHost" data-i18n="host">Host</label>
                             <input type="text" id="networkHost" value="0.0.0.0">
                         </div>
                         <div class="form-group">
-                            <label for="networkPort">Port</label>
+                            <label for="networkPort" data-i18n="port">Port</label>
                             <input type="number" id="networkPort" value="5678">
                         </div>
                     </div>
                     <label style="display: flex; align-items: center; gap: 8px; margin-top: 12px; cursor: pointer;">
                         <input type="checkbox" id="networkSsl" style="width: auto;">
-                        <span>Enable SSL</span>
+                        <span data-i18n="enableSsl">Enable SSL</span>
                     </label>
                 </div>
 
                 <div id="enablePluginStatus" class="validation-result hidden" style="margin-top: 16px;"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeEnablePluginModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmEnablePlugin()">Enable & Update Config</button>
+                <button class="btn btn-secondary" onclick="closeEnablePluginModal()" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmEnablePlugin()" data-i18n="enableUpdateConfig">Enable &amp; Update Config</button>
             </div>
         </div>
     </div>
