@@ -208,7 +208,12 @@
                 const health = await fetch('/api/health').then(r => r.json());
                 updateRunModeBadge(health.run_mode);
                 // Block the app behind a forced password change while defaults are in use.
-                await enforceSetupGate();
+                // While that gate is up the API refuses every other route (403), so
+                // loading the dashboard would only flash an alarming — and untrue —
+                // "Failed to load dashboard" toast at a brand-new user. Defer it until
+                // the password is set (submitFirstRunPassword calls enterApp again).
+                const gated = await enforceSetupGate();
+                if (gated) return;
                 if (health.status === 'degraded') {
                     await handleStartupError(health);
                 } else {
@@ -248,7 +253,9 @@
             if (s && s.default_credentials) {
                 document.getElementById('firstRunModal').style.display = 'flex';
                 document.getElementById('frNewPass').focus();
+                return true;
             }
+            return false;
         }
 
         function frScore() {
@@ -307,7 +314,14 @@
             err.classList.add('hidden');
             showToast && showToast('Admin password updated — panel secured', 'success');
             await fetchSetupStatus();
-            if (document.getElementById('dashboardPage')?.classList.contains('active')) loadDashboard();
+            // The dashboard load was deferred while the gate was up (see enterApp);
+            // now that the panel is secured, bring the user to it.
+            if (document.getElementById('dashboardPage')?.classList.contains('active')) {
+                loadDashboard();
+            } else {
+                navigate('dashboard');
+                startHealthCheck();
+            }
         }
 
         // Warn when the in-process core is started but its satellite listener isn't
@@ -1071,7 +1085,7 @@
 
             const tbody = document.getElementById('clientsTable');
             if (pageClients.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 48px; color: var(--text-secondary);">No clients found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 48px; color: var(--text-secondary);">No clients found<div style="margin-top:16px;"><button class="btn btn-primary btn-sm" onclick="showAddClientModal()">+ Add your first client</button></div></td></tr>';
             } else {
                 tbody.innerHTML = pageClients.map(c => {
                     const isRevoked = c.revoked || false;
@@ -1177,6 +1191,19 @@
             </div>`;
         }
 
+        // The crypto_key is the legacy AES pre-shared key. v3 clients authenticate
+        // with the access key + password (PSK) over a Noise handshake and leave it
+        // unset, so render an honest note instead of an empty/"null" copy box.
+        function _cryptoKeyRow(value) {
+            if (!value) {
+                return `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
+                    <div style="flex:0 0 90px;font-size:12px;color:var(--text-secondary);">Crypto Key</div>
+                    <span style="flex:1;font-size:12px;color:var(--text-secondary);font-style:italic;">Legacy AES key — not used with v3 Noise (access key + password).</span>
+                </div>`;
+            }
+            return _credentialRow('Crypto Key', value);
+        }
+
         async function addClient() {
             const name = document.getElementById('newClientName').value.trim();
             if (!name) {
@@ -1204,7 +1231,7 @@
                         </div>
                         ${_credentialRow('Access Key', client.api_key)}
                         ${_credentialRow('Password', client.password)}
-                        ${_credentialRow('Crypto Key', client.crypto_key)}
+                        ${_cryptoKeyRow(client.crypto_key)}
                     </div>`;
                 result.classList.remove('hidden');
                 document.getElementById('addClientFooter').innerHTML =
@@ -1559,7 +1586,8 @@
                 const host = prompt('hivemind-core address the bridge should connect to (LAN IP or hostname):', location.hostname) || undefined;
                 const res = await apiCall('/bridges/provision', 'POST', { type: b.id, name, host });
                 const bundle = res.bundle;
-                const runHint = `pip install ${b.pip}\n# then run the bridge with:\n#   key=${bundle.key}\n#   password=${bundle.password}\n#   crypto_key=${bundle.crypto_key}\n#   host=${bundle.host || '<CORE-IP>'}  port=${bundle.port}`;
+                const cryptoLine = bundle.crypto_key ? `\n#   crypto_key=${bundle.crypto_key}` : '';
+                const runHint = `pip install ${b.pip}\n# then run the bridge with:\n#   key=${bundle.key}\n#   password=${bundle.password}${cryptoLine}\n#   host=${bundle.host || '<CORE-IP>'}  port=${bundle.port}`;
                 document.getElementById('bridgeResult').innerHTML =
                     `<div class="card" style="border-left:4px solid var(--accent-success);">
                         <strong>✅ ${esc(b.icon)} ${esc(b.label)} bridge client ready</strong>
@@ -3706,6 +3734,29 @@
                     <span style="font-size: 13px;">${message}</span>
                 </div>
             `;
+        }
+
+        // Animate the progress bar from `from`% to `to`% over `durationMs`,
+        // used as "pip is working" filler between real install milestones.
+        function simulateProgress(from, to, durationMs) {
+            return new Promise(resolve => {
+                const start = Date.now();
+                const bar = document.getElementById('installProgressBar');
+                const pct = document.getElementById('installProgressPercent');
+                const tick = () => {
+                    const elapsed = Date.now() - start;
+                    const ratio = Math.min(elapsed / durationMs, 1);
+                    const value = Math.round(from + (to - from) * ratio);
+                    bar.style.width = value + '%';
+                    pct.textContent = value + '%';
+                    if (ratio < 1) {
+                        setTimeout(tick, 100);
+                    } else {
+                        resolve();
+                    }
+                };
+                tick();
+            });
         }
 
         function completeInstallSuccess(message) {

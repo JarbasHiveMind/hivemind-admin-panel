@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HiveMind Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%9D%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -261,7 +262,7 @@
                         <div class="card-header">
                             <h3>Client Management</h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary btn-sm" onclick="showBridgeModal()">💬 Add Bridge</button>
+                                <button class="btn btn-secondary btn-sm" onclick="showBridgeModal()" title="A bridge is a HiveMind satellite whose input and output is a chat room (Matrix, Telegram, etc.). This registers a client and gives you the credentials to run the bridge process.">💬 Add Bridge</button>
                                 <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">+ Add Client</button>
                             </div>
                         </div>
@@ -1120,8 +1121,9 @@
                     <input type="text" id="editClientPassword">
                 </div>
                 <div class="form-group">
-                    <label for="editClientCryptoKey">Crypto Key (16, 24, or 32 chars)</label>
-                    <input type="text" id="editClientCryptoKey">
+                    <label for="editClientCryptoKey">Crypto Key (legacy, not used with v3 Noise)</label>
+                    <input type="text" id="editClientCryptoKey" placeholder="Leave empty — v3 uses access key + password">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Optional legacy AES pre-shared key (16, 24, or 32 chars). v3 clients authenticate with the access key and password over a Noise handshake and leave this empty.</div>
                 </div>
             </div>
             <div class="modal-footer">
