@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.20a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.20a1) (2026-09-02)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.19a1...0.1.20a1)
+
+**Merged pull requests:**
+
+- fix: repair plugin-install progress, preset 404, and first-run UX [\#68](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/68) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.19a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.19a1) (2026-09-01)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.18a1...0.1.19a1)
