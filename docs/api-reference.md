@@ -43,17 +43,19 @@ Comparison uses `hmac.compare_digest` (constant-time). On failure the API
 returns `401 Unauthorized` with `WWW-Authenticate: Basic` and
 `{"detail": "Invalid credentials"}`.
 
-To change credentials, set the keys in `server.json` (e.g. via
-`POST /config`) and restart:
+While `admin_user`/`admin_pass` are still the shipped defaults, every route
+except `/health`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/password`,
+and `/setup/status` returns `403`. Clear it first with `POST /auth/password`:
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/config \
+curl -u admin:admin -X POST http://localhost:8100/api/auth/password \
   -H 'Content-Type: application/json' \
-  -d '{"config": {"admin_user": "ops", "admin_pass": "s3cret"}}'
+  -d '{"old_password": "admin", "new_password": "a-strong-admin-password"}'
 ```
 
-Every authenticated `curl` example below uses `-u admin:admin`. The dependency
-is wired per-route via `Depends(verify_credentials)`.
+The new password is stored hashed (PBKDF2); every `curl` example below uses
+`-u admin:a-strong-admin-password` after this step. The dependency is wired
+per-route via `Depends(verify_credentials)`.
 
 ### In-process hivemind-core (default) vs `--no-core`
 
@@ -137,7 +139,7 @@ Merges each key from `config` into the live config and calls `cfg.store()`.
 **Side effect: writes `server.json`.** Returns `{"status": "ok"}`.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/config \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/config \
   -H 'Content-Type: application/json' \
   -d '{"config": {"binarize": true}}'
 ```
@@ -155,7 +157,7 @@ in-process-hivemind-core mode. In `--no-core` mode it returns
 `RestartResult(status="error", ...)`. Returns `RestartResult`.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/config/restart
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/config/restart
 ```
 
 ---
@@ -186,7 +188,7 @@ defaults to `HiveMind-Node-<count>`. **Side effect: writes to the client databas
 Returns the full client dict including secrets.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/clients \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/clients \
   -H 'Content-Type: application/json' \
   -d '{"name": "satellite-1", "is_admin": false}'
 ```
@@ -196,7 +198,7 @@ Updates only the fields present in `ClientUpdate`. `404` if client not found.
 Returns updated client with secrets.
 
 ```bash
-curl -u admin:admin -X PUT http://localhost:8100/api/clients/3 \
+curl -u admin:a-strong-admin-password -X PUT http://localhost:8100/api/clients/3 \
   -H 'Content-Type: application/json' \
   -d '{"can_escalate": true, "skill_blacklist": ["skill-weather.openvoiceos"]}'
 ```
@@ -226,7 +228,7 @@ secrets). All require auth and respond `404` if the client is not found.
 | POST   | `/clients/{client_id}/blacklist-msg`   | `MsgTypeRequest` | Deprecated alias of `deny-msg` |
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/clients/3/allow-msg \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/clients/3/allow-msg \
   -H 'Content-Type: application/json' \
   -d '{"msg_type": "recognizer_loop:utterance"}'
 ```
@@ -257,7 +259,7 @@ curl -u admin:admin -X POST http://localhost:8100/api/clients/3/allow-msg \
 | POST   | `/clients/{client_id}/revoke-admin`       | `is_admin = false` |
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/clients/3/make-admin
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/clients/3/make-admin
 ```
 
 ### Structured ACL (whole-block read/update + templates)
@@ -280,7 +282,7 @@ looks it up in `acl_config.json`, and sets `allowed_types`,
 `404` if client or template not found.
 
 ```bash
-curl -u admin:admin -X POST \
+curl -u admin:a-strong-admin-password -X POST \
   "http://localhost:8100/api/clients/3/acl/apply-template?template_name=voice-satellite"
 ```
 
@@ -360,7 +362,7 @@ timeout). The package name is lowercased/stripped. Returns
 reported in `message`, not raised.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/plugins/install \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/plugins/install \
   -H 'Content-Type: application/json' \
   -d '{"package": "hivemind-websocket-protocol"}'
 ```
@@ -374,7 +376,7 @@ For `binary_protocol` with `enabled=false` it sets `module=None`.
 **Side effect: writes `server.json`.** Returns `PluginInstallResult`.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/plugins/enable \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/plugins/enable \
   -H 'Content-Type: application/json' \
   -d '{"plugin_type": "database", "module": "hivemind-redis-db-plugin",
        "enabled": true, "config": {"host": "localhost", "port": 6379}}'
@@ -439,7 +441,7 @@ Name must match `^[a-zA-Z0-9_-]+$` (else `422`). `409` if it already exists.
 **Side effect: writes a profile file.** Does not change the active DB.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/database/profiles \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/database/profiles \
   -H 'Content-Type: application/json' \
   -d '{"name": "redis-prod", "module": "hivemind-redis-db-plugin",
        "config": {"host": "10.0.0.5", "port": 6379, "db": 0}}'
@@ -465,7 +467,7 @@ both DBs and copies clients, writes `server.json`.** A restart is required.
 Returns `ActivateProfileResult`.
 
 ```bash
-curl -u admin:admin -X POST \
+curl -u admin:a-strong-admin-password -X POST \
   http://localhost:8100/api/database/profiles/redis-prod/activate \
   -H 'Content-Type: application/json' \
   -d '{"migrate_data": true}'
@@ -490,7 +492,7 @@ Body is a raw dict with `module` (entry-point) and optional `config`. Returns
 probe for file backends.**
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/database/test \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/database/test \
   -H 'Content-Type: application/json' \
   -d '{"module": "hivemind-redis-db-plugin", "config": {"host": "localhost", "port": 6379}}'
 ```
@@ -535,7 +537,7 @@ Read-only lookups served from `acl_config.json` (bundled with the package).
 | GET    | `/acl/intents`   | Yes  | Common intent IDs with descriptions |
 
 ```bash
-curl -u admin:admin http://localhost:8100/api/acl/templates
+curl -u admin:a-strong-admin-password http://localhost:8100/api/acl/templates
 ```
 
 (Applying a template to a client is `POST /clients/{client_id}/acl/apply-template`,
@@ -590,7 +592,7 @@ otherwise). Filename is sanitized from the name. **Side effect: writes a
 persona JSON file.** Returns the config plus `status` and `path`.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/personas \
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/personas \
   -H 'Content-Type: application/json' \
   -d '{"name": "Assistant", "solvers": ["ovos-solver-openai-plugin"],
        "memory_module": "ovos-agents-short-term-memory-plugin"}'
@@ -615,7 +617,7 @@ Writes the persona's full path into
 writes `server.json`.** `404` if not found, `500` if the persona has no file.
 
 ```bash
-curl -u admin:admin -X POST http://localhost:8100/api/personas/Assistant/activate
+curl -u admin:a-strong-admin-password -X POST http://localhost:8100/api/personas/Assistant/activate
 ```
 
 ---
@@ -633,7 +635,7 @@ curl -u admin:admin -X POST http://localhost:8100/api/personas/Assistant/activat
 raised.
 
 ```bash
-curl -u admin:admin "http://localhost:8100/api/ovos/test-bus?host=127.0.0.1&port=8181"
+curl -u admin:a-strong-admin-password "http://localhost:8100/api/ovos/test-bus?host=127.0.0.1&port=8181"
 ```
 
 (OVOS plugin listing is `GET /plugins/installed/ovos/{plugin_type}`, see §6.)

@@ -23,11 +23,18 @@ connect** (the dashboard now warns about exactly this).
 uv pip install ovos-messagebus            # an agent backend for the core
 ovos-messagebus &                          # binds 127.0.0.1:8181
 
-# launch the panel + in-process core (default admin/admin)
+# launch the panel + in-process core (ships with admin/admin)
 hivemind-admin-panel --host 127.0.0.1 --port 8100 &
 
+# the panel refuses every request but /api/auth/password while the admin
+# password is still the shipped default; set a real one first
+curl -sf -u admin:admin -X POST http://127.0.0.1:8100/api/auth/password \
+  -H 'Content-Type: application/json' \
+  -d '{"old_password": "admin", "new_password": "a-strong-admin-password"}'
+
 # run the harness
-ADMIN_URL=http://127.0.0.1:8100/api python integration/live_e2e.py
+ADMIN_URL=http://127.0.0.1:8100/api ADMIN_PASSWORD=a-strong-admin-password \
+  python integration/live_e2e.py
 ```
 
 Exits non-zero on the first failed assertion; prints a PASS/FAIL line per check.
