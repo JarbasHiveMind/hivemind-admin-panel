@@ -346,14 +346,12 @@ class ClientCreate(BaseModel):
         name: Optional client name. Auto-generated if not provided.
         api_key: Optional API key. Auto-generated if not provided.
         password: Optional password. Auto-generated if not provided.
-        crypto_key: Optional crypto key for encryption.
         is_admin: Whether client has admin privileges.
     """
 
     name: Optional[str] = None
     api_key: Optional[str] = None
     password: Optional[str] = None
-    crypto_key: Optional[str] = None
     is_admin: bool = False
 
 
@@ -364,7 +362,6 @@ class ClientUpdate(BaseModel):
         name: New client name.
         api_key: New API key.
         password: New password.
-        crypto_key: New crypto key.
         is_admin: Admin privilege flag.
         can_escalate: Permission to send messages upstream.
         can_propagate: Permission to forward messages to siblings.
@@ -376,7 +373,6 @@ class ClientUpdate(BaseModel):
     name: Optional[str] = None
     api_key: Optional[str] = None
     password: Optional[str] = None
-    crypto_key: Optional[str] = None
     is_admin: Optional[bool] = None
     can_escalate: Optional[bool] = None
     can_propagate: Optional[bool] = None
@@ -1187,7 +1183,7 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
 
     Args:
         client: Client object from database.
-        include_secrets: Whether to include password and crypto_key.
+        include_secrets: Whether to include password.
 
     Returns:
         Dict with client data.
@@ -1214,7 +1210,6 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
     }
     if include_secrets:
         result["password"] = client.password or ""
-        result["crypto_key"] = client.crypto_key or ""
     return result
 
 
@@ -1290,13 +1285,13 @@ def get_client(client_id: int, request: Request) -> Dict[str, Any]:
     "/clients/{client_id}/credentials", dependencies=[Depends(require_admin)]
 )
 def get_client_credentials(client_id: int) -> Dict[str, Any]:
-    """Get client credentials including password and crypto key.
+    """Get client credentials including password.
 
     Args:
         client_id: The client ID to look up.
 
     Returns:
-        Dict with client_id, name, api_key, password, and crypto_key.
+        Dict with client_id, name, api_key, and password.
 
     Raises:
         HTTPException: 404 if client not found.
@@ -1309,7 +1304,6 @@ def get_client_credentials(client_id: int) -> Dict[str, Any]:
                     "name": client.name,
                     "api_key": client.api_key,
                     "password": client.password or "",
-                    "crypto_key": client.crypto_key or "",
                 }
     raise HTTPException(status_code=404, detail="Client not found")
 
@@ -1319,29 +1313,18 @@ def add_client(data: ClientCreate) -> Dict[str, Any]:
     """Add a new client.
 
     Args:
-        data: ClientCreate with optional name, api_key, password, crypto_key, is_admin.
+        data: ClientCreate with optional name, api_key, password, is_admin.
 
     Returns:
         Dict with full client data including secrets.
-
-    Raises:
-        HTTPException: 400 if crypto_key has invalid length.
     """
     password = data.password or os.urandom(16).hex()
-    crypto_key = data.crypto_key
     admin = data.is_admin
     access_key = data.api_key or os.urandom(16).hex()
 
-    if crypto_key and len(crypto_key) not in (16, 24, 32):
-        raise HTTPException(
-            status_code=400, detail="crypto_key must be 16, 24, or 32 characters"
-        )
-
     with ClientDatabase() as db:
         name = data.name or f"HiveMind-Node-{db.total_clients()}"
-        db.add_client(
-            name, access_key, crypto_key=crypto_key, password=password, admin=admin
-        )
+        db.add_client(name, access_key, password=password, admin=admin)
         client = db.get_client_by_api_key(access_key)
         from hivemind_admin_panel._metrics import METRICS
         METRICS.event("client.created", f"Client '{client.name}' created",
@@ -1362,7 +1345,6 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
 
     Raises:
         HTTPException: 404 if client not found.
-        HTTPException: 400 if crypto_key has invalid length.
     """
     with client_db_write() as db:
         for client in db:
@@ -1373,18 +1355,14 @@ def update_client(client_id: int, data: ClientUpdate) -> Dict[str, Any]:
                     client.api_key = data.api_key
                 if data.password is not None:
                     client.password = data.password
-                if data.crypto_key is not None:
-                    if len(data.crypto_key) not in (16, 24, 32):
-                        raise HTTPException(
-                            status_code=400, detail="crypto_key must be 16, 24, or 32 characters"
-                        )
-                    client.crypto_key = data.crypto_key
                 if data.is_admin is not None:
                     client.is_admin = data.is_admin
                 if data.can_escalate is not None:
                     client.can_escalate = data.can_escalate
                 if data.can_propagate is not None:
                     client.can_propagate = data.can_propagate
+                if data.can_broadcast is not None:
+                    client.can_broadcast = data.can_broadcast
                 if data.allowed_types is not None:
                     client.allowed_types = data.allowed_types
                 if data.skill_blacklist is not None:
@@ -2334,7 +2312,6 @@ def _migrate_clients(
             intent_blacklist=client.metadata.get("intent_blacklist", []),
             skill_blacklist=client.metadata.get("skill_blacklist", []),
             allowed_types=client.allowed_types,
-            crypto_key=client.crypto_key,
             password=client.password,
         )
         copied += 1
@@ -2827,7 +2804,7 @@ def list_db_clients(module: str, request: Request) -> List[Dict[str, Any]]:
         module: The database module entry point.
 
     Returns:
-        List of client dictionaries. Client password/crypto_key are included
+        List of client dictionaries. Client password is included
         only for admins; the connection api_key is stripped for operators,
         mirroring ``GET /clients``.
     """
@@ -2894,7 +2871,6 @@ def copy_client(data: CopyClientRequest) -> Dict[str, Any]:
         target_db.add_client(
             name=client.name,
             access_key=client.api_key,
-            crypto_key=client.crypto_key,
             password=client.password,
             admin=client.is_admin
         )
@@ -4483,14 +4459,13 @@ def get_client_pairing(client_id: int, host: Optional[str] = None) -> Dict[str, 
                     "name": c.name,
                     "key": c.api_key,
                     "password": c.password,
-                    "crypto_key": c.crypto_key,
                     "host": advertise,
                     "port": ep["port"],
                     "ssl": ep["ssl"],
                     "connect_url": f"{scheme}://{hoststr}:{ep['port']}",
                 }
                 bundle["qr"] = _json.dumps({
-                    "key": c.api_key, "password": c.password, "crypto_key": c.crypto_key,
+                    "key": c.api_key, "password": c.password,
                     "host": hoststr, "port": ep["port"], "ssl": ep["ssl"],
                 })
                 if guessed:
@@ -4776,7 +4751,7 @@ def server_health(server_id: str) -> Dict[str, Any]:
 def export_backup() -> Dict[str, Any]:
     """Export a portable bundle: server config + all clients (with secrets) + servers.
 
-    Admin only: the bundle carries every client's password and crypto_key. The
+    Admin only: the bundle carries every client's password. The
     token-signing secret and admin password are dropped from the exported config
     — they are not needed to restore a deployment (the secret regenerates on
     first use) and must not be written into a portable file.
@@ -4809,10 +4784,23 @@ class RestoreRequest(BaseModel):
     restore_config: bool = False  # opt-in: overwriting server.json is destructive
 
 
+# Fields a bundle produced by GET /backup can carry for a client. Anything
+# else in a client dict (e.g. the retired ``crypto_key`` from an older
+# bundle) is dropped rather than restored, and reported back so the caller
+# knows it was ignored.
+_BACKUP_CLIENT_FIELDS = frozenset((
+    "client_id", "name", "description", "api_key", "password", "is_admin",
+    "allowed_types", "skill_blacklist", "intent_blacklist", "can_escalate",
+    "can_propagate", "can_broadcast", "last_seen", "revoked", "tags",
+))
+
+
 @app.post("/restore", dependencies=[Depends(require_admin)])
 def import_backup(data: RestoreRequest) -> Dict[str, Any]:
     """Restore clients (and optionally config/servers) from a backup bundle. Admin only."""
     added, skipped = 0, 0
+    ignored_fields = set()
+    defaulted_denied = set()
     if data.clients:
         with ClientDatabase() as db:
             for c in data.clients:
@@ -4820,13 +4808,34 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
                 if not key or db.get_client_by_api_key(key):
                     skipped += 1
                     continue
+                ignored_fields.update(set(c) - _BACKUP_CLIENT_FIELDS)
                 db.add_client(
                     c.get("name", "restored"), key,
                     admin=bool(c.get("is_admin")),
                     allowed_types=c.get("allowed_types"),
-                    crypto_key=c.get("crypto_key"),
                     password=c.get("password"),
+                    metadata={"tags": c["tags"]} if c.get("tags") else None,
+                    skill_blacklist=c.get("skill_blacklist"),
+                    intent_blacklist=c.get("intent_blacklist"),
                 )
+                # add_client covers the fields above. The permission flags,
+                # the description and last_seen are not among them, so they
+                # are applied to the created row directly. A bundle that does
+                # not carry a permission flag restores it denied: the model
+                # defaults are permissive, and a recovery path must not be
+                # able to widen what a client may do.
+                client = db.get_client_by_api_key(key)
+                if client is not None:
+                    client.description = c.get("description", "")
+                    client.can_escalate = bool(c.get("can_escalate", False))
+                    client.can_propagate = bool(c.get("can_propagate", False))
+                    client.can_broadcast = bool(c.get("can_broadcast", False))
+                    if c.get("last_seen") is not None:
+                        client.last_seen = c["last_seen"]
+                    db.update_item(client)
+                    for flag in ("can_escalate", "can_propagate", "can_broadcast"):
+                        if flag not in c:
+                            defaulted_denied.add(flag)
                 added += 1
     if data.servers is not None:
         _save_servers(data.servers)
@@ -4836,8 +4845,20 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
         for k, v in data.config.items():
             cfg[k] = v
         store_config(cfg)
-    return {"status": "ok", "clients_added": added, "clients_skipped": skipped,
-            "config_restored": bool(data.restore_config and data.config)}
+    result = {"status": "ok", "clients_added": added, "clients_skipped": skipped,
+              "config_restored": bool(data.restore_config and data.config)}
+    notes = []
+    if ignored_fields:
+        notes.append("Ignored unknown or retired client fields in the bundle: "
+                     + ", ".join(sorted(ignored_fields)) + ".")
+    if defaulted_denied:
+        notes.append("The bundle did not carry "
+                     + ", ".join(sorted(defaulted_denied))
+                     + "; those permissions were restored denied and must be "
+                       "granted again if they are wanted.")
+    if notes:
+        result["message"] = " ".join(notes)
+    return result
 
 
 class PolicyUpdate(BaseModel):
@@ -5108,9 +5129,8 @@ def provision_bridge(data: BridgeProvision, request: Request) -> Dict[str, Any]:
     name = data.name or f"{meta['label']}-bridge"
     access_key = os.urandom(16).hex()
     password = os.urandom(16).hex()
-    crypto_key = os.urandom(16).hex()   # 32 chars
     with client_db_write() as db:
-        db.add_client(name, access_key, crypto_key=crypto_key, password=password, admin=False)
+        db.add_client(name, access_key, password=password, admin=False)
         client = db.get_client_by_api_key(access_key)
         client.allowed_types = list(BRIDGE_ALLOW)
         meta_d = dict(getattr(client, "metadata", None) or {})
@@ -5165,12 +5185,11 @@ def chat_start(data: ChatStart, request: Request) -> Dict[str, Any]:
         client = next((c for c in db if getattr(c, "client_id", -1) == data.client_id), None)
         if client is None:
             raise HTTPException(status_code=404, detail="Client not found")
-        key, password = client.api_key, client.password
-        crypto_key, name = client.crypto_key, client.name
+        key, password, name = client.api_key, client.password, client.name
     if str(key).upper() == "REVOKED":
         raise HTTPException(status_code=400, detail="Client is revoked")
     ep = _impersonation_endpoint()
-    sess = CHAT.create(data.client_id, name, key, password, crypto_key, ep["host"], ep["port"])
+    sess = CHAT.create(data.client_id, name, key, password, ep["host"], ep["port"])
     if sess.error:
         CHAT.close(sess.id)
         raise HTTPException(status_code=502,

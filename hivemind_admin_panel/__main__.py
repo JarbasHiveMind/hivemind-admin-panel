@@ -160,7 +160,7 @@ class InsecureBindError(RuntimeError):
 def check_bind_safety(host: str, allow_insecure: bool = False) -> None:
     """Refuse to serve on a non-loopback address with default credentials.
 
-    The panel hands out satellite api_keys, passwords and crypto_keys in
+    The panel hands out satellite api_keys and passwords in
     cleartext and can install arbitrary plugins, so admin/admin on a routable
     interface is remote code execution for anyone on the network. A dashboard
     warning does not help — by the time it is read, the port is already open.

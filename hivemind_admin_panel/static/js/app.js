@@ -1191,19 +1191,6 @@
             </div>`;
         }
 
-        // The crypto_key is the legacy AES pre-shared key. v3 clients authenticate
-        // with the access key + password (PSK) over a Noise handshake and leave it
-        // unset, so render an honest note instead of an empty/"null" copy box.
-        function _cryptoKeyRow(value) {
-            if (!value) {
-                return `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">
-                    <div style="flex:0 0 90px;font-size:12px;color:var(--text-secondary);">Crypto Key</div>
-                    <span style="flex:1;font-size:12px;color:var(--text-secondary);font-style:italic;">Legacy AES key — not used with v3 Noise (access key + password).</span>
-                </div>`;
-            }
-            return _credentialRow('Crypto Key', value);
-        }
-
         async function addClient() {
             const name = document.getElementById('newClientName').value.trim();
             if (!name) {
@@ -1231,7 +1218,6 @@
                         </div>
                         ${_credentialRow('Access Key', client.api_key)}
                         ${_credentialRow('Password', client.password)}
-                        ${_cryptoKeyRow(client.crypto_key)}
                     </div>`;
                 result.classList.remove('hidden');
                 document.getElementById('addClientFooter').innerHTML =
@@ -1586,8 +1572,7 @@
                 const host = prompt('hivemind-core address the bridge should connect to (LAN IP or hostname):', location.hostname) || undefined;
                 const res = await apiCall('/bridges/provision', 'POST', { type: b.id, name, host });
                 const bundle = res.bundle;
-                const cryptoLine = bundle.crypto_key ? `\n#   crypto_key=${bundle.crypto_key}` : '';
-                const runHint = `pip install ${b.pip}\n# then run the bridge with:\n#   key=${bundle.key}\n#   password=${bundle.password}${cryptoLine}\n#   host=${bundle.host || '<CORE-IP>'}  port=${bundle.port}`;
+                const runHint = `pip install ${b.pip}\n# then run the bridge with:\n#   key=${bundle.key}\n#   password=${bundle.password}\n#   host=${bundle.host || '<CORE-IP>'}  port=${bundle.port}`;
                 document.getElementById('bridgeResult').innerHTML =
                     `<div class="card" style="border-left:4px solid var(--accent-success);">
                         <strong>✅ ${esc(b.icon)} ${esc(b.label)} bridge client ready</strong>
@@ -1627,10 +1612,9 @@
                 document.getElementById('editClientName').value = client.name;
                 document.getElementById('editClientApiKey').value = client.api_key;
 
-                // Load credentials for password/crypto_key
+                // Load credentials for password
                 const creds = await apiCall(`/clients/${clientId}/credentials`);
                 document.getElementById('editClientPassword').value = creds.password || '';
-                document.getElementById('editClientCryptoKey').value = creds.crypto_key || '';
 
                 document.getElementById('editClientModal').classList.add('active');
             } catch (e) {
@@ -1647,8 +1631,7 @@
             const data = {
                 name: document.getElementById('editClientName').value,
                 api_key: document.getElementById('editClientApiKey').value,
-                password: document.getElementById('editClientPassword').value,
-                crypto_key: document.getElementById('editClientCryptoKey').value
+                password: document.getElementById('editClientPassword').value
             };
 
             try {

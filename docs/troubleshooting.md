@@ -141,10 +141,10 @@ Each entry is **symptom → cause → fix**.
 - **Cause:** The panel requires the **Apache-licensed** core stack at prerelease
   floors. Older `hivemind-core` (4.0.0) still declared AGPL-3.0 and shipped the old
   stack, and `ovos-plugin-manager < 2.6` lacks `find_chat_plugins`.
-- **Fix:** Pin the floors (already in `requirements.txt`):
+- **Fix:** Pin the floors (already in `pyproject.toml`'s `dependencies`):
 
   ```
-  hivemind-core>=4.6.1a1,<5.0.0
+  hivemind-core>=5.1.1a2,<6.0.0
   ovos-plugin-manager>=2.6.1a2,<3.0.0
   ```
 

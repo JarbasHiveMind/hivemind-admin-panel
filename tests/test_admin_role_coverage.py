@@ -200,7 +200,7 @@ def test_operator_backup_forbidden(client, authz_env):
 def test_admin_backup_omits_token_secret_but_keeps_client_secrets(
         client, authz_env, make_client):
     """The backup drops the token-signing secret and admin password from config,
-    but still carries client password/crypto_key so a restore works."""
+    but still carries client password so a restore works."""
     make_client(name="backup-sat")
     resp = client.get("/backup", headers=authz_env["admin"])
     assert resp.status_code == 200, resp.text
@@ -209,7 +209,8 @@ def test_admin_backup_omits_token_secret_but_keeps_client_secrets(
     assert "admin_pass" not in bundle["config"]
     assert TOKEN_SECRET not in resp.text
     assert bundle["clients"], "backup should include clients"
-    assert any("password" in c and "crypto_key" in c for c in bundle["clients"])
+    assert any("password" in c for c in bundle["clients"])
+    assert all("crypto_key" not in c for c in bundle["clients"])
 
 
 def test_operator_clients_list_hides_api_key(client, authz_env, make_client):
@@ -282,10 +283,9 @@ def _active_db_module():
 
 
 def test_operator_db_clients_hides_client_secrets(client, authz_env, make_client):
-    """GET /database/{module}/clients must hide client password/crypto_key and
+    """GET /database/{module}/clients must hide client password and
     strip the api_key for operators, mirroring GET /clients."""
-    make_client(name="db-secret-sat", password="op-visible-pw",
-                crypto_key="0123456789abcdef")
+    make_client(name="db-secret-sat", password="op-visible-pw")
     resp = client.get(f"/database/{_active_db_module()}/clients",
                       headers=authz_env["operator"])
     assert resp.status_code == 200, resp.text
@@ -295,16 +295,14 @@ def test_operator_db_clients_hides_client_secrets(client, authz_env, make_client
     assert all("crypto_key" not in c for c in clients)
     assert all("api_key" not in c for c in clients)
     assert "op-visible-pw" not in resp.text
-    assert "0123456789abcdef" not in resp.text
 
 
 def test_admin_db_clients_keeps_client_secrets(client, authz_env, make_client):
-    """Admins still get client password/crypto_key from the per-module list."""
-    make_client(name="db-secret-admin-sat", password="adm-pw",
-                crypto_key="0123456789abcdef")
+    """Admins still get client password from the per-module list."""
+    make_client(name="db-secret-admin-sat", password="adm-pw")
     clients = client.get(f"/database/{_active_db_module()}/clients",
                          headers=authz_env["admin"]).json()
-    assert any(c.get("crypto_key") for c in clients)
+    assert any(c.get("password") == "adm-pw" for c in clients)
 
 
 def test_operator_database_profiles_hides_backend_secrets(client, authz_env):
@@ -378,14 +376,12 @@ def test_admin_client_detail_keeps_api_key(client, authz_env, make_client):
 
 def test_operator_pairing_forbidden(client, authz_env, make_client):
     """GET /clients/{id}/pairing hands out the full connection creds
-    (api_key + password + crypto_key), so it is admin-only."""
-    created = make_client(name="pairing-sat", password="pair-pw",
-                          crypto_key="0123456789abcdef")
+    (api_key + password), so it is admin-only."""
+    created = make_client(name="pairing-sat", password="pair-pw")
     cid = created["client_id"]
     resp = client.get(f"/clients/{cid}/pairing", headers=authz_env["operator"])
     assert resp.status_code == 403, resp.text
     assert "pair-pw" not in resp.text
-    assert "0123456789abcdef" not in resp.text
 
 
 def test_operator_pairing_qr_forbidden(client, authz_env, make_client):
@@ -400,15 +396,14 @@ def test_operator_pairing_qr_forbidden(client, authz_env, make_client):
 
 def test_admin_pairing_returns_full_credentials(client, authz_env, make_client):
     """Admins still get the full pairing bundle."""
-    created = make_client(name="pairing-admin-sat", password="adm-pair-pw",
-                          crypto_key="0123456789abcdef")
+    created = make_client(name="pairing-admin-sat", password="adm-pair-pw")
     cid = created["client_id"]
     resp = client.get(f"/clients/{cid}/pairing", headers=authz_env["admin"])
     assert resp.status_code == 200, resp.text
     bundle = resp.json()
     assert bundle["key"] == created["api_key"]
     assert bundle["password"] == "adm-pair-pw"
-    assert bundle["crypto_key"] == "0123456789abcdef"
+    assert "crypto_key" not in bundle
 
 
 LLM_KEY = "sk-operator-must-not-see-this"
