@@ -285,6 +285,23 @@
             outline-offset: 2px;
         }
 
+        /* A keyboard user must be able to see where they are. Only form fields
+           and the topology nodes styled focus, so every button, link and nav
+           item fell back to the browser default, which is invisible against
+           these backgrounds. :focus-visible keeps the ring off a mouse click. */
+        a:focus-visible,
+        button:focus-visible,
+        [role="button"]:focus-visible,
+        [tabindex]:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        summary:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+            border-radius: var(--radius-sm);
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
