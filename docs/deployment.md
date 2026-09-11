@@ -24,7 +24,7 @@ Exposed ports: `5678` (websocket transport), `5679` (http transport), `8100`
 
 ## Docker Compose (full stack)
 
-The bundled `docker-compose.yml` brings up hivemind-core + admin panel backed by Redis:
+The bundled `docker-compose.yml` brings up hivemind-core + admin panel backed by Valkey:
 
 ```bash
 docker compose up --build
@@ -32,7 +32,7 @@ docker compose up --build
 
 It defines two services:
 
-- **redis**: the client-database backend (persisted to a named volume).
+- **redis**: the client-database backend, a Valkey container (persisted to a named volume).
 - **hivemind**: hivemind-core and the admin panel, configured by `docker/server.json` (which
   selects the Redis backend and the admin credentials).
 
@@ -54,7 +54,7 @@ Volumes:
 
 | Volume | Holds |
 |--------|-------|
-| `redis-data` | the Redis client database |
+| `redis-data` | the Valkey client database |
 | `hivemind-config` | identity keys + `server.json` |
 | `hivemind-data` | hivemind-core runtime state |
 

@@ -1,4 +1,4 @@
-# Full HiveMind stack: the hub + admin panel (one container) backed by Redis.
+# Full HiveMind stack: the hub + admin panel (one container) backed by Valkey.
 #
 #   docker compose up --build
 #
@@ -11,10 +11,10 @@ name: hivemind-admin-panel
 
 services:
   redis:
-    image: redis:7-alpine
+    image: valkey/valkey:7-alpine
     container_name: hivemind-redis
     restart: unless-stopped
-    command: ["redis-server", "--save", "60", "1"]
+    command: ["valkey-server", "--save", "60", "1"]
     volumes:
       - redis-data:/data
     # not published on the host by default; reachable as `redis` on the compose network
