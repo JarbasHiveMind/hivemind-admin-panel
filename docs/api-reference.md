@@ -167,7 +167,7 @@ curl -u admin:admin -X POST http://localhost:8100/api/config/restart
 | GET    | `/clients`                        | Yes  | none              | List all clients (including revoked), excludes internal id=-1 |
 | GET    | `/clients/active`                 | Yes  | none              | List only non-revoked clients |
 | GET    | `/clients/{client_id}`            | Yes  | none              | Get one client |
-| GET    | `/clients/{client_id}/credentials`| Yes  | none              | Get api_key, password, crypto_key |
+| GET    | `/clients/{client_id}/credentials`| Yes  | none              | Get api_key, password |
 | POST   | `/clients`                        | Yes  | `ClientCreate` | Create a client |
 | PUT    | `/clients/{client_id}`            | Yes  | `ClientUpdate` | Update a client |
 | DELETE | `/clients/{client_id}`            | Yes  | none              | Delete (revoke) a client |
@@ -177,13 +177,12 @@ Client objects are returned by `_client_to_dict`, which includes: `client_id`,
 `name`, `description`, `api_key`, `is_admin`, `allowed_types`,
 `skill_blacklist`, `intent_blacklist`, `can_escalate`,
 `can_propagate`, `can_broadcast`, `last_seen`, `revoked`. Create/update
-responses also include `password` and `crypto_key` (secrets).
+responses also include `password` (a secret).
 A revoked client has `api_key == "REVOKED"` (case-insensitive) or `revoked` set.
 
 ### `POST /clients`
 Auto-generates `password` and `api_key` (16-byte hex) when omitted. Name
-defaults to `HiveMind-Node-<count>`. `crypto_key`, if provided, must be 16, 24,
-or 32 chars (else `400`). **Side effect: writes to the client database.**
+defaults to `HiveMind-Node-<count>`. **Side effect: writes to the client database.**
 Returns the full client dict including secrets.
 
 ```bash
@@ -193,9 +192,8 @@ curl -u admin:admin -X POST http://localhost:8100/api/clients \
 ```
 
 ### `PUT /clients/{client_id}`
-Updates only the fields present in `ClientUpdate`. `crypto_key` length is
-validated (`400` if invalid). `404` if client not found. Returns updated client
-with secrets.
+Updates only the fields present in `ClientUpdate`. `404` if client not found.
+Returns updated client with secrets.
 
 ```bash
 curl -u admin:admin -X PUT http://localhost:8100/api/clients/3 \
@@ -653,11 +651,10 @@ noted.
 | `name`       | `Optional[str]` | `None` (auto: `HiveMind-Node-<n>`) |
 | `api_key`    | `Optional[str]` | `None` (auto: random hex) |
 | `password`   | `Optional[str]` | `None` (auto: random hex) |
-| `crypto_key` | `Optional[str]` | `None` |
 | `is_admin`   | `bool`          | `False` |
 
 ### `ClientUpdate`
-All optional, default `None`: `name`, `api_key`, `password`, `crypto_key`
+All optional, default `None`: `name`, `api_key`, `password`
 (`str`). `is_admin`, `can_escalate`, `can_propagate` (`bool`). `allowed_types`,
 `skill_blacklist`, `intent_blacklist` (`List[str]`).
 

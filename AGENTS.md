@@ -64,14 +64,15 @@ panel owns), [hivemind-bus-client](https://github.com/JarbasHiveMind/hivemind-bu
 - **Floor pins only** (`>=X.Y.Za1`), bumped when a feature or fix is actually
   needed — with a one-line comment saying why. No upper caps unless a specific
   released version is genuinely broken (say which and why; see the `httpx<1.0`
-  and `hivemind-bus-client<2.0.0` comments in `requirements.txt` for the pattern).
+  and `hivemind-bus-client<2.0.0` comments in `pyproject.toml`'s `dependencies`
+  for the pattern).
 - **No lockfiles, ever.** Target the latest alphas (`--prerelease=allow`).
-- Dependencies live in `requirements.txt` (pulled dynamically into
-  `pyproject.toml`); test-only deps live in `pyproject.toml`'s `test`/`dev`
-  extras. Version comes from `hivemind_admin_panel/version.py`. Never install
-  from git — depend on a published PyPI alpha.
+- Dependencies live in `pyproject.toml`'s `dependencies` list; test-only deps
+  live in the `test`/`dev` extras. Version comes from
+  `hivemind_admin_panel/version.py`. Never install from git — depend on a
+  published PyPI alpha.
 - Apache-2.0. Do not add GPL/AGPL dependencies. The panel deliberately targets
-  the Apache-licensed `hivemind-core>=4.6.1a1` floor over the AGPL-3.0 stable
+  the Apache-licensed `hivemind-core` alpha floor over the AGPL-3.0 stable
   4.0.0 release — keep new dependencies on the same Apache-licensed alpha track.
 
 ## Tests
@@ -99,7 +100,7 @@ panel owns), [hivemind-bus-client](https://github.com/JarbasHiveMind/hivemind-bu
   trusted reverse proxy) at launch time, never a change to the default, and
   `docs/security.md` / `docs/troubleshooting.md` should stay the source of truth
   for that guidance rather than duplicating it here.
-- Newly created client credentials (`api_key`, `password`, `crypto_key`) are
+- Newly created client credentials (`api_key`, `password`) are
   generated server-side and returned once in the creation response — see
   `api.py`'s `ClientCreate`/`ClientResponse` models and the `access_key =
   data.api_key or os.urandom(16).hex()` flow. They must never be logged, and any

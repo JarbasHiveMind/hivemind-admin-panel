@@ -191,7 +191,6 @@ describe('addClient', () => {
       name: 'NewDevice',
       api_key: 'key0000000000000000000001',
       password: 'super-secret-password',
-      crypto_key: 'crypto0000000000000000001',
     });
     document.getElementById('newClientName').value = 'NewDevice';
 
@@ -206,7 +205,6 @@ describe('addClient', () => {
     const resultHtml = document.getElementById('addClientResult').innerHTML;
     expect(resultHtml).toContain('key0000000000000000000001');
     expect(resultHtml).toContain('super-secret-password');
-    expect(resultHtml).toContain('crypto0000000000000000001');
     expect(document.getElementById('addClientFooter').innerHTML).toContain('closeAddClientModal()');
   });
 
