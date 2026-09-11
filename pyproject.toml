@@ -20,11 +20,41 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dynamic = ["version", "dependencies"]
+dynamic = ["version"]
+# Prerelease floors are deliberate: the published stables are stale —
+# hivemind-core 4.0.0 still declares AGPL-3.0 and ships the old stack, and
+# ovos-plugin-manager < 2.6 lacks ovos_plugin_manager.agents.find_chat_plugins
+# (imported by api.py). These alpha floors pull the Apache-licensed, current
+# packages and make pip accept them without --pre.
+dependencies = [
+    "hivemind-core>=5.1.1a2,<6.0.0",
+    # used directly for the client-impersonation chat (server-side bus client).
+    # The cap is <2.0.0, not <1.0.0: the old bound pinned every install of this
+    # panel to bus-client 0.11.x, and because hivemind-core depends on the same
+    # package it dragged the hub back to core 4.11.x too. On a box where the panel
+    # owns the hub in native mode that silently froze the whole node a year behind
+    # — no protocol v3 fixes, no RENDEZVOUS. The panel uses six calls from this
+    # package (constructor, on_mycroft, connect, handshake_event, emit, close),
+    # all unchanged across the 1.0 boundary.
+    "hivemind-bus-client>=1.0.8a1,<2.0.0",
+    "hivemind-plugin-manager>=0.7.1a1,<1.0.0",
+    "ovos-plugin-manager>=2.6.1a2,<3.0.0",
+    "ovos-utils>=0.3.0,<1.0.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.27.0",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.0.0",
+    "websocket-client>=1.7.0",
+    "qrcode>=7.0,<9.0",
+    "requests>=2.25.0",
+]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov", "httpx"]
-dev = ["pytest", "pytest-cov", "httpx"]
+# starlette's TestClient needs httpx.BaseTransport, which httpx 1.0 removes.
+# The requirements use alpha floors, so CI resolves with prereleases allowed and
+# picked up httpx 1.0.dev — every test then errored on the conftest import.
+test = ["pytest", "pytest-cov", "httpx>=0.27,<1.0", "tomli; python_version < \"3.11\""]
+dev = ["pytest", "pytest-cov", "httpx>=0.27,<1.0", "tomli; python_version < \"3.11\""]
 
 [project.urls]
 Homepage = "https://github.com/JarbasHiveMind/hivemind-admin-panel"
@@ -38,7 +68,6 @@ packages = ["hivemind_admin_panel"]
 
 [tool.setuptools.dynamic]
 version = { attr = "hivemind_admin_panel.version.__version__" }
-dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.package-data]
 hivemind_admin_panel = [

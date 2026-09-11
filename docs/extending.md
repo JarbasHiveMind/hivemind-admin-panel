@@ -1,7 +1,10 @@
 # Extending the panel
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 For developers adding features. Read [Architecture](architecture.md) first for the
-injection seam and threading model; this page is the practical "how do I add X".
+injection seam and threading model. This page is the practical "how do I add X".
 
 ## Module map
 
@@ -16,7 +19,7 @@ hivemind_admin_panel/
 └── static/       the SPA: index.html, js/app.js, js/i18n.js, css/style.css
 ```
 
-The app object is `api.app`; `__main__.app` wraps it (mounts it under `/api` and
+The app object is `api.app`. `__main__.app` wraps it (mounts it under `/api` and
 serves the SPA). So a route declared `@app.get("/foo")` is served at `/api/foo`.
 
 ## Add a REST endpoint
@@ -38,12 +41,12 @@ def make_widget(data: WidgetCreate) -> Dict[str, Any]:
   Use `require_admin` for destructive actions. Get the caller with
   `_current_user(request)` (add `request: Request` to the signature).
 - **Live core objects**: read the module globals `_db`, `_service`, `_protocol`
-  (set by `init_injected_objects`). They may be `None` in `--no-core` mode —
-  degrade gracefully, don't 500.
+  (set by `init_injected_objects`). They may be `None` in `--no-core` mode, so
+  degrade gracefully instead of returning a 500.
 - **Read `ProcessStatus`** as `_service._status.state.name` (it has **no**
-  `.value` — that mistake only crashes with a live service).
-- **Metrics/audit**: call `METRICS.event(...)` / `METRICS.incr(...)` for
-  observable actions; mutating requests are audit-logged automatically by the
+  `.value`; that mistake only crashes with a live service).
+- **Metrics/audit**: call `METRICS.event(...)` or `METRICS.incr(...)` for
+  observable actions. Mutating requests are audit-logged automatically by the
   middleware.
 - **Models**: define a `pydantic.BaseModel` for request bodies.
 
@@ -58,7 +61,7 @@ The SPA is dependency-free vanilla JS. Three edits:
 
    ```html
    <button class="nav-item" onclick="navigate('widgets')" data-page="widgets">
-       <span class="nav-icon">🧩</span><span data-i18n="widgets">Widgets</span>
+       <span class="nav-icon">widgets-icon</span><span data-i18n="widgets">Widgets</span>
    </button>
    ```
 
@@ -75,9 +78,9 @@ The SPA is dependency-free vanilla JS. Three edits:
    and adds auth). **Always HTML-escape** user data with the existing `esc()`
    helper.
 
-Browser `EventSource` (SSE) can't send headers — for live feeds, mint a token via
-`/auth/login` and pass it as `?access_token=` (the API accepts it; see
-`startMonitorLive`).
+Browser `EventSource` (SSE) cannot send headers. For live feeds, mint a token through
+`/auth/login` and pass it as `?access_token=`. The API accepts it. See
+`startMonitorLive` for the client-side pattern.
 
 ## Add a translation string
 
@@ -88,8 +91,8 @@ it on load and on language change. Untranslated keys fall back to English.
 ## Tap hivemind-core internals (advanced)
 
 The panel gets authoritative live state **without changing hivemind-core** by
-subclassing its listener protocol in `__main__._tracked_protocol()` — overriding
-`handle_message` / `handle_new_client` / etc. to feed `METRICS`, then injecting the
+subclassing its listener protocol in `__main__._tracked_protocol()`, overriding
+`handle_message`, `handle_new_client`, and similar methods to feed `METRICS`, then injecting the
 live instance. If you need a new live signal, add an override there. Keep
 overrides thin (record, then `return super()...`).
 
@@ -104,14 +107,21 @@ the fixtures `client`, `auth`, `make_client`. Only stub true external boundaries
 pytest tests/ -v
 ```
 
-Conventions: one test file per domain; Apache-2.0 SPDX header on new files; never
-hand-edit `version.py`; work on a feature branch and let CI (the gh-automations
-workflows) run build-tests/coverage/lint/license-check. See
+Conventions: one test file per domain, an Apache-2.0 SPDX header on new files, never
+hand-edit `version.py`, and work on a feature branch and let CI (the gh-automations
+workflows) run build-tests, coverage, lint, and license-check. See
 [Development](development.md).
 
----
 
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Architecture](architecture.md) | [📖 Docs home](index.md) | [API reference](api-reference.md) → |
+### What it looks like
+
+**Widescreen**
+
+![OpenVoiceOS Plugins: what the panel can install and configure (widescreen)](img/voice-plugins.png)
+
+**Mobile**
+
+![OpenVoiceOS Plugins: what the panel can install and configure (mobile)](img/voice-plugins-mobile.png)
+
+---
+[← Architecture](architecture.md) · [Home](index.md) · [API reference →](api-reference.md)

@@ -1,0 +1,17 @@
+{
+  "name": "hivemind-admin-panel-frontend-tests",
+  "private": true,
+  "description": "Test-only manifest. The panel ships no JS build; this exists so the app.js unit tests can run.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0",
+    "jest-environment-jsdom": "^30.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": ["<rootDir>/frontend/**/*.test.js"]
+  }
+}

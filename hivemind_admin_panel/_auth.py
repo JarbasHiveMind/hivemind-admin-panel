@@ -35,6 +35,25 @@ ADMIN = "admin"
 OPERATOR = "operator"
 TOKEN_TTL = 12 * 3600  # 12h
 
+#: Shipped defaults. A panel still using these is unauthenticated in practice.
+DEFAULT_USER = "admin"
+DEFAULT_PASS = "admin"
+
+#: Hosts that keep the panel off the network.
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "")
+
+
+def using_default_credentials(config: Dict[str, Any]) -> bool:
+    """True while the primary admin account still uses the shipped defaults."""
+    user = config.get("admin_user", DEFAULT_USER)
+    stored = config.get("admin_pass", DEFAULT_PASS)
+    return user == DEFAULT_USER and verify_password(stored, DEFAULT_PASS)
+
+
+def is_loopback(host: Optional[str]) -> bool:
+    """True when ``host`` keeps the listener on the local machine."""
+    return (host or "") in LOOPBACK_HOSTS
+
 
 # --------------------------------------------------------------------------- users
 
@@ -72,7 +91,8 @@ def verify_password(stored: str, password: str) -> bool:
             return hmac.compare_digest(dk.hex(), hash_hex)
         except Exception:
             return False
-    return hmac.compare_digest(stored, password)  # legacy plaintext
+    # compare bytes: hmac.compare_digest rejects non-ASCII str operands
+    return hmac.compare_digest(stored.encode(), password.encode())  # legacy plaintext
 
 
 def authenticate(config: Dict[str, Any], username: str, password: str) -> Optional[str]:
@@ -82,12 +102,34 @@ def authenticate(config: Dict[str, Any], username: str, password: str) -> Option
     """
     role = None
     for u in _users(config):
-        if hmac.compare_digest(u["username"], username) and verify_password(u["password"], password):
+        if hmac.compare_digest(u["username"].encode(), username.encode()) \
+                and verify_password(u["password"], password):
             role = u["role"]
     return role
 
 
 # --------------------------------------------------------------------------- tokens
+
+def protect_config_file(config: Dict[str, Any]) -> None:
+    """Restrict server.json to the owner (0600).
+
+    server.json holds the admin password, the token signing secret and every
+    satellite credential. hivemind-core writes it world-readable.
+    """
+    path = getattr(config, "path", None)
+    if not path:
+        return
+    try:
+        os.chmod(path, 0o600)
+    except OSError as e:
+        LOG.debug(f"could not chmod {path}: {e}")
+
+
+def store_config(config: Dict[str, Any]) -> None:
+    """``config.store()`` followed by a 0600 chmod (see :func:`protect_config_file`)."""
+    config.store()
+    protect_config_file(config)
+
 
 def _secret(config: Dict[str, Any]) -> bytes:
     """Persistent signing secret, generated into server.json on first use."""
@@ -96,10 +138,23 @@ def _secret(config: Dict[str, Any]) -> bytes:
         secret = os.urandom(32).hex()
         try:
             config["admin_token_secret"] = secret
-            config.store()
+            store_config(config)
         except Exception as e:  # config may be a plain dict in tests
             LOG.debug(f"could not persist token secret: {e}")
     return secret.encode()
+
+
+def rotate_token_secret(config: Dict[str, Any]) -> None:
+    """Invalidate every issued bearer token by re-keying the signing secret.
+
+    Called on password change: tokens minted with the old password must not
+    outlive it.
+    """
+    try:
+        config["admin_token_secret"] = os.urandom(32).hex()
+        store_config(config)
+    except Exception as e:
+        LOG.warning(f"could not rotate token secret: {e}")
 
 
 def create_token(config: Dict[str, Any], username: str, role: str, ttl: int = TOKEN_TTL) -> Dict[str, Any]:

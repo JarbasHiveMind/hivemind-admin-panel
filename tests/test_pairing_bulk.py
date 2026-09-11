@@ -42,4 +42,5 @@ def test_bulk_delete_reports_per_client(client, auth, make_client):
 def test_bulk_unknown_action(client, auth, make_client):
     a = make_client(name="bulk-x")
     resp = client.post("/clients/bulk", json={"action": "nope", "client_ids": [a["client_id"]]}, headers=auth)
-    assert resp.json()["results"][0]["ok"] is False
+    # rejected up front, so nothing is half-applied
+    assert resp.status_code == 400
