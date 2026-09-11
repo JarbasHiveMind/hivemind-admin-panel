@@ -501,7 +501,11 @@
             try { g = await apiCall('/topology'); } catch (e) { return; }
             const sats = g.nodes.filter(n => n.type !== 'core');
             const W = 600, H = 420, cx = W / 2, cy = H / 2, R = 150;
-            let svg = `<svg viewBox="0 0 ${W} ${H}" style="max-width:100%;height:auto;">`;
+            // The map is the only picture in the panel. Without a name, assistive
+            // technology reads an anonymous graphic; role="group" keeps the
+            // satellites inside it exposed as the buttons they are.
+            const mapLabel = `Hive map: ${sats.length} satellite(s), ${g.online_count} online, around one core`;
+            let svg = `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(mapLabel)}" style="max-width:100%;height:auto;"><title>${esc(mapLabel)}</title>`;
             sats.forEach((n, i) => {
                 const a = (2 * Math.PI * i) / Math.max(sats.length, 1);
                 const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
