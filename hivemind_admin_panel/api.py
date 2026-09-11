@@ -1191,7 +1191,7 @@ def _client_to_dict(client: Client, include_secrets: bool = False) -> Dict[str, 
     # Check if API key is already marked as revoked in the database
     # Case-insensitive check to handle "REVOKED", "revoked", etc.
     api_key_str = str(client.api_key or "").upper()
-    is_revoked = api_key_str == "REVOKED" or (hasattr(client, 'revoked') and client.revoked)
+    is_revoked = api_key_str == "REVOKED"
     result = {
         "client_id": client.client_id,
         "name": client.name,
@@ -1253,7 +1253,7 @@ def list_active_clients(request: Request) -> List[Dict[str, Any]]:
                 continue  # Skip internal client
             # Check if revoked (same as "deleted")
             api_key_str = str(c.api_key or "").upper()
-            is_revoked = api_key_str == "REVOKED" or (hasattr(c, 'revoked') and c.revoked)
+            is_revoked = api_key_str == "REVOKED"
             if not is_revoked:
                 result.append(_client_to_dict(c))
         return result if _is_admin(request) else _strip_api_key(result)
@@ -4801,12 +4801,23 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
     added, skipped = 0, 0
     ignored_fields = set()
     defaulted_denied = set()
+    refused_revoked = 0
     if data.clients:
         with ClientDatabase() as db:
             for c in data.clients:
                 key = c.get("api_key")
                 if not key or db.get_client_by_api_key(key):
                     skipped += 1
+                    continue
+                # A revoked client is refused rather than restored. The
+                # exported row carries ``revoked`` but nothing here can put a
+                # client back in that state: revocation is expressed by the
+                # api_key sentinel, and writing that sentinel would collide
+                # with any other revoked row. Restoring the row without it
+                # would hand back a working credential that an operator had
+                # taken away, which is the widening this endpoint must not do.
+                if c.get("revoked"):
+                    refused_revoked += 1
                     continue
                 ignored_fields.update(set(c) - _BACKUP_CLIENT_FIELDS)
                 db.add_client(
@@ -4846,6 +4857,7 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
             cfg[k] = v
         store_config(cfg)
     result = {"status": "ok", "clients_added": added, "clients_skipped": skipped,
+              "clients_refused_revoked": refused_revoked,
               "config_restored": bool(data.restore_config and data.config)}
     notes = []
     if ignored_fields:
@@ -4856,6 +4868,9 @@ def import_backup(data: RestoreRequest) -> Dict[str, Any]:
                      + ", ".join(sorted(defaulted_denied))
                      + "; those permissions were restored denied and must be "
                        "granted again if they are wanted.")
+    if refused_revoked:
+        notes.append(f"{refused_revoked} revoked client(s) in the bundle were "
+                     "not restored; a revoked credential is not handed back.")
     if notes:
         result["message"] = " ".join(notes)
     return result
