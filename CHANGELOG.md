@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.1a2) (2026-09-11)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.1a1...0.2.1a2)
+
+**Merged pull requests:**
+
+- Update actions/checkout action to v7 - autoclosed [\#4](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/4) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.2.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.1a1) (2026-09-11)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.0a1...0.2.1a1)
