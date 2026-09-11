@@ -94,7 +94,10 @@ Each entry is **symptom → cause → fix**.
     `network_protocol` in `server.json`, *not* the panel's `--port`). Open it on
     the hivemind-core host.
   - **Wrong access key** (or a revoked client). Re-issue credentials from the
-    panel and re-pair. hivemind-core logs rejected keys as `auth.rejected` events.
+    panel and re-pair. A rejected key is recorded by the panel, not by
+    hivemind-core, and it is not written to a log: read it at
+    `GET /events/recent`, or watch the live stream at `GET /events`, and look
+    for an `auth.rejected` entry naming the peer that was refused.
 
 ### `--reload` doesn't start hivemind-core
 
