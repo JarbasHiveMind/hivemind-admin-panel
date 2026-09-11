@@ -11,7 +11,7 @@ name: hivemind-admin-panel
 
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: hivemind-redis
     restart: unless-stopped
     command: ["redis-server", "--save", "60", "1"]
