@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.1a1) (2026-09-11)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.0a1...0.2.1a1)
+
+**Merged pull requests:**
+
+- fix: drop crypto\_key from the admin panel client API [\#72](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/72) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.0a1) (2026-09-02)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.20a1...0.2.0a1)
