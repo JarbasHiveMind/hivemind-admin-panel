@@ -696,7 +696,7 @@
                        <strong>${esc(s.name)}</strong>
                        <span class="badge">${esc(s.type)}</span>
                        <span style="color:var(--text-secondary);flex:1;">${esc(s.url)}</span>
-                       <span id="health-${s.id}" style="font-size:12px;color:var(--text-secondary);">—</span>
+                       <span id="health-${esc(s.id)}" style="font-size:12px;color:var(--text-secondary);">—</span>
                        <button class="btn btn-secondary btn-sm" onclick="checkServer('${jsArg(s.id)}')">Health</button>
                        <button class="btn btn-danger btn-sm" onclick="deleteServer('${jsArg(s.id)}')">Remove</button>
                      </div>`).join('') : '<span style="color:var(--text-secondary);">no servers registered</span>';
@@ -713,14 +713,14 @@
             loadServersPage();
         }
         async function deleteServer(id) {
-            await apiCall('/servers/' + id, 'DELETE');
+            await apiCall('/servers/' + encodeURIComponent(id), 'DELETE');
             loadServersPage();
         }
         async function checkServer(id) {
             const el = document.getElementById('health-' + id);
             el.textContent = '…';
             try {
-                const h = await apiCall('/servers/' + id + '/health');
+                const h = await apiCall('/servers/' + encodeURIComponent(id) + '/health');
                 el.textContent = h.reachable ? `✅ ${h.status_code} (${h.latency_ms}ms)` : '❌ unreachable';
                 el.style.color = h.reachable ? 'var(--success, #3fb950)' : 'var(--danger, #f85149)';
             } catch (e) { el.textContent = '❌'; }
@@ -1860,11 +1860,11 @@
                 if (result.success) {
                     statusDiv.classList.add('success');
                     statusDiv.style.border = '1px solid var(--accent-success)';
-                    statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${result.message || 'Connection OK'}</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message || 'Connection OK')}</span>`;
                 } else {
                     statusDiv.classList.add('error');
                     statusDiv.style.border = '1px solid var(--accent-danger)';
-                    statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${result.message || 'Test failed'}</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(result.message || 'Test failed')}</span>`;
                 }
             } catch (e) {
                 statusDiv.classList.add('error');
@@ -1925,7 +1925,7 @@
                 statusDiv.classList.add('success');
                 statusDiv.style.border = '1px solid var(--accent-success)';
                 const migNote = result.clients_migrated > 0 ? ` (${result.clients_migrated} clients migrated)` : '';
-                statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${result.message}${migNote}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message)}${migNote}</span>`;
                 _dbActiveName = name;
                 renderDatabaseProfiles();
                 setTimeout(() => {
@@ -2727,7 +2727,7 @@
                     <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--accent-primary);" draggable="true" ondragstart="dragStart(event, ${index})" ondragover="dragOver(event)" ondrop="drop(event, ${index})">
                         <span style="cursor: grab; font-size: 16px; color: var(--text-secondary);">⋮⋮</span>
                         <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">${index + 1}.</span>
-                        <span style="flex: 1; font-size: 13px; font-family: monospace;">${pkg}${configBadge}</span>
+                        <span style="flex: 1; font-size: 13px; font-family: monospace;">${esc(pkg)}${configBadge}</span>
                         <button class="btn btn-secondary btn-sm" onclick="scrollToSolverConfig('${jsArg(pkg)}')" style="padding: 4px 8px; font-size: 11px;" title="Configure plugin">⚙</button>
                         <button class="btn btn-danger btn-sm" onclick="toggleSolver('${jsArg(pkg)}')" style="padding: 4px 8px; font-size: 11px;">✕</button>
                     </div>
@@ -2776,7 +2776,7 @@
                 const autoOpen = schema !== null && schema.length > 0;
                 html += `<details id="solver-cfg-${safeId}" style="margin-top: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);" ${autoOpen ? 'open' : ''}>
                     <summary style="padding: 10px 14px; cursor: pointer; font-size: 13px; font-family: monospace; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                        ⚙ <strong>${ep}</strong>${schema !== null && schema.length === 0 ? ' <span style="font-size: 10px; color: var(--text-secondary);">(no config needed)</span>' : ''}
+                        ⚙ <strong>${esc(ep)}</strong>${schema !== null && schema.length === 0 ? ' <span style="font-size: 10px; color: var(--text-secondary);">(no config needed)</span>' : ''}
                     </summary>
                     <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">`;
 
@@ -2943,7 +2943,7 @@
 
                 if (editName) {
                     // Update existing
-                    await apiCall(`/personas/${editName}`, 'PUT', personaConfig);
+                    await apiCall(`/personas/${encodeURIComponent(editName)}`, 'PUT', personaConfig);
                     showToast(t('toastPersonaUpdatedSuccessfully'));
                 } else {
                     // Create new
@@ -2962,7 +2962,7 @@
 
         async function editPersona(name) {
             try {
-                const persona = await apiCall(`/personas/${name}`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}`);
 
                 document.getElementById('createPersonaModalTitle').textContent = '👤 Edit Persona';
                 document.getElementById('editPersonaName').value = persona.name;
@@ -3005,7 +3005,7 @@
                 `Are you sure you want to delete the persona "${name}"? This action cannot be undone.`,
                 async () => {
                     try {
-                        await apiCall(`/personas/${name}`, 'DELETE');
+                        await apiCall(`/personas/${encodeURIComponent(name)}`, 'DELETE');
                         showToast(t('toastPersonaDeletedSuccessfully'));
                         loadPersonasPage();
                     } catch (e) {
@@ -3017,7 +3017,7 @@
 
         async function exportPersona(name) {
             try {
-                const persona = await apiCall(`/personas/${name}/export`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}/export`);
                 
                 // Create download
                 const dataStr = JSON.stringify(persona, null, 2);
@@ -3037,7 +3037,7 @@
 
         async function previewPersona(name) {
             try {
-                const persona = await apiCall(`/personas/${name}`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}`);
                 
                 document.getElementById('previewPersonaJson').textContent = JSON.stringify(persona, null, 2);
                 document.getElementById('previewPersonaModal').classList.add('active');
@@ -3073,7 +3073,7 @@
 
             try {
                 // First, get the persona config to show basic info
-                const persona = await apiCall(`/personas/${name}`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}`);
 
                 let html = '';
 
@@ -3203,7 +3203,7 @@
             try {
                 statusDiv.innerHTML = '<span style="color: var(--text-secondary);">Activating persona...</span>';
                 
-                await apiCall(`/personas/${name}/activate`, 'POST');
+                await apiCall(`/personas/${encodeURIComponent(name)}/activate`, 'POST');
                 
                 statusDiv.innerHTML = '<span style="color: var(--accent-success);">✓ Persona activated successfully!</span>';
                 showToast(`Persona "${name}" activated`);
@@ -3282,7 +3282,7 @@
                 html += '</div>';
                 container.innerHTML = html;
             } catch (e) {
-                container.innerHTML = '<div class="empty-state"><p>Failed to load solver plugins: ' + e.message + '</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>Failed to load solver plugins: ' + escapeHtml(e.message) + '</p></div>';
             }
         }
 
@@ -3311,15 +3311,15 @@
 
             try {
                 // Call backend to perform the test since the bus is internal
-                const result = await apiCall(`/ovos/test-bus?host=${host}&port=${port}`);
+                const result = await apiCall(`/ovos/test-bus?host=${encodeURIComponent(host)}&port=${encodeURIComponent(port)}`);
 
                 if (result.success) {
-                    resultDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${result.message}</span>`;
+                    resultDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message)}</span>`;
                 } else {
-                    resultDiv.innerHTML = `<span style="color: var(--accent-danger);">❌ ${result.message}</span>`;
+                    resultDiv.innerHTML = `<span style="color: var(--accent-danger);">❌ ${escapeHtml(result.message)}</span>`;
                 }
             } catch (e) {
-                resultDiv.innerHTML = '<span style="color: var(--accent-danger);">❌ API error: ' + e.message + '</span>';
+                resultDiv.innerHTML = '<span style="color: var(--accent-danger);">❌ API error: ' + escapeHtml(e.message) + '</span>';
             }
         }
         function renderEncodings(enabledEncodings) {
@@ -3767,7 +3767,7 @@
             document.getElementById('installStatusMessage').innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 16px;">❌</span>
-                    <span style="font-size: 13px; color: var(--accent-danger);">${error}</span>
+                    <span style="font-size: 13px; color: var(--accent-danger);">${escapeHtml(error)}</span>
                 </div>
             `;
 
@@ -3994,7 +3994,7 @@
                     });
 
                     // Then activate the selected persona
-                    await apiCall(`/personas/${selectedPersona}/activate`, 'POST');
+                    await apiCall(`/personas/${encodeURIComponent(selectedPersona)}/activate`, 'POST');
 
                     showToast(`Persona agent enabled with "${selectedPersona}"`);
                     closeEnableAgentModal();
@@ -4364,7 +4364,7 @@
 
                 if (result.success) {
                     statusDiv.className = 'validation-result success';
-                    statusDiv.innerHTML = '✓ ' + result.message;
+                    statusDiv.innerHTML = '✓ ' + escapeHtml(result.message);
                     showToast(result.message);
                     setTimeout(() => {
                         closeEnablePluginModal();
@@ -4373,11 +4373,11 @@
                     }, 1500);
                 } else {
                     statusDiv.className = 'validation-result error';
-                    statusDiv.innerHTML = '✗ ' + result.message;
+                    statusDiv.innerHTML = '✗ ' + escapeHtml(result.message);
                 }
             } catch (e) {
                 statusDiv.className = 'validation-result error';
-                statusDiv.innerHTML = '✗ Failed: ' + e.message;
+                statusDiv.innerHTML = '✗ Failed: ' + escapeHtml(e.message);
             }
         }
 
@@ -4658,12 +4658,12 @@
                 } else {
                     resultDiv.className = 'validation-result error';
                     resultDiv.innerHTML = '<strong>✗ Please fix these errors:</strong><ul>' +
-                        result.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                        result.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>';
                 }
             } catch (e) {
                 resultDiv.classList.remove('hidden');
                 resultDiv.className = 'validation-result error';
-                resultDiv.innerHTML = '<strong>Invalid JSON:</strong> ' + e.message;
+                resultDiv.innerHTML = '<strong>Invalid JSON:</strong> ' + escapeHtml(e.message);
             }
         }
 
