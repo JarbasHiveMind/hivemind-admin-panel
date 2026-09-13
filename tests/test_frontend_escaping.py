@@ -55,5 +55,50 @@ def test_known_data_driven_sinks_are_escaped():
     src = _source()
     for sink in ("${client.name}", "${persona.memory_module}", "${template.name}",
                  "${template.description}", "${health.startup_error", "${plugin.name}",
-                 "${plugin.description}", "${plugin.error"):
+                 "${plugin.description}", "${plugin.error", "${error}</span>",
+                 # persona solver entry points come from /personas/<name>
+                 "monospace;\">${pkg}", "<strong>${ep}</strong>",
+                 # server ids come from /servers and sit inside an attribute
+                 "id=\"health-${s.id}\""):
         assert sink not in src, f"unescaped interpolation still present: {sink}"
+
+
+_SERVER_TEXT = re.compile(r"(?<!escapeHtml\()(?<!esc\()\b(?:e|result)\.message\b")
+
+# One innerHTML assignment: from `innerHTML =` or `+=` to the `;` that ends the
+# statement at a line end. A template literal split over several lines stays in
+# one match, so a sink on a continuation line is still inspected.
+_INNERHTML_ASSIGNMENT = re.compile(r"innerHTML\s*\+?=(.*?);[ \t]*$", re.S | re.M)
+
+
+def _innerhtml_assignments(src):
+    for m in _INNERHTML_ASSIGNMENT.finditer(src):
+        yield src.count("\n", 0, m.start()) + 1, m.group(1)
+
+
+def test_server_messages_do_not_reach_innerHTML_unescaped():
+    """Test results and error messages carry text the server echoes from user input."""
+    offenders = []
+    for lineno, body in _innerhtml_assignments(_source()):
+        if _SERVER_TEXT.search(body) or "<li>${e}</li>" in body:
+            offenders.append(f"app.js:{lineno}: {body.strip()[:120]}")
+    assert not offenders, "escape server text before innerHTML:\n  " + "\n  ".join(offenders)
+
+
+def test_the_innerHTML_guard_sees_a_multiline_template():
+    """The guard must not be defeated by moving the sink to a continuation line."""
+    sample = "el.innerHTML = `\n  <div>\n    ${result.message}\n  </div>`;\n"
+    found = list(_innerhtml_assignments(sample))
+    assert found and _SERVER_TEXT.search(found[0][1])
+
+
+def test_persona_name_is_encoded_in_the_api_path():
+    src = _source()
+    assert "apiCall(`/personas/${name}`)" not in src
+
+
+def test_ovos_bus_test_query_is_encoded():
+    """Host and port are user input; raw interpolation lets '&' or '#' rewrite the query."""
+    src = _source()
+    assert "/ovos/test-bus?host=${host}" not in src
+    assert "port=${port}" not in src
