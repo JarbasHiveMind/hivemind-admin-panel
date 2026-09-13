@@ -1745,6 +1745,27 @@ def _modify_flag(client_id: int, flag: str, value: bool) -> Dict[str, Any]:
 # Monitoring endpoints
 
 
+# How long a rejected connection stays in the /connections response.
+REJECTION_WINDOW_SECONDS = 600
+
+
+def _recent_rejections() -> List[Dict[str, Any]]:
+    """Rejected connections from the live core, newest first, inside the window.
+
+    For the operator of this node only: the endpoint needs admin credentials,
+    and core sends the rejected client nothing but its close frame. A core
+    older than the rejection ring has no such method and yields an empty list.
+    """
+    getter = getattr(_protocol, "get_recent_rejections", None)
+    if getter is None:
+        return []
+    try:
+        return getter(max_age=REJECTION_WINDOW_SECONDS)
+    except Exception:
+        LOG.exception("could not read recent rejections from hivemind-core")
+        return []
+
+
 @app.get("/connections", dependencies=[Depends(verify_credentials)])
 def get_connections() -> Dict[str, Any]:
     """Get active connections from HiveMind protocol.
@@ -1779,10 +1800,14 @@ def get_connections() -> Dict[str, Any]:
                 }
                 for c in clients.values()
             ],
+            "recent_rejections": _recent_rejections(),
+            "rejection_window_seconds": REJECTION_WINDOW_SECONDS,
         }
     return {
         "count": 0,
         "connections": [],
+        "recent_rejections": [],
+        "rejection_window_seconds": REJECTION_WINDOW_SECONDS,
         "note": "Live hivemind-core not attached; run hivemind-admin-panel (in-process hivemind-core on by default) for real-time data",
     }
 
