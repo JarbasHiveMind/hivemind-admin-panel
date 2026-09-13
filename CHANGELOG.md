@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.5a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.4a1...0.2.5a1)
+
+**Merged pull requests:**
+
+- fix: escape server text before it reaches innerHTML [\#88](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/88) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.4a1) (2026-09-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.3a1...0.2.4a1)
