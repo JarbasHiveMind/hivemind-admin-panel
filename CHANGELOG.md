@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.2a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.1a2...0.2.2a1)
+
+**Merged pull requests:**
+
+- fix: use Valkey for the panel's cache sidecar [\#73](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/73) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.1a2) (2026-09-11)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.1a1...0.2.1a2)
