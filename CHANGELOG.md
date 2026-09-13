@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.0a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.6a1...0.3.0a1)
+
+**Merged pull requests:**
+
+- feat: show rejected connections with their reason on the monitor page [\#97](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/97) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.6a1) (2026-09-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.5a1...0.2.6a1)
