@@ -610,6 +610,7 @@
         async function loadMonitorPage() {
             await renderMetrics();
             await loadEvents();
+            await loadRejections();
             await loadLogs();
             await loadAudit();
         }
@@ -654,6 +655,23 @@
                            <strong> ${esc(e.kind)}</strong> — ${esc(e.message)}</div>`).join('')
                     : '<span style="color:var(--text-secondary);">no events yet</span>';
             } catch (e) {}
+        }
+        // Rejected connections with the reason core recorded. The list keeps
+        // only the last rejection_window_seconds, so old attempts drop off.
+        async function loadRejections() {
+            const el = document.getElementById('rejectionsContainer');
+            if (!el) return;
+            try {
+                const r = await apiCall('/connections');
+                const rows = r.recent_rejections || [];
+                const mins = Math.round((r.rejection_window_seconds || 0) / 60);
+                el.innerHTML = rows.length
+                    ? rows.map(e =>
+                        `<div style="padding:6px 0;border-bottom:1px solid var(--border-color);font-size:13px;">
+                           <span style="color:var(--text-secondary);">${new Date(e.time*1000).toLocaleTimeString()}</span>
+                           <strong> ${esc(e.peer)}</strong> — ${esc(e.code)} ${esc(e.reason)}</div>`).join('')
+                    : `<span style="color:var(--text-secondary);">no rejected connections in the last ${esc(mins)} min</span>`;
+            } catch (e) { el.textContent = 'rejections unavailable'; }
         }
         async function loadLogs() {
             try {
