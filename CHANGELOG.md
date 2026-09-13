@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.2a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.1a1...0.3.2a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): set html lang to the active UI language [\#91](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/91) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.1a1) (2026-09-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.0a1...0.3.1a1)
