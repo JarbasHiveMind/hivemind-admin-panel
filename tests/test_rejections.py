@@ -25,7 +25,7 @@ def _with_protocol(proto):
 
 def test_rejections_listed_with_reason(client, auth):
     entry = {"time": 1.0, "peer": "sat::abc", "code": 1008,
-             "reason": "invalid access key or password"}
+             "reason": "invalid_key"}
     proto = _FakeProtocol([entry])
     _with_protocol(proto)
     try:
@@ -65,3 +65,25 @@ def test_no_core_attached_has_empty_rejections(client, auth):
 
 def test_rejections_need_credentials(client):
     assert client.get("/connections").status_code in (401, 403)
+
+
+def test_non_admin_login_gets_no_rejections(client, auth):
+    """A non-admin (operator) login reads /connections but not the rejections."""
+    import base64
+    from hivemind_core.config import get_server_config
+    entry = {"time": 1.0, "peer": "sat::abc", "code": 1008, "reason": "invalid_key"}
+    cfg = get_server_config()
+    cfg["users"] = [{"username": "ops", "password": "opspass", "role": "operator"}]
+    cfg.store()
+    _with_protocol(_FakeProtocol([entry]))
+    try:
+        op = {"Authorization": "Basic " + base64.b64encode(b"ops:opspass").decode()}
+        r = client.get("/connections", headers=op)
+        assert r.status_code == 200
+        assert r.json()["recent_rejections"] == []
+        # the admin login still sees it
+        assert client.get("/connections", headers=auth).json()["recent_rejections"] == [entry]
+    finally:
+        _with_protocol(None)
+        cfg["users"] = []
+        cfg.store()

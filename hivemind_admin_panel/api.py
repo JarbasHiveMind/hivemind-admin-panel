@@ -1767,7 +1767,7 @@ def _recent_rejections() -> List[Dict[str, Any]]:
 
 
 @app.get("/connections", dependencies=[Depends(verify_credentials)])
-def get_connections() -> Dict[str, Any]:
+def get_connections(request: Request) -> Dict[str, Any]:
     """Get active connections from HiveMind protocol.
 
     When the in-process hivemind-core is running, returns real-time data from
@@ -1800,7 +1800,8 @@ def get_connections() -> Dict[str, Any]:
                 }
                 for c in clients.values()
             ],
-            "recent_rejections": _recent_rejections(),
+            # admin-only, like access keys: a non-admin login gets an empty list
+            "recent_rejections": _recent_rejections() if _is_admin(request) else [],
             "rejection_window_seconds": REJECTION_WINDOW_SECONDS,
         }
     return {
