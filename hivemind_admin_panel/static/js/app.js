@@ -498,7 +498,7 @@
         // ===================== Topology + pairing =====================
         async function loadTopologyPage() {
             let g;
-            try { g = await apiCall('/topology'); } catch (e) { return; }
+            try { g = await apiCall('/topology'); } catch (e) { showTopologyError(e); return; }
             const sats = g.nodes.filter(n => n.type !== 'core');
             const W = 600, H = 420, cx = W / 2, cy = H / 2, R = 150;
             let svg = `<svg viewBox="0 0 ${W} ${H}" style="max-width:100%;height:auto;">`;
@@ -528,6 +528,12 @@
                 ).join('');
             }
             document.getElementById('topologyContainer').innerHTML = svg;
+        }
+
+        function showTopologyError(e) {
+            const box = document.getElementById('topologyContainer');
+            if (box) box.innerHTML = `<div class="empty-state" role="alert"><p>${escapeHtml(t('topologyLoadFailed') + (e && e.message ? e.message : ''))}</p></div>`;
+            showToast(t('topologyLoadFailed') + (e && e.message ? e.message : ''), 'error');
         }
 
         async function pairClient(id, name) {
@@ -756,10 +762,13 @@
             try {
                 const d = await apiCall('/config/backups/diff?file=' + encodeURIComponent(file));
                 const keys = o => Object.keys(o || {});
-                alert(`Reverting to ${file} would change:\n\n` +
+                const out = document.getElementById('configBackupDiff');
+                if (!out) return;
+                out.textContent = `Reverting to ${file} would change:\n` +
                       `added: ${keys(d.added).join(', ') || '—'}\n` +
                       `removed: ${keys(d.removed).join(', ') || '—'}\n` +
-                      `changed: ${keys(d.changed).join(', ') || '—'}`);
+                      `changed: ${keys(d.changed).join(', ') || '—'}`;
+                out.hidden = false;
             } catch (e) { showToast(t('toastDiffUnavailable'), 'error'); }
         }
 
@@ -809,11 +818,14 @@
             } catch (e) {}
         }
         async function savePolicy() {
+            let chain;
             try {
-                const chain = JSON.parse(document.getElementById('policyEditor').value);
+                chain = JSON.parse(document.getElementById('policyEditor').value);
+            } catch (e) { showToast(t('toastPolicyInvalidJson') + e.message, 'error'); return; }
+            try {
                 await apiCall('/policy', 'PUT', { chain });
-                alert('Policy saved');
-            } catch (e) { alert('Invalid JSON: ' + e.message); }
+                showToast(t('toastPolicySaved'));
+            } catch (e) { showToast(t('toastPolicySaveFailed') + (e.message || ''), 'error'); }
         }
 
         // Health Check
@@ -896,14 +908,14 @@
 
                 // Get all plugin counts from API
                 const [sttPlugins, ttsPlugins, wwPlugins, vadPlugins, networkPlugins, agentPlugins, databasePlugins, binaryPlugins] = await Promise.all([
-                    apiCall('/plugins/installed/ovos/stt').catch(() => []),
-                    apiCall('/plugins/installed/ovos/tts').catch(() => []),
-                    apiCall('/plugins/installed/ovos/ww').catch(() => []),
-                    apiCall('/plugins/installed/ovos/vad').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/network').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/agent').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/database').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/binary').catch(() => [])
+                    apiCall('/plugins/installed/ovos/stt').catch(() => null),
+                    apiCall('/plugins/installed/ovos/tts').catch(() => null),
+                    apiCall('/plugins/installed/ovos/ww').catch(() => null),
+                    apiCall('/plugins/installed/ovos/vad').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/network').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/agent').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/database').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/binary').catch(() => null)
                 ]);
 
                 // Core-readiness banner (in-process core hung before binding listeners)
@@ -917,14 +929,14 @@
 
                 // Render plugin status grid with API counts
                 renderPluginStatusGrid({
-                    stt: sttPlugins.length,
-                    tts: ttsPlugins.length,
-                    ww: wwPlugins.length,
-                    vad: vadPlugins.length,
-                    network: networkPlugins.length,
-                    agent: agentPlugins.length,
-                    database: databasePlugins.length,
-                    binary: binaryPlugins.length
+                    stt: sttPlugins ? sttPlugins.length : null,
+                    tts: ttsPlugins ? ttsPlugins.length : null,
+                    ww: wwPlugins ? wwPlugins.length : null,
+                    vad: vadPlugins ? vadPlugins.length : null,
+                    network: networkPlugins ? networkPlugins.length : null,
+                    agent: agentPlugins ? agentPlugins.length : null,
+                    database: databasePlugins ? databasePlugins.length : null,
+                    binary: binaryPlugins ? binaryPlugins.length : null
                 });
 
                 // Render network configuration
@@ -1042,23 +1054,24 @@
             if (!container) return;
 
             const categories = {
-                'STT': { icon: '🎙️', count: counts.stt || 0 },
-                'TTS': { icon: '🔊', count: counts.tts || 0 },
-                'Wake Word': { icon: '⏰', count: counts.ww || 0 },
-                'VAD': { icon: '🎯', count: counts.vad || 0 },
-                'Network': { icon: '🌐', count: counts.network || 0 },
-                'Agent': { icon: '🤖', count: counts.agent || 0 },
-                'Database': { icon: '🗄️', count: counts.database || 0 },
-                'Binary': { icon: '📦', count: counts.binary || 0 }
+                'STT': { icon: '🎙️', count: counts.stt },
+                'TTS': { icon: '🔊', count: counts.tts },
+                'Wake Word': { icon: '⏰', count: counts.ww },
+                'VAD': { icon: '🎯', count: counts.vad },
+                'Network': { icon: '🌐', count: counts.network },
+                'Agent': { icon: '🤖', count: counts.agent },
+                'Database': { icon: '🗄️', count: counts.database },
+                'Binary': { icon: '📦', count: counts.binary }
             };
 
             let html = '';
             for (const [catName, catData] of Object.entries(categories)) {
-                if (catData.count > 0) {
+                // null means the request failed: show that the count is unknown.
+                if (catData.count === null || catData.count > 0) {
                     html += `
                         <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); text-align: center;">
                             <div style="font-size: 20px; margin-bottom: 4px;">${catData.icon}</div>
-                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${catData.count}</div>
+                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);"${catData.count === null ? ` title="${escapeHtml(t('pluginCountUnavailable'))}"` : ''}>${catData.count === null ? '—' : catData.count}</div>
                             <div style="font-size: 11px; color: var(--text-secondary);">${catName}</div>
                         </div>
                     `;
