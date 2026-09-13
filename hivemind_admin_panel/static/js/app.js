@@ -105,44 +105,101 @@
         }
 
         // ---- Modal keyboard handling -------------------------------------------------
-        // Every modal is a div toggled to display:flex (or .active). Without this,
-        // Escape did nothing and focus stayed behind the overlay.
-        let _modalOpener = null;
+        // Every modal is a div toggled to display:flex (or .active) from many call
+        // sites. A MutationObserver sees every open and close, whatever the path, and
+        // keeps the modals in the order they opened. Escape closes the top one through
+        // its own close function, so its cleanup runs. Tab stays inside the top modal.
+        const _modalStack = [];   // [{ el, opener }]
+        const _FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), ' +
+            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-        function _openModals() {
-            return Array.from(document.querySelectorAll('.modal, [id$="Modal"]'))
-                .filter(el => el.classList.contains('active') ||
-                              getComputedStyle(el).display !== 'none');
+        function _isModal(el) {
+            return el && el.nodeType === 1 && (el.classList.contains('modal') || /Modal$/.test(el.id || ''));
+        }
+
+        function _isModalOpen(el) {
+            return el.classList.contains('active') || (!!el.style.display && el.style.display !== 'none');
+        }
+
+        function _focusables(el) {
+            return Array.from(el.querySelectorAll(_FOCUSABLE))
+                .filter(n => !n.closest('.hidden') && n.style.display !== 'none');
+        }
+
+        function _syncModal(el) {
+            const idx = _modalStack.findIndex(m => m.el === el);
+            if (_isModalOpen(el)) {
+                if (idx !== -1) return;
+                const active = document.activeElement;
+                const opener = (active && active !== document.body && !el.contains(active)) ? active : _lastPointerTarget;
+                _modalStack.push({ el, opener });
+                const first = _focusables(el)[0];
+                if (first) first.focus();
+                else { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1'); el.focus(); }
+            } else if (idx !== -1) {
+                const [entry] = _modalStack.splice(idx, 1);
+                if (entry.opener && document.contains(entry.opener)) entry.opener.focus();
+            }
+        }
+
+        function _topModal() {
+            for (let i = _modalStack.length - 1; i >= 0; i--) {
+                const { el } = _modalStack[i];
+                if (document.contains(el) && _isModalOpen(el)) return el;
+                _modalStack.splice(i, 1);
+            }
+            return null;
         }
 
         function closeTopModal() {
-            const open = _openModals();
-            if (!open.length) return false;
-            const top = open[open.length - 1];
+            const top = _topModal();
+            if (!top) return false;
             // the first-run gate is deliberately not dismissable
             if (top.id === 'firstRunModal') return false;
-            top.style.display = 'none';
-            top.classList.remove('active');
-            if (_modalOpener && document.contains(_modalOpener)) _modalOpener.focus();
-            _modalOpener = null;
+            const name = 'close' + top.id.charAt(0).toUpperCase() + top.id.slice(1);
+            const closeFn = top.id && typeof window[name] === 'function' ? window[name] : null;
+            if (closeFn) closeFn();
+            if (_isModalOpen(top)) {   // no close function, or it left the modal open
+                top.style.display = 'none';
+                top.classList.remove('active');
+            }
+            _syncModal(top);
             return true;
         }
 
+        let _lastPointerTarget = null;
+        if (typeof MutationObserver !== 'undefined') {
+            new MutationObserver((records) => {
+                for (const r of records) if (_isModal(r.target)) _syncModal(r.target);
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'], subtree: true });
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return;
-            if (closeTopModal()) e.preventDefault();
+            if (e.key === 'Escape') {
+                if (closeTopModal()) e.preventDefault();
+                return;
+            }
+            if (e.key !== 'Tab') return;
+            const top = _topModal();
+            if (!top) return;
+            const items = _focusables(top);
+            if (!items.length) { e.preventDefault(); return; }
+            const first = items[0], last = items[items.length - 1];
+            const inside = top.contains(document.activeElement);
+            if (e.shiftKey && (!inside || document.activeElement === first)) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && (!inside || document.activeElement === last)) { e.preventDefault(); first.focus(); }
         });
 
         document.addEventListener('mousedown', (e) => {
             const el = e.target.closest && e.target.closest('button, a, [onclick]');
-            if (el) _modalOpener = el;
+            if (el) _lastPointerTarget = el;
         }, true);
 
         // click fires for keyboard activation (Enter/Space) too, so this catches
         // modals opened without a mouse that mousedown above would otherwise miss.
         document.addEventListener('click', (e) => {
             const el = e.target.closest && e.target.closest('button, a, [onclick]');
-            if (el) _modalOpener = el;
+            if (el) _lastPointerTarget = el;
         }, true);
 
         // Theme
