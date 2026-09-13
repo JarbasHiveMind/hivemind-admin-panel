@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.1a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.0a1...0.3.1a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): close the top modal on Escape and keep focus inside it [\#90](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/90) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.0a1) (2026-09-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.6a1...0.3.0a1)
