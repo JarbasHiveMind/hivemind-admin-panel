@@ -1283,6 +1283,8 @@ function applyI18n() {
   });
   const sel = document.getElementById('langSelect');
   if (sel) sel.value = CURRENT_LANG;
+  // t() falls back to English for an unknown code, so html lang does too.
+  document.documentElement.lang = I18N[CURRENT_LANG] ? CURRENT_LANG : 'en';
 }
 
 document.addEventListener('DOMContentLoaded', applyI18n);
