@@ -530,19 +530,48 @@
             document.getElementById('topologyContainer').innerHTML = svg;
         }
 
-        async function pairClient(id, name) {
+        // Pairing is two steps inside the modal: pick the host, then generate.
+        // Cancel or Close before the response arrives discards it.
+        let _pairRequest = null;
+        function pairClient(id, name) {
+            _pairRequest = { id };
             document.getElementById('pairName').textContent = name || ('#' + id);
-            const host = prompt('hivemind-core address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
+            document.getElementById('pairHost').value = location.hostname;
+            document.getElementById('pairHostStep').classList.remove('hidden');
+            document.getElementById('pairResult').classList.add('hidden');
+            document.getElementById('pairQr').innerHTML = '';
+            document.getElementById('pairBundle').textContent = '';
+            document.getElementById('pairModal').style.display = 'flex';
+            document.getElementById('pairHost').focus();
+        }
+        async function generatePairing() {
+            const req = _pairRequest;
+            if (!req) return;
+            const id = req.id;
+            const host = document.getElementById('pairHost').value.trim();
             try {
                 const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
+                if (_pairRequest !== req) return;
                 const tok = auth.token;
                 document.getElementById('pairQr').innerHTML =
                     `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
-                document.getElementById('pairModal').style.display = 'flex';
-            } catch (e) { showToast(t('toastPairingFailed') + e.message, 'error'); }
+                document.getElementById('pairHostStep').classList.add('hidden');
+                document.getElementById('pairResult').classList.remove('hidden');
+            } catch (e) {
+                if (_pairRequest === req) showToast(t('toastPairingFailed') + e.message, 'error');
+            }
         }
-        function closePairModal() { document.getElementById('pairModal').style.display = 'none'; }
+        async function copyPairBundle() {
+            try {
+                await navigator.clipboard.writeText(document.getElementById('pairBundle').textContent);
+                showToast(t('toastJsonCopiedToClipboard'));
+            } catch (e) { showToast(t('toastFailedToCopyJson'), 'error'); }
+        }
+        function closePairModal() {
+            _pairRequest = null;
+            document.getElementById('pairModal').style.display = 'none';
+        }
 
         // ===================== Persona test chat =====================
         async function fillChatPersonas() {

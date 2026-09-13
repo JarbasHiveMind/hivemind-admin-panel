@@ -891,12 +891,25 @@
                 </div>
 
                 <!-- Pairing modal -->
-                <div id="pairModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
+                <div id="pairModal" role="dialog" aria-modal="true" aria-labelledby="pairTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
                     <div style="background:var(--bg-card,#1c2128);padding:24px;border-radius:12px;max-width:420px;width:90%;text-align:center;">
-                        <h3 style="margin-bottom:12px;"><span data-i18n="pairSatellite">Pair satellite</span> <span id="pairName"></span></h3>
-                        <div id="pairQr" style="background:#fff;padding:12px;border-radius:8px;display:inline-block;"></div>
-                        <pre id="pairBundle" style="text-align:left;font-size:11px;max-height:160px;overflow:auto;margin-top:12px;"></pre>
-                        <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="closePairModal()" data-i18n="close">Close</button>
+                        <h3 id="pairTitle" style="margin-bottom:12px;"><span data-i18n="pairSatellite">Pair satellite</span> <span id="pairName"></span></h3>
+                        <div id="pairHostStep" style="text-align:left;">
+                            <label for="pairHost" data-i18n="host">Host</label>
+                            <input id="pairHost" class="form-input" type="text" autocomplete="off" style="width:100%;margin:6px 0 12px;">
+                            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                                <button class="btn btn-secondary btn-sm" onclick="closePairModal()" data-i18n="cancel">Cancel</button>
+                                <button class="btn btn-primary btn-sm" onclick="generatePairing()" data-i18n="pairGenerate">Generate</button>
+                            </div>
+                        </div>
+                        <div id="pairResult" class="hidden">
+                            <div id="pairQr" style="background:#fff;padding:12px;border-radius:8px;display:inline-block;"></div>
+                            <pre id="pairBundle" style="text-align:left;font-size:11px;max-height:160px;overflow:auto;margin-top:12px;"></pre>
+                            <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+                                <button class="btn btn-secondary btn-sm" onclick="copyPairBundle()" data-i18n="copyJson">Copy JSON</button>
+                                <button class="btn btn-secondary btn-sm" onclick="closePairModal()" data-i18n="close">Close</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
