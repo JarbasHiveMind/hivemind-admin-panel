@@ -109,7 +109,6 @@ const MIN_HTML = `
 <input id="editClientName" />
 <input id="editClientApiKey" />
 <input id="editClientPassword" type="password" />
-<input id="editClientCryptoKey" />
 
 <!-- Confirm modal -->
 <div id="confirmModal"></div>
