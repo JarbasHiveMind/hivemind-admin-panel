@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.6a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.5a1...0.2.6a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): give the hive map an accessible name [\#96](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/96) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.2.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.5a1) (2026-09-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.4a1...0.2.5a1)
