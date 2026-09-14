@@ -127,3 +127,53 @@ class TestTheTicketStoreStaysSmall:
 
         assert len(api._SSE_TICKETS) == 1
         assert all(exp > time.time() for exp in api._SSE_TICKETS.values())
+
+
+class TestTheTicketNeverInventsAnIdentity:
+    """`create_sse_ticket` used to fall back to ``("?", "admin")``.
+
+    ``verify_credentials`` has already identified the request by then, so the
+    fallback was all but unreachable — a bearer token expiring between the
+    dependency and the handler is the way there. Unreachable is not the point.
+    A role default of "admin" is the wrong way for a default to fail, and the
+    ticket carries the role into whatever reads it next.
+    """
+
+    def test_an_identity_that_lapses_mid_request_is_refused(self, client, bearer, monkeypatch):
+        """The dependency passes, then _identify returns None in the handler."""
+        calls = {"n": 0}
+        real = api._identify
+
+        def _lapses(request, throttle=False):
+            calls["n"] += 1
+            if calls["n"] == 1:          # the dependency's call
+                return real(request, throttle=throttle)
+            return None                  # the handler's call
+
+        monkeypatch.setattr(api, "_identify", _lapses)
+        resp = client.post("/events/ticket", headers=bearer)
+        assert resp.status_code == 401, resp.text
+        assert calls["n"] >= 2, "the handler did not call _identify"
+
+    def test_no_admin_ticket_is_minted_for_a_lapsed_identity(self, client, bearer, monkeypatch):
+        minted = []
+        monkeypatch.setattr(api, "_issue_sse_ticket",
+                            lambda u, r: minted.append((u, r)) or {"ticket": "x", "expires": 0})
+        calls = {"n": 0}
+        real = api._identify
+
+        def _lapses(request, throttle=False):
+            calls["n"] += 1
+            return real(request, throttle=throttle) if calls["n"] == 1 else None
+
+        monkeypatch.setattr(api, "_identify", _lapses)
+        client.post("/events/ticket", headers=bearer)
+        assert minted == [], f"a ticket was minted for nobody: {minted}"
+
+    def test_a_valid_request_still_gets_its_own_role(self, client, bearer):
+        minted = {}
+        resp = client.post("/events/ticket", headers=bearer)
+        assert resp.status_code == 200, resp.text
+        payload = api.verify_token(api.get_server_config(), resp.json()["ticket"])
+        assert payload["sub"] == ADMIN_USER
+        assert payload["role"] == "admin", "the real role must survive"
