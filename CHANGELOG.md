@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.4a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.3a1...0.3.4a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): raise theme text contrast to 4.5:1 on every surface [\#92](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/92) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.3a1) (2026-09-14)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.2a1...0.3.3a1)
