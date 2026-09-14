@@ -109,20 +109,13 @@ def test_acknowledge_warning_clears_it(client, auth, runtime_reset):
         cfg.store()
 
 
-def test_cannot_acknowledge_a_critical(client, runtime_reset):
-    import base64
+def test_cannot_acknowledge_a_critical(client, auth):
     from hivemind_core.config import get_server_config
     cfg = get_server_config()
-    orig = cfg.get("admin_pass")
-    cfg["admin_pass"] = "admin"
-    cfg.store()
-    tok = base64.b64encode(b"admin:admin").decode()
-    auth = {"Authorization": f"Basic {tok}"}
     try:
         r = client.post("/setup/ack", json={"id": "admin_password"}, headers=auth)
         assert r.status_code == 400          # criticals can't be dismissed
     finally:
-        cfg["admin_pass"] = orig
         cfg["setup_acked"] = []
         cfg.store()
 

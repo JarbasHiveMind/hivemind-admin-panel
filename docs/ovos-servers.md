@@ -1,9 +1,9 @@
 # OVOS servers & homelab synergy
 
 A hivemind-core rarely runs alone. In a homelab it pairs naturally with the family
-of **OVOS network servers** — small HTTP services that host one OVOS capability so
+of **OVOS network servers**: small HTTP services that host one OVOS capability so
 many devices (and hivemind-core) can share it instead of each satellite running heavy
-models locally. This panel manages hivemind-core and its personas; the servers below
+models locally. This panel manages hivemind-core and its personas. The servers below
 provide the speech and reasoning that hivemind-core brokers to satellites.
 
 ![OVOS servers](img/ovos-servers.png)
@@ -21,10 +21,10 @@ Each is "bring your own plugin": you pick the STT/TTS/translation/solver plugin,
 server exposes it on the network, and every node points at one endpoint. One GPU box
 can serve STT + TTS + an LLM persona to many low-power satellites.
 
-## ovos-persona-server ↔ this panel
+## ovos-persona-server and this panel
 
 The single most useful pairing. A **persona** here is a JSON document declaring a
-`memory_module` and an ordered list of `handlers` (chat/agent engines — see
+`memory_module` and an ordered list of `handlers` (chat/agent engines, see
 [Configuration](configuration.md#personas)). `ovos-persona-server` loads that **same
 persona JSON** and hosts it as an HTTP service speaking the OpenAI and Ollama
 protocols:
@@ -35,18 +35,18 @@ ovos-persona-server --persona ~/.config/ovos_persona/my-persona.json \
                     --host 0.0.0.0 --port 8337
 ```
 
-Now any OpenAI/Ollama client can call it — including:
+Now any OpenAI or Ollama client can call it, including:
 
 - the **`hivemind-persona-agent-plugin`** agent protocol, so HiveMind satellites get
-  streaming `natural_language_query` answers from a shared persona;
-- Home Assistant / Music Assistant and other homelab tooling that already speaks the
-  OpenAI API;
+  streaming `natural_language_query` answers from a shared persona
+- Home Assistant, Music Assistant, and other homelab tooling that already speaks the
+  OpenAI API
 - the `ovos-solver-openai-persona-plugin` on any OVOS device, pointing its `api_url`
-  at the server.
+  at the server
 
-Because a persona can be built from search/knowledge/scripted handlers (DuckDuckGo,
-Wikipedia, Wolfram Alpha, RiveScript, a failure fallback) it needs **no GPU**; LLM
-handlers are optional and can be mixed with factual/tool handlers.
+Because a persona can be built from search, knowledge, and scripted handlers (DuckDuckGo,
+Wikipedia, Wolfram Alpha, RiveScript, a failure fallback), it needs **no GPU**. LLM
+handlers are optional and can be mixed with factual or tool handlers.
 
 ## A homelab topology
 
@@ -74,14 +74,21 @@ agent/STT/TTS/database plugins hivemind-core uses.
 
 ## See also
 
-- [Configuration → Personas](configuration.md#personas) — the persona schema this panel writes
-- [Deployment](deployment.md) — running hivemind-core + panel (and the Compose stack)
+- [Configuration: Personas](configuration.md#personas): the persona schema this panel writes
+- [Deployment](deployment.md): running hivemind-core and the panel (and the Compose stack)
 - The broader OVOS server list also includes `ovos-bus-server`, `ovos-ww-server`,
   and `ovos-opendata-server`.
 
----
 
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Deployment](deployment.md) | [📖 Docs home](index.md) | [Chat bridges](bridges.md) → |
+### What it looks like
+
+**Widescreen**
+
+![OVOS Servers: the STT, TTS and other services in use (widescreen)](img/servers.png)
+
+**Mobile**
+
+![OVOS Servers: the STT, TTS and other services in use (mobile)](img/servers-mobile.png)
+
+---
+[← Deployment](deployment.md) · [Home](index.md) · [Chat bridges →](bridges.md)

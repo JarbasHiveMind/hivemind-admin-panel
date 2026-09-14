@@ -25,7 +25,7 @@ def test_provision_bridge_creates_ready_client(client, auth):
     assert "bridge:matrix" in full["tags"]
     assert full["is_admin"] is False
     # the response carries a usable connection bundle
-    assert body["bundle"]["key"] and body["bundle"]["password"] and body["bundle"]["crypto_key"]
+    assert body["bundle"]["key"] and body["bundle"]["password"]
     assert body["bridge"]["id"] == "matrix"
 
 

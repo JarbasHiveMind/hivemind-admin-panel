@@ -11,13 +11,13 @@ import hivemind_admin_panel._chat as chatmod
 
 class _FakeSession:
     """Stand-in for ImpersonationSession that echoes instead of touching a hub."""
-    def __init__(self, client_id, name, key, password, crypto_key, host, port):
+    def __init__(self, client_id, name, key, password, host, port):
         self.id = uuid.uuid4().hex
         self.client_id = client_id
         self.name = name
         self.error = None
         self.last_used = 0.0
-        self.creds = (key, password, crypto_key, host, port)
+        self.creds = (key, password, host, port)
         self._t = []
 
     def say(self, utterance, lang="en-us"):
@@ -62,13 +62,12 @@ def test_impersonation_roundtrip(client, auth, make_client, fake_chat):
 
 
 def test_impersonation_passes_real_credentials(client, auth, make_client, fake_chat):
-    c = make_client(name="creds", crypto_key="0123456789abcdef")
+    c = make_client(name="creds")
     full = client.get(f"/clients/{c['client_id']}", headers=auth).json()
     client.post("/chat/sessions", json={"client_id": c["client_id"]}, headers=auth)
     sess = next(s for s in fake_chat._sessions.values())
-    key, password, crypto_key, host, port = sess.creds
+    key, password, host, port = sess.creds
     assert key == full["api_key"]
-    assert crypto_key == "0123456789abcdef"
     assert host == "127.0.0.1"          # loopback to the in-process hub
 
 
@@ -100,9 +99,27 @@ def test_chat_start_surfaces_connect_error(client, auth, make_client, monkeypatc
     assert "handshake timed out" in r.json()["detail"]
 
 
+def test_denial_is_surfaced_in_transcript(monkeypatch):
+    """A `hive.policy.denied` bus event must show up as a visible error message,
+    not vanish silently (a blocked utterance would otherwise look identical to
+    a dead agent)."""
+    monkeypatch.setattr(chatmod.ImpersonationSession, "_connect", lambda self, *a, **k: None)
+    sess = chatmod.ImpersonationSession(1, "n", "k", "p", "127.0.0.1", 5678)
+
+    class _Msg:
+        data = {"denied_type": "recognizer_loop:utterance", "reason": "not in allowed_types"}
+
+    sess._on_denied(_Msg())
+    msgs, total = sess.messages()
+    assert total == 1
+    assert msgs[0]["role"] == "error"
+    assert "recognizer_loop:utterance" in msgs[0]["text"]
+    assert "not in this client's allowed message types" in msgs[0]["text"]
+
+
 def test_registry_one_session_per_client(fake_chat):
-    a = fake_chat.create(1, "n", "k", "p", "c", "127.0.0.1", 5678)
-    b = fake_chat.create(1, "n", "k", "p", "c", "127.0.0.1", 5678)
+    a = fake_chat.create(1, "n", "k", "p", "127.0.0.1", 5678)
+    b = fake_chat.create(1, "n", "k", "p", "127.0.0.1", 5678)
     # creating a second for the same client replaces the first
     assert fake_chat.get(a.id) is None
     assert fake_chat.get(b.id) is not None

@@ -39,9 +39,11 @@ function makeFetchResponse(status, body = {}) {
 // ---------------------------------------------------------------------------
 
 describe('attemptLogin — success', () => {
-  test('stores credentials in sessionStorage on successful login', async () => {
-    // Mock fetch: /api/config → 200, /api/health → {status:'ok'}
+  test('stores the bearer token, never the password, on successful login', async () => {
+    // Mock fetch: /api/auth/login → a token, /api/config → 200, /api/health → ok
     global.fetch = jest.fn((url) => {
+      if (url.includes('/api/auth/login'))
+        return makeFetchResponse(200, { token: 'tok-123', role: 'admin' });
       if (url.includes('/api/config')) return makeFetchResponse(200, {});
       if (url.includes('/api/health')) return makeFetchResponse(200, { status: 'ok' });
       return makeFetchResponse(200, {});
@@ -56,7 +58,9 @@ describe('attemptLogin — success', () => {
     await global.login();
 
     expect(global.sessionStorage.getItem('hm_username')).toBe('admin');
-    expect(global.sessionStorage.getItem('hm_password')).toBe('secret');
+    // the panel stopped persisting the plaintext password in 0.1.2
+    expect(global.sessionStorage.getItem('hm_password')).toBeNull();
+    expect(global.sessionStorage.getItem('hm_token')).toBe('tok-123');
   });
 
   test('shows app element after successful login', async () => {
@@ -171,7 +175,7 @@ describe('apiCall — 401 triggers logout', () => {
 // ---------------------------------------------------------------------------
 
 describe('logout', () => {
-  test('removes hm_username and hm_password from sessionStorage', () => {
+  test('removes hm_username, hm_token and any legacy hm_password from sessionStorage', () => {
     global.sessionStorage.setItem('hm_username', 'admin');
     global.sessionStorage.setItem('hm_password', 'secret');
 
