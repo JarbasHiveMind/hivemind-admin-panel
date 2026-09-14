@@ -107,12 +107,12 @@ Each entry is **symptom → cause → fix**.
 
 - **Cause:** The `/api/events` Server-Sent Events feed is authenticated, but the
   browser `EventSource` API cannot set an `Authorization` header. It must pass a
-  token through `?access_token=<token>`. If that token is missing or expired, the
-  stream returns a 401 and the dashboard stops updating.
-- **Fix:** The UI mints a bearer token (through `POST /api/auth/login`) and appends it
-  automatically. If the feed is stale, you are almost certainly looking at an auth
-  problem. Log out and back in to refresh the token, and verify your credentials
-  work on a normal endpoint.
+  one-time ticket through `?ticket=<ticket>`. If the ticket is missing, expired
+  or already used, the stream returns a 401 and the dashboard stops updating.
+- **Fix:** The UI asks for a ticket (through `POST /api/events/ticket`) each time
+  it opens the stream. If the feed is stale, you are almost certainly looking at
+  an auth problem. Log out and back in to refresh the login token, and verify
+  your credentials work on a normal endpoint.
 
 ### Plugin install fails
 

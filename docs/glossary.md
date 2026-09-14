@@ -119,7 +119,7 @@ Plain-language definitions of the terms a newcomer meets when running or operati
 
 **Satellite**: a leaf HiveMind node (often a smart speaker or small device) that connects to the [[hivemind-core]] to send utterances and receive responses. Each satellite is backed by a [[client]] record and onboarded through a [[pairing bundle]] or [[QR pairing]].
 
-**Session token**: an HMAC-signed bearer token issued by `POST /auth/login` and sent as `Authorization: Bearer <token>`. It can also ride as `?access_token=` for the SSE event stream, whose `EventSource` API cannot set headers. HTTP Basic auth still works for scripts. See [Operations](operations.md) and [Security](security.md).
+**Session token**: an HMAC-signed bearer token issued by `POST /auth/login` and sent as `Authorization: Bearer <token>`. It is never accepted in a URL. The SSE event stream, whose `EventSource` API cannot set headers, takes a one-time ticket from `POST /events/ticket` as `?ticket=` instead. HTTP Basic auth still works for scripts. See [Operations](operations.md) and [Security](security.md).
 
 **Skill blacklist**: a per-client deny-list of OVOS skill IDs a node is forbidden to invoke. Edit it with `allow-skill` or `blacklist-skill`. Compare [[intent blacklist]] and [[message blacklist]].
 

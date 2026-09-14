@@ -21,8 +21,9 @@ The **Monitor** page surfaces live state:
 - **Audit log**: every mutating admin request, with the acting user
   (`GET /audit`).
 
-> The SSE feed authenticates with a short-lived token passed as `?access_token=`,
-> because the browser `EventSource` API cannot set headers.
+> The SSE feed authenticates with a one-time ticket passed as `?ticket=`,
+> because the browser `EventSource` API cannot set headers. Get one with
+> `POST /events/ticket`. It lives 30 seconds and works once.
 
 ## Authentication, roles & audit
 

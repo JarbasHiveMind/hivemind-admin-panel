@@ -767,10 +767,19 @@
         }
         async function startMonitorLive() {
             stopMonitorLive();
-            // EventSource can't set headers, so mint a short-lived token and pass it
-            // as access_token (accepted by the SSE endpoint).
+            // EventSource can't set headers, so ask for a one-time ticket over an
+            // authenticated POST and put that in the URL. The login token never
+            // reaches the address bar, the access log or the Referer header.
+            let ticket;
+            try {
+                ticket = (await apiCall('/events/ticket', 'POST')).ticket;
+            } catch (e) {
+                showToast('Live view failed: ' + e.message, 'error');
+                document.getElementById('monitorLive').checked = false;
+                return;
+            }
             monitorEventSource = new EventSource(
-                '/api/events?interval=2&access_token=' + encodeURIComponent(auth.token));
+                '/api/events?interval=2&ticket=' + encodeURIComponent(ticket));
             monitorEventSource.addEventListener('snapshot', renderMetrics);
             monitorEventSource.addEventListener('event', loadEvents);
             monitorEventSource.onerror = () => { renderMetrics(); };
