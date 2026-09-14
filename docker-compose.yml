@@ -11,7 +11,7 @@ name: hivemind-admin-panel
 
 services:
   redis:
-    image: valkey/valkey:7-alpine
+    image: valkey/valkey:9-alpine
     container_name: hivemind-redis
     restart: unless-stopped
     command: ["valkey-server", "--save", "60", "1"]
