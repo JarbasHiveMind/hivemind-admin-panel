@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.5a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.4a2...0.3.5a1)
+
+**Merged pull requests:**
+
+- fix: show failed requests instead of failing silently [\#93](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/93) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.4a2) (2026-09-14)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.4a1...0.3.4a2)
