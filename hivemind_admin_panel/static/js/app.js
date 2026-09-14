@@ -596,14 +596,28 @@
             const host = prompt('hivemind-core address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
             try {
                 const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
-                const tok = auth.token;
+                // The QR is fetched with the Authorization header: a token in an
+                // <img> URL leaks into history, logs and Referer headers.
+                const qr = await fetch(`/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}`,
+                                       { headers: { 'Authorization': 'Bearer ' + auth.token } });
+                if (!qr.ok) throw new Error(`HTTP ${qr.status}`);
+                _revokePairQrUrl();
+                _pairQrUrl = URL.createObjectURL(await qr.blob());
                 document.getElementById('pairQr').innerHTML =
-                    `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
+                    `<img alt="pairing QR" style="width:240px;height:240px;" src="${_pairQrUrl}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
                 document.getElementById('pairModal').style.display = 'flex';
             } catch (e) { showToast(t('toastPairingFailed') + e.message, 'error'); }
         }
-        function closePairModal() { document.getElementById('pairModal').style.display = 'none'; }
+        let _pairQrUrl = null;
+        function _revokePairQrUrl() {
+            if (_pairQrUrl) URL.revokeObjectURL(_pairQrUrl);
+            _pairQrUrl = null;
+        }
+        function closePairModal() {
+            document.getElementById('pairModal').style.display = 'none';
+            _revokePairQrUrl();
+        }
 
         // ===================== Persona test chat =====================
         async function fillChatPersonas() {
