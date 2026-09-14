@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.7a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.6a1...0.3.7a1)
+
+**Merged pull requests:**
+
+- fix: no login token in a URL; the SSE feed takes a one-time ticket [\#107](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/107) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.6a1) (2026-09-14)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.5a1...0.3.6a1)
