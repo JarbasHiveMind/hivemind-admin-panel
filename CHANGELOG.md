@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.6a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.5a1...0.3.6a1)
+
+**Merged pull requests:**
+
+- fix: /topology matches the access key of a live connection [\#105](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/105) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.5a1) (2026-09-14)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.4a2...0.3.5a1)
