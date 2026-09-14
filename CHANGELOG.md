@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.3a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.2a1...0.3.3a1)
+
+**Merged pull requests:**
+
+- fix: load the pairing QR with the Authorization header [\#89](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/89) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.2a1) (2026-09-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.1a1...0.3.2a1)
