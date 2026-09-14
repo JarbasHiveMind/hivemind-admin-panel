@@ -532,8 +532,11 @@
 
         function showTopologyError(e) {
             const box = document.getElementById('topologyContainer');
-            if (box) box.innerHTML = `<div class="empty-state" role="alert"><p>${escapeHtml(t('topologyLoadFailed') + (e && e.message ? e.message : ''))}</p></div>`;
-            showToast(t('topologyLoadFailed') + (e && e.message ? e.message : ''), 'error');
+            // The server text is built once, outside the innerHTML statement,
+            // and escaped as a whole where it enters the page.
+            const text = t('topologyLoadFailed') + (e && e.message ? e.message : '');
+            if (box) box.innerHTML = `<div class="empty-state" role="alert"><p>${escapeHtml(text)}</p></div>`;
+            showToast(text, 'error');
         }
 
         async function pairClient(id, name) {
