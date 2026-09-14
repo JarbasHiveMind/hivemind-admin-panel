@@ -96,4 +96,40 @@ describe('diffConfigBackup', () => {
     expect(pre.textContent).toContain('a');
     expect(pre.textContent).toContain('b');
   });
+
+  test('a failed diff hides the preview of the snapshot diffed before it', async () => {
+    const api = mockFn('apiCall');
+    api.mockResolvedValue({ added: { a: 1 }, removed: {}, changed: {} });
+    await diffConfigBackup('server.json.1');
+    const pre = document.getElementById('configBackupDiff');
+    expect(pre.hidden).toBe(false);
+
+    api.mockRejectedValue(new Error('boom'));
+    const toast = mockFn('showToast');
+    await diffConfigBackup('server.json.2');
+
+    expect(toast).toHaveBeenCalledWith(expect.any(String), 'error');
+    // The old preview names server.json.1, so leaving it up answers the
+    // second click with a diff the second click never got.
+    expect(pre.hidden).toBe(true);
+  });
+});
+
+describe('revertConfigBackup', () => {
+  test('the revert hides the preview of what it would change', async () => {
+    const api = mockFn('apiCall');
+    api.mockResolvedValue({ added: { a: 1 }, removed: {}, changed: {} });
+    await diffConfigBackup('server.json.1');
+    const pre = document.getElementById('configBackupDiff');
+    expect(pre.hidden).toBe(false);
+
+    mockFn('showToast');
+    mockFn('loadConfigBackups');
+    mockFn('showRestartRequiredModal');
+    api.mockResolvedValue({});
+    await revertConfigBackup('server.json.1');
+
+    // The preview is written in the future tense; the revert already ran.
+    expect(pre.hidden).toBe(true);
+  });
 });

@@ -759,17 +759,22 @@
         }
 
         async function diffConfigBackup(file) {
+            const out = document.getElementById('configBackupDiff');
             try {
                 const d = await apiCall('/config/backups/diff?file=' + encodeURIComponent(file));
                 const keys = o => Object.keys(o || {});
-                const out = document.getElementById('configBackupDiff');
                 if (!out) return;
                 out.textContent = `Reverting to ${file} would change:\n` +
                       `added: ${keys(d.added).join(', ') || '—'}\n` +
                       `removed: ${keys(d.removed).join(', ') || '—'}\n` +
                       `changed: ${keys(d.changed).join(', ') || '—'}`;
                 out.hidden = false;
-            } catch (e) { showToast(t('toastDiffUnavailable'), 'error'); }
+            } catch (e) {
+                // Hide the last preview: it names another snapshot, and leaving
+                // it up answers this click with a diff this click did not get.
+                if (out) out.hidden = true;
+                showToast(t('toastDiffUnavailable'), 'error');
+            }
         }
 
         async function revertConfigBackup(file) {
@@ -777,6 +782,10 @@
             try {
                 await apiCall('/config/backups/restore', 'POST', { file });
                 showToast(t('toastConfigReverted'), 'success');
+                // The preview is written in the future tense, so it must not
+                // outlive the revert it describes.
+                const out = document.getElementById('configBackupDiff');
+                if (out) out.hidden = true;
                 loadConfigBackups();
                 showRestartRequiredModal();
             } catch (e) { showToast(t('toastRevertFailed') + (e.message || ''), 'error'); }
