@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.4a2) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.4a1...0.3.4a2)
+
+**Merged pull requests:**
+
+- chore: raise the hivemind-core floor to \>=5.2.0a1 for the rejection ring [\#104](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/104) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.4a1) (2026-09-14)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.3a1...0.3.4a1)
