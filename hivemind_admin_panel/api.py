@@ -5014,7 +5014,12 @@ def get_topology() -> Dict[str, Any]:
     online_keys = set()
     if _protocol is not None and hasattr(_protocol, "clients"):
         try:
-            online_keys = {str(k) for k in _protocol.clients.keys()}
+            # `clients` is keyed by the peer address of the connection, not
+            # by the access key. The access key is the `key` attribute of each
+            # live connection, which is also what /connections reports.
+            online_keys = {str(getattr(conn, "key", "") or "")
+                           for conn in _protocol.clients.values()}
+            online_keys.discard("")
         except Exception:
             online_keys = set()
 
