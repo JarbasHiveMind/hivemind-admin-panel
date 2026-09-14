@@ -1247,10 +1247,17 @@ const I18N = {
 
 let CURRENT_LANG = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || 'en';
 
+// I18N is a plain object, so a stored code naming an inherited property
+// ('toString', 'constructor', '__proto__') passes a bare I18N[code] test and
+// reaches <html lang>. Only an own key is a language.
+function hasLang(code) {
+  return Object.prototype.hasOwnProperty.call(I18N, code);
+}
+
 // t('key') looks up a plain string. t('key', {name: 'foo'}) also replaces
 // {name} placeholders in the translated string with the given values.
 function t(key, params) {
-  let str = (I18N[CURRENT_LANG] && I18N[CURRENT_LANG][key]) || I18N.en[key] || key;
+  let str = (hasLang(CURRENT_LANG) && I18N[CURRENT_LANG][key]) || I18N.en[key] || key;
   if (params) {
     Object.keys(params).forEach(p => {
       str = str.split('{' + p + '}').join(params[p]);
@@ -1284,7 +1291,7 @@ function applyI18n() {
   const sel = document.getElementById('langSelect');
   if (sel) sel.value = CURRENT_LANG;
   // t() falls back to English for an unknown code, so html lang does too.
-  document.documentElement.lang = I18N[CURRENT_LANG] ? CURRENT_LANG : 'en';
+  document.documentElement.lang = hasLang(CURRENT_LANG) ? CURRENT_LANG : 'en';
 }
 
 document.addEventListener('DOMContentLoaded', applyI18n);

@@ -25,7 +25,7 @@ function loadWithStoredLang(stored) {
   document.body.innerHTML = '<select id="langSelect"></select>';
   window.eval( // eslint-disable-line no-eval
     '(function(){' + fs.readFileSync(I18N_JS_PATH, 'utf8') +
-    '\nwindow.__setLang__ = setLang;})();');
+    '\nwindow.__setLang__ = setLang; window.__I18N__ = I18N;})();');
   document.dispatchEvent(new Event('DOMContentLoaded'));
   return window.__setLang__;
 }
@@ -46,4 +46,23 @@ test('setLang updates html lang', () => {
 test('an unknown stored language falls back to en, matching the text shown', () => {
   loadWithStoredLang('xx');
   expect(document.documentElement.lang).toBe('en');
+});
+
+// I18N is a plain object, so these codes pass a bare I18N[code] test even
+// though no such language exists.
+describe('a stored language naming an inherited property', () => {
+  test.each(['toString', 'constructor', 'valueOf', 'hasOwnProperty'])(
+    '%s falls back to en', code => {
+      loadWithStoredLang(code);
+      expect(document.documentElement.lang).toBe('en');
+    });
+
+  test('the text stays English too', () => {
+    loadWithStoredLang('toString');
+    document.body.innerHTML =
+      '<select id="langSelect"></select><span data-i18n="clients"></span>';
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    expect(document.querySelector('[data-i18n]').textContent)
+      .toBe(window.__I18N__.en.clients);
+  });
 });
