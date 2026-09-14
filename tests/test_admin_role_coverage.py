@@ -22,6 +22,8 @@ OPERATOR_ALLOWED = {
     "/auth/login": "issues a token; authenticates by itself",
     "/auth/logout": "stateless, self-service",
     "/auth/password": "changes the caller's own password",
+    "/events/ticket": ("mints a one-time ticket for the SSE feed the caller "
+                       "may already read; writes nothing but the ticket id"),
     "/config/validate": "dry run, writes nothing",
     "/config/diff": "dry run, writes nothing",
     "/database/test": "connection probe, writes nothing",

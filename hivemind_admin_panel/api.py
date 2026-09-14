@@ -32,6 +32,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import socket
 import subprocess
 import sys
@@ -231,20 +232,48 @@ def _clear_login_failures(username: str) -> None:
     _LOGIN_FAILURES.pop(username, None)
 
 
-#: Paths where a browser cannot set an Authorization header (EventSource, <img>).
-_QUERY_TOKEN_PATHS = ("/events", "/pairing/qr.svg")
+#: Lifetime of an SSE ticket. Long enough to open the stream, short enough
+#: that a ticket found later in an access log is already dead.
+_SSE_TICKET_TTL = 30
+#: Unused ticket ids and their expiry. A ticket authenticates once: the id is
+#: taken from this map when the stream opens, so a replay of the same URL
+#: fails even inside the 30 seconds.
+_SSE_TICKETS: Dict[str, float] = {}
+_SSE_TICKETS_LOCK = threading.Lock()
 
 
-def _allows_query_token(path: str) -> bool:
-    """True for the endpoints that may authenticate via ``?access_token=``."""
-    return any(path.endswith(sfx) for sfx in _QUERY_TOKEN_PATHS)
+def _issue_sse_ticket(username: str, role: str) -> Dict[str, Any]:
+    """Sign a one-time ticket for the SSE stream."""
+    jti = secrets.token_urlsafe(16)
+    cfg = get_server_config()
+    token = create_token(cfg, username, role, ttl=_SSE_TICKET_TTL,
+                         extra={"scope": "events", "jti": jti})
+    now = time.time()
+    with _SSE_TICKETS_LOCK:
+        # drop the tickets nobody used before adding one, so an unused ticket
+        # can not grow this map without bound
+        for dead in [k for k, exp in _SSE_TICKETS.items() if exp <= now]:
+            del _SSE_TICKETS[dead]
+        _SSE_TICKETS[jti] = now + _SSE_TICKET_TTL
+    return {"ticket": token["token"], "expires": token["expires"]}
+
+
+def _consume_sse_ticket(jti: Optional[str]) -> bool:
+    """Take a ticket id. True only for the first use of a live ticket."""
+    if not jti:
+        return False
+    now = time.time()
+    with _SSE_TICKETS_LOCK:
+        expiry = _SSE_TICKETS.pop(jti, None)
+    return expiry is not None and expiry > now
 
 
 def _identify(request: Request, throttle: bool = False) -> Optional[tuple]:
     """Return (username, role) for a valid Basic or Bearer request, else None.
 
-    Also accepts a bearer token via the ``access_token`` query parameter, since
-    the browser EventSource API (used by the SSE /events feed) cannot set headers.
+    The SSE feed (/events) also accepts a one-time ``ticket`` query parameter,
+    because the browser EventSource API cannot set headers. A ticket never
+    authenticates anything else.
 
     Args:
         throttle: count and enforce failed Basic attempts. Only the authenticating
@@ -253,18 +282,22 @@ def _identify(request: Request, throttle: bool = False) -> Optional[tuple]:
     """
     cfg = get_server_config()
     header = request.headers.get("Authorization", "")
-    # A token in the query string leaks into access logs, referrers and browser
-    # history, so it is only accepted on the two endpoints a browser cannot send
-    # headers to: the SSE feed (EventSource) and the QR <img> src.
-    qtoken = (request.query_params.get("access_token")
-              if _allows_query_token(request.url.path) else None)
-    if qtoken:
-        payload = verify_token(cfg, qtoken)
-        if payload:
+    # Anything in a query string leaks into access logs, referrers and browser
+    # history. EventSource can not set headers, so the SSE feed is the one path
+    # that reads a credential from the URL, and what it reads is a one-time
+    # ticket that dies in 30 seconds, never the login token.
+    ticket = (request.query_params.get("ticket")
+              if request.url.path.endswith("/events") else None)
+    if ticket:
+        payload = verify_token(cfg, ticket)
+        if (payload and payload.get("scope") == "events"
+                and _consume_sse_ticket(payload.get("jti"))):
             return payload.get("sub", "?"), payload.get("role", "admin")
+        return None
     if header.startswith("Bearer "):
         payload = verify_token(cfg, header[7:].strip())
-        if payload:
+        # a ticket is not a login token: it authenticates the SSE stream only
+        if payload and not payload.get("scope"):
             return payload.get("sub", "?"), payload.get("role", "admin")
         return None
     if header.startswith("Basic "):
@@ -4183,6 +4216,20 @@ def get_metrics() -> Dict[str, Any]:
 def get_recent_events(limit: int = 100, since: Optional[float] = None) -> List[Dict[str, Any]]:
     """Recent admin/hivemind-core events from the in-process ring buffer."""
     return METRICS.recent_events(limit=limit, since=since)
+
+
+@app.post("/events/ticket", dependencies=[Depends(verify_credentials)])
+def create_sse_ticket(request: Request) -> Dict[str, Any]:
+    """Mint a one-time ticket for the SSE stream.
+
+    ``EventSource`` can not set an Authorization header, so the stream reads
+    its credential from the URL. This keeps the login token out of that URL:
+    the ticket lives 30 seconds, authenticates the stream only, and is
+    refused on its second use.
+    """
+    who = _identify(request)
+    username, role = who if who else ("?", "admin")
+    return _issue_sse_ticket(username, role)
 
 
 @app.get("/events", dependencies=[Depends(verify_credentials)])
