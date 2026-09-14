@@ -31,6 +31,8 @@
             --shadow: 0 4px 6px rgba(0,0,0,0.05);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
             --code-bg: #f6f8fa;
+            /* 5.2:1 on --bg-primary, 4.4:1 on --bg-hover */
+            --focus-ring: #0f766e;
         }
 
         [data-theme="darcula"] {
@@ -41,6 +43,7 @@
             --text-primary: #a9b7c6;
             --text-secondary: #9876aa;
             --accent-primary: #6897bb;
+            --focus-ring: #7ea7c7;
             --accent-secondary: #287bde;
             --accent-danger: #bc3f3c;
             --accent-warning: #bb9445;
@@ -95,6 +98,7 @@
             --text-primary: #f8f8f2;
             --text-secondary: #6272a4;
             --accent-primary: #bd93f9;
+            --focus-ring: #c9a7fa;
             --accent-secondary: #ff79c6;
             --accent-danger: #ff5555;
             --accent-warning: #f1fa8c;
@@ -287,8 +291,9 @@
 
         /* A keyboard user must be able to see where they are. Only form fields
            and the topology nodes styled focus, so every button, link and nav
-           item fell back to the browser default, which is invisible against
-           these backgrounds. :focus-visible keeps the ring off a mouse click. */
+           item fell back to the weak browser default. :focus-visible keeps the ring
+           off a mouse click. --focus-ring is set where the accent is under 3:1
+           against a theme background; other themes use the accent. */
         a:focus-visible,
         button:focus-visible,
         [role="button"]:focus-visible,
@@ -297,7 +302,7 @@
         textarea:focus-visible,
         select:focus-visible,
         summary:focus-visible {
-            outline: 2px solid var(--accent-primary);
+            outline: 2px solid var(--focus-ring, var(--accent-primary));
             outline-offset: 2px;
             border-radius: var(--radius-sm);
         }
