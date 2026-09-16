@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.9a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.9a1) (2026-09-16)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a5...0.3.9a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): show a focus ring on buttons, links and navigation [\#81](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/81) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.8a5](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.8a5) (2026-09-16)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a4...0.3.8a5)
@@ -240,7 +248,6 @@
 **Merged pull requests:**
 
 - fix: reveal newly-created client credentials instead of discarding them [\#42](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/42) ([JarbasAl](https://github.com/JarbasAl))
-- Update docker/setup-buildx-action action to v4 [\#11](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/11) ([renovate[bot]](https://github.com/apps/renovate))
 
 ## [0.1.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.12a1) (2026-08-15)
 
