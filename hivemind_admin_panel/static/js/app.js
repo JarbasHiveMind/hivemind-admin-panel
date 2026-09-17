@@ -933,6 +933,10 @@
         async function loadPolicy() {
             const editor = document.getElementById('policyEditor');
             const err = document.getElementById('policyLoadError');
+            // Locked until this load succeeds: while GET /policy is pending
+            // the editor does not show the server's chain, and a save would
+            // replace it with whatever the editor holds.
+            editor.disabled = true;
             try {
                 const p = await apiCall('/policy');
                 editor.value = JSON.stringify(p.chain || [], null, 2);

@@ -78,6 +78,30 @@ describe('loadPolicy', () => {
     expect(toast).toHaveBeenCalledWith(expect.any(String), 'error');
   });
 
+  test('save while the load is still pending sends nothing', async () => {
+    const api = mockFn('apiCall');
+    const toast = mockFn('showToast');
+    // GET /policy never answers: a hung request, or loadCerts still pending
+    api.mockReturnValue(new Promise(() => {}));
+    loadPolicy();
+    document.getElementById('policyEditor').value = '[]';
+    api.mockClear();
+    api.mockResolvedValue({});
+    await savePolicy();
+    expect(api).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(expect.any(String), 'error');
+  });
+
+  test('the editor in index.html starts locked, before any load runs', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', 'hivemind_admin_panel', 'static', 'index.html'), 'utf8');
+    const tag = html.match(/<textarea[^>]*id="policyEditor"[^>]*>/);
+    expect(tag).not.toBeNull();
+    expect(tag[0]).toMatch(/\sdisabled[\s>=]/);
+  });
+
   test('a later successful load clears the error and unlocks the editor', async () => {
     const api = mockFn('apiCall');
     mockFn('showToast');
