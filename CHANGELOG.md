@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.9a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.9a2) (2026-09-17)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.9a1...0.3.9a2)
+
+**Merged pull requests:**
+
+- test: no request model field is declared and never read [\#76](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/76) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.9a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.9a1) (2026-09-16)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a5...0.3.9a1)
@@ -369,10 +377,6 @@
 ## [0.1.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.1a2) (2026-07-31)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a1...0.1.1a2)
-
-**Merged pull requests:**
-
-- docs: rewrite README in Simplified Technical English [\#13](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/13) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.1a1) (2026-07-04)
 
