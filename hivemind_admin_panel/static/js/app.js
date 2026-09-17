@@ -1621,10 +1621,10 @@
             const name = document.getElementById('presetName').value.trim();
             const source = document.getElementById('presetSource').value;
             const status = document.getElementById('presetModalStatus');
-            if (!name) { status.textContent = 'Name required'; status.style.color = 'var(--accent-danger)'; return; }
+            if (!name) { status.textContent = 'Name required'; status.style.color = 'var(--accent-danger-text)'; return; }
             let config;
             try { config = _collectPresetConfig(); }
-            catch (e) { status.textContent = 'Config is not valid JSON'; status.style.color = 'var(--accent-danger)'; return; }
+            catch (e) { status.textContent = 'Config is not valid JSON'; status.style.color = 'var(--accent-danger-text)'; return; }
             const body = { name, source, config,
                 module: source === 'plugin' ? document.getElementById('presetModule').value : '',
                 server_id: source === 'server' ? document.getElementById('presetServer').value : null };
@@ -1632,7 +1632,7 @@
                 if (editName) await apiCall('/presets/' + type + '/' + encodeURIComponent(editName), 'PUT', body);
                 else await apiCall('/presets/' + type, 'POST', body);
                 showToast(t('toastPresetSaved')); closePresetModal(); _presetType = type; loadPresetsPage();
-            } catch (e) { status.textContent = 'Save failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''); status.style.color = 'var(--accent-danger)'; }
+            } catch (e) { status.textContent = 'Save failed: ' + (e.message || '').replace(/^HTTP \d+: /, ''); status.style.color = 'var(--accent-danger-text)'; }
         }
 
         async function testPreset(type, name) {

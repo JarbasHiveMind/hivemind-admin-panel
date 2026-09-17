@@ -237,7 +237,10 @@ def test_button_text_contrast_does_not_get_worse(theme):
 STATIC = os.path.dirname(os.path.dirname(CSS))
 #: ``color: var(--accent-x)`` paints text with a fill token. ``border-color``
 #: and ``background-color`` do not match: the look-behind rejects a hyphen.
-_ACCENT_AS_TEXT = re.compile(r"(?<![-\w])color:\s*var\(--accent-[a-z]+\)")
+# text colour set by a CSS declaration (``color: var(--accent-x)``, also with a
+# fallback) or by script (``.style.color = '... var(--accent-x)'``)
+_ACCENT_AS_TEXT = re.compile(
+    r"(?<![-\w])color(?::\s*|\s*=\s*['\"`][^'\"`]*?)var\(--accent-[a-z]+\s*[),]")
 
 
 @pytest.mark.parametrize("path", ["css/style.css", "index.html", "js/app.js"])
@@ -255,3 +258,7 @@ def test_the_text_token_guard_matches_only_text():
     assert not _ACCENT_AS_TEXT.search("border-color: var(--accent-primary)")
     assert not _ACCENT_AS_TEXT.search("background-color: var(--accent-primary)")
     assert not _ACCENT_AS_TEXT.search("color: var(--accent-primary-text)")
+    assert _ACCENT_AS_TEXT.search("color: var(--accent-danger, #e74c3c)")
+    assert _ACCENT_AS_TEXT.search("status.style.color = 'var(--accent-danger)';")
+    assert not _ACCENT_AS_TEXT.search("status.style.color = 'var(--accent-danger-text)';")
+    assert not _ACCENT_AS_TEXT.search("el.style.borderColor = 'var(--accent-danger)';")
