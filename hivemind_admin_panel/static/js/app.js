@@ -919,19 +919,40 @@
                        Cert: ${c.cert_exists ? '✅' : '❌'} <code>${esc(c.cert_path)}</code><br>
                        Key: ${c.key_exists ? '✅' : '❌'} <code>${esc(c.key_path)}</code>
                      </div>`;
-            } catch (e) {}
+            } catch (e) {
+                const text = t('certsLoadFailed') + (e && e.message ? e.message : '');
+                const box = document.getElementById('certsContainer');
+                if (box) box.innerHTML = `<div role="alert" style="color:var(--accent-danger-text, var(--accent-danger));font-size:13px;">${escapeHtml(text)}</div>`;
+                showToast(text, 'error');
+            }
         }
         async function generateCerts() {
             await apiCall('/certs/generate', 'POST');
             loadCerts();
         }
         async function loadPolicy() {
+            const editor = document.getElementById('policyEditor');
+            const err = document.getElementById('policyLoadError');
             try {
                 const p = await apiCall('/policy');
-                document.getElementById('policyEditor').value = JSON.stringify(p.chain || [], null, 2);
-            } catch (e) {}
+                editor.value = JSON.stringify(p.chain || [], null, 2);
+                editor.disabled = false;
+                if (err) { err.hidden = true; err.textContent = ''; }
+            } catch (e) {
+                // The editor does not show the chain the server has. A save
+                // from it would replace that chain, so lock it until a load
+                // succeeds.
+                const text = t('policyLoadFailed') + (e && e.message ? e.message : '');
+                editor.disabled = true;
+                if (err) { err.setAttribute('role', 'alert'); err.textContent = text; err.hidden = false; }
+                showToast(text, 'error');
+            }
         }
         async function savePolicy() {
+            if (document.getElementById('policyEditor').disabled) {
+                showToast(t('policyNotLoaded'), 'error');
+                return;
+            }
             let chain;
             try {
                 chain = JSON.parse(document.getElementById('policyEditor').value);
