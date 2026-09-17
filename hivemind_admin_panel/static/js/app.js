@@ -845,17 +845,17 @@
             if (!el) return;
             try {
                 const snaps = await apiCall('/config/backups');
-                if (!snaps.length) { el.innerHTML = '<span style="color:var(--text-secondary);">No snapshots yet.</span>'; return; }
+                if (!snaps.length) { el.innerHTML = `<span style="color:var(--text-secondary);">${escapeHtml(t('noSnapshotsYet'))}</span>`; return; }
                 el.innerHTML = snaps.map(s => `
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);">
                         <div><code>${esc(s.file)}</code>
                             <span style="color:var(--text-secondary);font-size:11px;margin-left:8px;">${new Date(s.mtime*1000).toLocaleString()} · ${(s.size/1024).toFixed(1)} KB</span></div>
                         <div style="display:flex;gap:6px;">
-                            <button class="btn btn-secondary btn-sm" onclick="diffConfigBackup('${jsArg(s.file)}')">Diff</button>
-                            <button class="btn btn-danger btn-sm" onclick="revertConfigBackup('${jsArg(s.file)}')">Revert</button>
+                            <button class="btn btn-secondary btn-sm" onclick="diffConfigBackup('${jsArg(s.file)}')">${escapeHtml(t('diff'))}</button>
+                            <button class="btn btn-danger btn-sm" onclick="revertConfigBackup('${jsArg(s.file)}')">${escapeHtml(t('revert'))}</button>
                         </div>
                     </div>`).join('');
-            } catch (e) { el.textContent = 'Failed to load history'; }
+            } catch (e) { el.textContent = t('configHistoryLoadFailed'); }
         }
 
         async function snapshotConfig() {
@@ -869,10 +869,12 @@
                 const d = await apiCall('/config/backups/diff?file=' + encodeURIComponent(file));
                 const keys = o => Object.keys(o || {});
                 if (!out) return;
-                out.textContent = `Reverting to ${file} would change:\n` +
-                      `added: ${keys(d.added).join(', ') || '—'}\n` +
-                      `removed: ${keys(d.removed).join(', ') || '—'}\n` +
-                      `changed: ${keys(d.changed).join(', ') || '—'}`;
+                out.textContent = t('configRevertPreview', {
+                    file,
+                    added: keys(d.added).join(', ') || '—',
+                    removed: keys(d.removed).join(', ') || '—',
+                    changed: keys(d.changed).join(', ') || '—',
+                });
                 out.hidden = false;
             } catch (e) {
                 // Hide the last preview: it names another snapshot, and leaving
@@ -883,7 +885,7 @@
         }
 
         async function revertConfigBackup(file) {
-            if (!confirm(`Revert server.json to ${file}? Your current config is snapshotted first.`)) return;
+            if (!confirm(t('configRevertConfirm', { file }))) return;
             try {
                 await apiCall('/config/backups/restore', 'POST', { file });
                 showToast(t('toastConfigReverted'), 'success');
@@ -908,7 +910,7 @@
             const bundle = JSON.parse(await file.text());
             const res = await apiCall('/restore', 'POST', bundle);
             document.getElementById('opsResult').textContent =
-                `Restored: +${res.clients_added} clients, ${res.clients_skipped} skipped.`;
+                t('restoreResult', { added: res.clients_added, skipped: res.clients_skipped });
         }
         async function loadCerts() {
             try {
