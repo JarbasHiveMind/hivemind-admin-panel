@@ -391,7 +391,7 @@
             if (!stuck) { el.innerHTML = ''; return; }
             el.innerHTML = `
                 <div class="card" style="border-left:4px solid var(--accent-warning);margin-bottom:16px;">
-                    <strong style="font-size:15px;color:var(--accent-warning);">⚠️ Satellites can't connect yet</strong>
+                    <strong style="font-size:15px;color:var(--accent-warning-text);">⚠️ Satellites can't connect yet</strong>
                     <div style="font-size:13px;color:var(--text-secondary);margin-top:6px;">
                         hivemind-core is <code>${escapeHtml(health.service_status)}</code> but not <code>READY</code> —
                         the satellite listener hasn't bound. It's almost always blocked waiting on its
@@ -1057,7 +1057,7 @@
                 let html = '';
                 for (const [name, cfg] of Object.entries(config.network_protocol || {})) {
                     html += `<div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-bottom: 12px;">
-                        <strong style="color: var(--accent-primary);">${escapeHtml(name)}</strong>
+                        <strong style="color: var(--accent-primary-text);">${escapeHtml(name)}</strong>
                         <div style="margin-top: 8px; font-size: 13px; color: var(--text-secondary);">
                             Host: ${escapeHtml(cfg.host || 'N/A')} | Port: ${escapeHtml(cfg.port || 'N/A')} | SSL: ${cfg.ssl ? 'Yes' : 'No'}
                         </div>
@@ -1185,7 +1185,7 @@
                     html += `
                         <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); text-align: center;">
                             <div style="font-size: 20px; margin-bottom: 4px;">${catData.icon}</div>
-                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);"${catData.count === null ? ` title="${escapeHtml(t('pluginCountUnavailable'))}"` : ''}>${catData.count === null ? '—' : catData.count}</div>
+                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary-text);"${catData.count === null ? ` title="${escapeHtml(t('pluginCountUnavailable'))}"` : ''}>${catData.count === null ? '—' : catData.count}</div>
                             <div style="font-size: 11px; color: var(--text-secondary);">${catName}</div>
                         </div>
                     `;
@@ -1218,7 +1218,7 @@
                     const isRevoked = c.revoked || false;
                     const rowStyle = isRevoked ? 'style="opacity: 0.5; background: rgba(255, 107, 107, 0.1);"' : '';
                     const safeName = escapeHtml(c.name ?? '');
-                    const nameDisplay = isRevoked ? `<span style="color: var(--accent-danger);">🔒 ${safeName} (Revoked)</span>` : `<strong>${safeName}</strong>`;
+                    const nameDisplay = isRevoked ? `<span style="color: var(--accent-danger-text);">🔒 ${safeName} (Revoked)</span>` : `<strong>${safeName}</strong>`;
                     return `
                         <tr ${rowStyle}>
                             <td>${c.client_id}</td>
@@ -1229,7 +1229,7 @@
                             <td><span class="badge ${c.can_propagate ? 'badge-success' : 'badge-danger'}">${c.can_propagate ? 'Yes' : 'No'}</span></td>
                             <td>
                                 ${isRevoked 
-                                    ? `<span style="color: var(--accent-danger); font-size: 12px;">API Key Revoked</span>`
+                                    ? `<span style="color: var(--accent-danger-text); font-size: 12px;">API Key Revoked</span>`
                                     : `<button class="btn btn-secondary btn-sm" onclick="showEditClientModal(${c.client_id})" style="margin-right: 8px;">Edit</button>
                                        <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.client_id}, '${jsArg(c.name)}')">Delete</button>`
                                 }
@@ -1847,7 +1847,7 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(name)}${isActive ? ' <span class="badge badge-success" style="margin-left: 8px;">Active</span>' : ''}</div>
                             <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">${escapeHtml(b ? b.name : p.module)}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary);">Module: <code style="color: var(--accent-primary);">${escapeHtml(p.module)}</code></div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Module: <code style="color: var(--accent-primary-text);">${escapeHtml(p.module)}</code></div>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; word-break: break-all;">Config: <code>${escapeHtml(cfgStr)}</code></div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-left: 12px; flex-shrink: 0;">
@@ -1879,7 +1879,7 @@
                         <div>
                             <span style="font-weight: 600; font-size: 13px;">${escapeHtml(b.name)}</span>
                             <span style="font-size: 11px; color: var(--text-secondary); margin-left: 8px;">${escapeHtml(b.description || '')}</span>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Package: <code style="color: var(--accent-primary);">${escapeHtml(b.package)}</code></div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Package: <code style="color: var(--accent-primary-text);">${escapeHtml(b.package)}</code></div>
                         </div>
                         <div>
                             ${b.installed
@@ -1987,16 +1987,16 @@
                 if (result.success) {
                     statusDiv.classList.add('success');
                     statusDiv.style.border = '1px solid var(--accent-success)';
-                    statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message || 'Connection OK')}</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--accent-success-text);">✓ ${escapeHtml(result.message || 'Connection OK')}</span>`;
                 } else {
                     statusDiv.classList.add('error');
                     statusDiv.style.border = '1px solid var(--accent-danger)';
-                    statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(result.message || 'Test failed')}</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--accent-danger-text);">✗ ${escapeHtml(result.message || 'Test failed')}</span>`;
                 }
             } catch (e) {
                 statusDiv.classList.add('error');
                 statusDiv.style.border = '1px solid var(--accent-danger)';
-                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(e.message)}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-danger-text);">✗ ${escapeHtml(e.message)}</span>`;
             }
         }
 
@@ -2052,7 +2052,7 @@
                 statusDiv.classList.add('success');
                 statusDiv.style.border = '1px solid var(--accent-success)';
                 const migNote = result.clients_migrated > 0 ? ` (${result.clients_migrated} clients migrated)` : '';
-                statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message)}${migNote}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-success-text);">✓ ${escapeHtml(result.message)}${migNote}</span>`;
                 _dbActiveName = name;
                 renderDatabaseProfiles();
                 setTimeout(() => {
@@ -2062,7 +2062,7 @@
             } catch (e) {
                 statusDiv.classList.add('error');
                 statusDiv.style.border = '1px solid var(--accent-danger)';
-                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(e.message)}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-danger-text);">✗ ${escapeHtml(e.message)}</span>`;
             }
         }
 
@@ -2227,7 +2227,7 @@
                                     <div style="font-weight: 600; margin-bottom: 4px;">✅ Active: ${activePlugin?.name || currentBinary}</div>
                                     <div style="font-size: 13px; color: var(--text-secondary);">${activePlugin?.description || 'Binary protocol for audio handling'}</div>
                                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">
-                                        <div>Package: <code style="color: var(--accent-primary);">${activePlugin?.package}</code></div>
+                                        <div>Package: <code style="color: var(--accent-primary-text);">${activePlugin?.package}</code></div>
                                     </div>
                                 </div>
                                 <button class="btn btn-danger btn-sm" onclick="enableBinaryProtocol('', false)">Disable</button>
@@ -2263,8 +2263,8 @@
                                 <div>
                                     <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(plugin.name)} ${isActive ? '<span class="badge badge-success" style="margin-left: 8px;">Active</span>' : ''}</div>
                                     <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(plugin.description)}</div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${escapeHtml(plugin.package)}</code></div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(plugin.entry_point)}</code></div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary-text);">${escapeHtml(plugin.package)}</code></div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary-text);">${escapeHtml(plugin.entry_point)}</code></div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     ${isActive
@@ -2292,7 +2292,7 @@
                                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                                     <span style="font-size: 24px;">⚠️</span>
                                     <div>
-                                        <strong style="font-size: 16px; color: var(--accent-warning);">Binary Protocol Inactive</strong>
+                                        <strong style="font-size: 16px; color: var(--accent-warning-text);">Binary Protocol Inactive</strong>
                                         <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                                             Enable a binary protocol above to configure voice I/O features.
                                         </p>
@@ -2312,8 +2312,8 @@
                                 <div>
                                     <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(plugin.name)}</div>
                                     <div style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(plugin.description)}</div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${escapeHtml(plugin.package)}</code></div>
-                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(plugin.entry_point)}</code></div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary-text);">${escapeHtml(plugin.package)}</code></div>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary-text);">${escapeHtml(plugin.entry_point)}</code></div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <button class="btn btn-secondary btn-sm" onclick="installPluginDirect('${jsArg(plugin.package)}')">Install</button>
@@ -2335,7 +2335,7 @@
                                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
                                     <span style="font-size: 32px;">❌</span>
                                     <div>
-                                        <strong style="font-size: 18px; color: var(--accent-danger);">Binary Protocol Provider Missing</strong>
+                                        <strong style="font-size: 18px; color: var(--accent-danger-text);">Binary Protocol Provider Missing</strong>
                                         <p style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">
                                             To use voice features, you must first install a binary protocol provider.
                                         </p>
@@ -2734,7 +2734,7 @@
                                 <div style="font-size: 11px; color: var(--text-secondary);">${escapeHtml(description)}</div>
                                 <div style="font-size: 10px; color: var(--text-secondary); font-family: monospace;">${escapeHtml(entryPoint)}</div>
                             </div>
-                            <span style="font-size: 16px; color: var(--accent-primary);">+</span>
+                            <span style="font-size: 16px; color: var(--accent-primary-text);">+</span>
                         </div>
                     `;
                 }
@@ -2743,7 +2743,7 @@
                 // Render selected solvers
                 renderSelectedSolvers();
             } catch (e) {
-                container.innerHTML = '<div class="empty-state" style="color: var(--accent-danger);">Failed to load solver plugins</div>';
+                container.innerHTML = '<div class="empty-state" style="color: var(--accent-danger-text);">Failed to load solver plugins</div>';
             }
         }
 
@@ -2848,7 +2848,7 @@
             selectedSolvers.forEach((pkg, index) => {
                 const hasConfig = _solverConfigs[pkg] && Object.keys(_solverConfigs[pkg]).length > 0;
                 const configBadge = hasConfig
-                    ? '<span style="font-size: 10px; color: var(--accent-success); margin-left: 4px;">⚙ configured</span>'
+                    ? '<span style="font-size: 10px; color: var(--accent-success-text); margin-left: 4px;">⚙ configured</span>'
                     : '';
                 html += `
                     <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--accent-primary);" draggable="true" ondragstart="dragStart(event, ${index})" ondragover="dragOver(event)" ondrop="drop(event, ${index})">
@@ -2917,7 +2917,7 @@
                         </p>
                         <textarea data-solver="${safeId}" data-json="1" placeholder='{\n  "enabled": true\n}'
                             style="width: 100%; min-height: 80px; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: monospace; font-size: 12px; box-sizing: border-box;">${jsonVal}</textarea>
-                        <div id="solver-json-err-${safeId}" style="font-size: 11px; color: var(--accent-danger); margin-top: 4px; display: none;"></div>
+                        <div id="solver-json-err-${safeId}" style="font-size: 11px; color: var(--accent-danger-text); margin-top: 4px; display: none;"></div>
                     </div>`;
                 } else if (schema.length === 0) {
                     // Plugin needs no configuration
@@ -2926,7 +2926,7 @@
                     // Structured fields from the schema
                     for (const field of schema) {
                         const val = cfg[field.key] !== undefined ? String(cfg[field.key]) : '';
-                        const optLabel = field.optional ? ' <span style="font-size: 10px; color: var(--text-secondary);">(optional)</span>' : ' <span style="font-size: 10px; color: var(--accent-danger);">*</span>';
+                        const optLabel = field.optional ? ' <span style="font-size: 10px; color: var(--text-secondary);">(optional)</span>' : ' <span style="font-size: 10px; color: var(--accent-danger-text);">*</span>';
                         if (field.type === 'textarea') {
                             html += `<div><label style="font-size: 12px;">${field.label}${optLabel}</label>
                                 <textarea data-solver="${safeId}" data-key="${field.key}" placeholder="${field.placeholder || ''}"
@@ -3231,7 +3231,7 @@
 
                 if (hasLargeModels) {
                     html += '<div style="padding: 12px; background: rgba(255, 217, 61, 0.1); border: 1px solid var(--accent-warning); border-radius: var(--radius-sm); margin-bottom: 12px;">';
-                    html += '<div style="font-weight: 600; color: var(--accent-warning); margin-bottom: 4px;">⚠️ Large Models Detected</div>';
+                    html += '<div style="font-weight: 600; color: var(--accent-warning-text); margin-bottom: 4px;">⚠️ Large Models Detected</div>';
                     html += '<div style="font-size: 12px; color: var(--text-secondary);">The following models may need to be downloaded (sizes can range from 50MB to several GB):</div>';
                     html += '<div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">' + downloadWarning + '</div>';
                     html += '</div>';
@@ -3268,11 +3268,11 @@
                 // Validation status
                 if (result.valid) {
                     html += '<div style="padding: 12px; background: rgba(107, 203, 119, 0.1); border: 1px solid var(--accent-success); border-radius: var(--radius-sm); margin-bottom: 12px;">';
-                    html += '<div style="font-weight: 600; color: var(--accent-success);">✓ Configuration Valid</div>';
+                    html += '<div style="font-weight: 600; color: var(--accent-success-text);">✓ Configuration Valid</div>';
                     html += '</div>';
                 } else {
                     html += '<div style="padding: 12px; background: rgba(255, 107, 107, 0.1); border: 1px solid var(--accent-danger); border-radius: var(--radius-sm); margin-bottom: 12px;">';
-                    html += '<div style="font-weight: 600; color: var(--accent-danger);">✗ Configuration Invalid</div>';
+                    html += '<div style="font-weight: 600; color: var(--accent-danger-text);">✗ Configuration Invalid</div>';
                     for (const error of result.errors) {
                         html += `<div style="font-size: 12px; margin-top: 4px;">• ${error}</div>`;
                     }
@@ -3282,7 +3282,7 @@
                 // Download warning
                 if (result.download_required) {
                     html += '<div style="padding: 12px; background: rgba(255, 217, 61, 0.1); border: 1px solid var(--accent-warning); border-radius: var(--radius-sm); margin-bottom: 12px;">';
-                    html += '<div style="font-weight: 600; color: var(--accent-warning);">⚠️ Model Download Required</div>';
+                    html += '<div style="font-weight: 600; color: var(--accent-warning-text);">⚠️ Model Download Required</div>';
                     html += '<div style="font-size: 12px; margin-top: 4px;">This persona requires downloading AI models on first use.</div>';
                     html += '</div>';
                 }
@@ -3290,7 +3290,7 @@
                 // Warnings
                 if (result.warnings && result.warnings.length > 0) {
                     html += '<div style="padding: 12px; background: rgba(255, 217, 61, 0.1); border: 1px solid var(--accent-warning); border-radius: var(--radius-sm); margin-bottom: 12px;">';
-                    html += '<div style="font-weight: 600; color: var(--accent-warning);">⚠️ Warnings</div>';
+                    html += '<div style="font-weight: 600; color: var(--accent-warning-text);">⚠️ Warnings</div>';
                     for (const warning of result.warnings) {
                         html += `<div style="font-size: 12px; margin-top: 4px;">• ${warning}</div>`;
                     }
@@ -3332,11 +3332,11 @@
                 
                 await apiCall(`/personas/${encodeURIComponent(name)}/activate`, 'POST');
                 
-                statusDiv.innerHTML = '<span style="color: var(--accent-success);">✓ Persona activated successfully!</span>';
+                statusDiv.innerHTML = '<span style="color: var(--accent-success-text);">✓ Persona activated successfully!</span>';
                 showToast(`Persona "${name}" activated`);
                 showRestartRequiredModal();
             } catch (e) {
-                statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ Failed: ${escapeHtml(e.message)}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-danger-text);">✗ Failed: ${escapeHtml(e.message)}</span>`;
                 showToast(t('toastFailedToActivatePersona') + e.message, 'error');
             }
         }
@@ -3395,9 +3395,9 @@
                                 <strong style="font-size: 14px;">${escapeHtml(plugin.name)}</strong>
                                 <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0;">${escapeHtml(description)}</p>
                                 <div style="font-size: 11px; color: var(--text-secondary);">
-                                    <div>Package: <code style="color: var(--accent-primary);">${escapeHtml(installPackage)}</code></div>
-                                    <div>Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(entryPoint)}</code></div>
-                                    ${status === 'failed' ? `<div style="color: var(--accent-warning); font-size: 10px; margin-top: 4px;">⚠️ ${escapeHtml(plugin.error)}</div>` : ''}
+                                    <div>Package: <code style="color: var(--accent-primary-text);">${escapeHtml(installPackage)}</code></div>
+                                    <div>Entry Point: <code style="color: var(--accent-primary-text);">${escapeHtml(entryPoint)}</code></div>
+                                    ${status === 'failed' ? `<div style="color: var(--accent-warning-text); font-size: 10px; margin-top: 4px;">⚠️ ${escapeHtml(plugin.error)}</div>` : ''}
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px; margin-left: 16px;">
@@ -3441,12 +3441,12 @@
                 const result = await apiCall(`/ovos/test-bus?host=${encodeURIComponent(host)}&port=${encodeURIComponent(port)}`);
 
                 if (result.success) {
-                    resultDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message)}</span>`;
+                    resultDiv.innerHTML = `<span style="color: var(--accent-success-text);">✓ ${escapeHtml(result.message)}</span>`;
                 } else {
-                    resultDiv.innerHTML = `<span style="color: var(--accent-danger);">❌ ${escapeHtml(result.message)}</span>`;
+                    resultDiv.innerHTML = `<span style="color: var(--accent-danger-text);">❌ ${escapeHtml(result.message)}</span>`;
                 }
             } catch (e) {
-                resultDiv.innerHTML = '<span style="color: var(--accent-danger);">❌ API error: ' + escapeHtml(e.message) + '</span>';
+                resultDiv.innerHTML = '<span style="color: var(--accent-danger-text);">❌ API error: ' + escapeHtml(e.message) + '</span>';
             }
         }
         function renderEncodings(enabledEncodings) {
@@ -3566,11 +3566,11 @@
             
             // Show package name
             const pkgName = plugin.package || plugin.module || plugin.entry_point || 'unknown';
-            html += `<div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary);">${escapeHtml(pkgName)}</code></div>`;
+            html += `<div style="font-size: 11px; color: var(--text-secondary);">Package: <code style="color: var(--accent-primary-text);">${escapeHtml(pkgName)}</code></div>`;
             
             // Always show entry_point
             const entryPoint = plugin.entry_point || plugin.module || pkgName;
-            html += `<div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary);">${escapeHtml(entryPoint)}</code></div>`;
+            html += `<div style="font-size: 11px; color: var(--text-secondary);">Entry Point: <code style="color: var(--accent-primary-text);">${escapeHtml(entryPoint)}</code></div>`;
             
             return html;
         }
@@ -3674,7 +3674,7 @@
                         <div>
                             ${getPluginInfoHtml(plugin)}
                             ${isActive ? '<span class="badge badge-success" style="display: inline-block; margin-top: 4px;">Active</span>' : ''}
-                            ${isPersonaAgent && !hasPersonas ? `<div style="font-size: 11px; color: var(--accent-warning); margin-top: 4px;">⚠️ Create a persona first on the Personas page</div>` : ''}
+                            ${isPersonaAgent && !hasPersonas ? `<div style="font-size: 11px; color: var(--accent-warning-text); margin-top: 4px;">⚠️ Create a persona first on the Personas page</div>` : ''}
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px;">
                             ${isActive
@@ -3736,7 +3736,7 @@
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                         <div style="flex: 1; min-width: 0;">
                             ${getPluginInfoHtml(plugin)}
-                            ${status === 'failed' ? `<div style="color: var(--accent-warning); font-size: 10px; margin-top: 4px;">⚠️ ${escapeHtml(plugin.error)}</div>` : ''}
+                            ${status === 'failed' ? `<div style="color: var(--accent-warning-text); font-size: 10px; margin-top: 4px;">⚠️ ${escapeHtml(plugin.error)}</div>` : ''}
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px; margin-left: 16px;">
                             ${actionButton}
@@ -3876,7 +3876,7 @@
             document.getElementById('installStatusMessage').innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 16px;">✅</span>
-                    <span style="font-size: 13px; color: var(--accent-success);">${message}</span>
+                    <span style="font-size: 13px; color: var(--accent-success-text);">${message}</span>
                 </div>
             `;
             const btn = document.getElementById('installProgressFooter').querySelector('button');
@@ -3894,7 +3894,7 @@
             document.getElementById('installStatusMessage').innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 16px;">❌</span>
-                    <span style="font-size: 13px; color: var(--accent-danger);">${escapeHtml(error)}</span>
+                    <span style="font-size: 13px; color: var(--accent-danger-text);">${escapeHtml(error)}</span>
                 </div>
             `;
 
@@ -4549,7 +4549,7 @@
                     const infoDiv = document.createElement('div');
                     infoDiv.style.cssText = 'padding: 16px; background: rgba(100, 255, 218, 0.1); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); margin-top: 16px;';
                     infoDiv.innerHTML = `
-                        <strong style="color: var(--accent-primary);">ℹ️ No Active Clients Found</strong>
+                        <strong style="color: var(--accent-primary-text);">ℹ️ No Active Clients Found</strong>
                         <p style="font-size: 13px; color: var(--text-secondary); margin: 8px 0;">
                             You need to create at least one client before you can manage ACL permissions.
                         </p>
@@ -4740,12 +4740,12 @@
             document.getElementById('configErrorPage').classList.add('active');
 
             let html = '<h4>Configuration Errors:</h4><ul style="margin: 12px 0; padding-left: 20px;">';
-            html += validation.errors.map(e => `<li style="color: var(--accent-danger); margin: 4px 0;">${e}</li>`).join('');
+            html += validation.errors.map(e => `<li style="color: var(--accent-danger-text); margin: 4px 0;">${e}</li>`).join('');
             html += '</ul>';
 
             if (validation.warnings.length) {
                 html += '<h4>Warnings:</h4><ul style="margin: 12px 0; padding-left: 20px;">';
-                html += validation.warnings.map(w => `<li style="color: var(--accent-warning); margin: 4px 0;">${w}</li>`).join('');
+                html += validation.warnings.map(w => `<li style="color: var(--accent-warning-text); margin: 4px 0;">${w}</li>`).join('');
                 html += '</ul>';
             }
 
