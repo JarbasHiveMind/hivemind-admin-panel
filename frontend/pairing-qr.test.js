@@ -11,10 +11,11 @@ const { evalApp, resetDom, mockFn } = require('./helpers/setup');
 beforeAll(() => evalApp());
 beforeEach(() => {
   resetDom();
+  // the host is typed in the modal (#94), no prompt() any more
   document.body.insertAdjacentHTML('beforeend', `
     <div id="pairModal" style="display:none"><span id="pairName"></span>
-    <div id="pairQr"></div><pre id="pairBundle"></pre></div>`);
-  global.prompt = jest.fn(() => '10.0.0.5');
+    <div id="pairHostStep"><input id="pairHost"></div>
+    <div id="pairResult" class="hidden"><div id="pairQr"></div><pre id="pairBundle"></pre></div></div>`);
   let n = 0;
   URL.createObjectURL = jest.fn(() => `blob:qr-${n++}`);
   URL.revokeObjectURL = jest.fn();
@@ -22,8 +23,14 @@ beforeEach(() => {
   mockFn('apiCall').mockResolvedValue({ key: 'k' });
 });
 
+async function pairWithHost(id, host) {
+  pairClient(id, 'sat');
+  document.getElementById('pairHost').value = host;
+  await generatePairing();
+}
+
 test('no token appears in the image URL or the QR request URL', async () => {
-  await pairClient(3, 'sat');
+  await pairWithHost(3, '10.0.0.5');
   const img = document.querySelector('#pairQr img');
   expect(img).not.toBeNull();
   expect(img.getAttribute('src')).toBe('blob:qr-0');
@@ -35,9 +42,9 @@ test('no token appears in the image URL or the QR request URL', async () => {
 });
 
 test('closing and reopening revokes the previous blob URL', async () => {
-  await pairClient(3, 'sat');
+  await pairWithHost(3, '10.0.0.5');
   closePairModal();
   expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:qr-0');
-  await pairClient(3, 'sat');
+  await pairWithHost(3, '10.0.0.5');
   expect(document.querySelector('#pairQr img').getAttribute('src')).toBe('blob:qr-1');
 });

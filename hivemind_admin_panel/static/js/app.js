@@ -600,23 +600,51 @@
             showToast(text, 'error');
         }
 
-        async function pairClient(id, name) {
+        // Pairing is two steps inside the modal: pick the host, then generate.
+        // Cancel or Close before the response arrives discards it.
+        let _pairRequest = null;
+        function pairClient(id, name) {
+            _pairRequest = { id };
             document.getElementById('pairName').textContent = name || ('#' + id);
-            const host = prompt('hivemind-core address satellites should connect to (LAN IP or hostname):', location.hostname) || '';
+            document.getElementById('pairHost').value = location.hostname;
+            document.getElementById('pairHostStep').classList.remove('hidden');
+            document.getElementById('pairResult').classList.add('hidden');
+            document.getElementById('pairQr').innerHTML = '';
+            document.getElementById('pairBundle').textContent = '';
+            document.getElementById('pairModal').style.display = 'flex';
+            document.getElementById('pairHost').focus();
+        }
+        async function generatePairing() {
+            const req = _pairRequest;
+            if (!req) return;
+            const id = req.id;
+            const host = document.getElementById('pairHost').value.trim();
             try {
                 const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
+                if (_pairRequest !== req) return;
                 // The QR is fetched with the Authorization header: a token in an
                 // <img> URL leaks into history, logs and Referer headers.
                 const qr = await fetch(`/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}`,
                                        { headers: { 'Authorization': 'Bearer ' + auth.token } });
                 if (!qr.ok) throw new Error(`HTTP ${qr.status}`);
+                if (_pairRequest !== req) return;
                 _revokePairQrUrl();
                 _pairQrUrl = URL.createObjectURL(await qr.blob());
+                if (_pairRequest !== req) { _revokePairQrUrl(); return; }
                 document.getElementById('pairQr').innerHTML =
                     `<img alt="pairing QR" style="width:240px;height:240px;" src="${_pairQrUrl}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
-                document.getElementById('pairModal').style.display = 'flex';
-            } catch (e) { showToast(t('toastPairingFailed') + e.message, 'error'); }
+                document.getElementById('pairHostStep').classList.add('hidden');
+                document.getElementById('pairResult').classList.remove('hidden');
+            } catch (e) {
+                if (_pairRequest === req) showToast(t('toastPairingFailed') + e.message, 'error');
+            }
+        }
+        async function copyPairBundle() {
+            try {
+                await navigator.clipboard.writeText(document.getElementById('pairBundle').textContent);
+                showToast(t('toastJsonCopiedToClipboard'));
+            } catch (e) { showToast(t('toastFailedToCopyJson'), 'error'); }
         }
         let _pairQrUrl = null;
         function _revokePairQrUrl() {
@@ -624,6 +652,7 @@
             _pairQrUrl = null;
         }
         function closePairModal() {
+            _pairRequest = null;
             document.getElementById('pairModal').style.display = 'none';
             _revokePairQrUrl();
         }
