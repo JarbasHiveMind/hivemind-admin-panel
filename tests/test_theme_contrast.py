@@ -152,3 +152,113 @@ def test_text_tokens_meet_aa_on_every_surface(theme):
         if contrast(tokens[fg], tokens[bg]) < 4.5
     ]
     assert not failures, f"{theme}: " + "; ".join(failures)
+
+
+# ------------------------------------------------------------------ accents
+#
+# An accent has two roles. As text it needs 4.5:1 on every surface. As a
+# button fill or a border it is a non-text element and needs 3:1 against the
+# surface it sits on (WCAG 1.4.11). One colour can not do both in every theme,
+# so each accent has a fill token ``--accent-<name>`` and a text token
+# ``--accent-<name>-text``.
+
+ACCENTS = ("primary", "secondary", "danger", "warning", "success")
+ACCENT_TEXT = tuple(f"--accent-{a}-text" for a in ACCENTS)
+ACCENT_FILL = tuple(f"--accent-{a}" for a in ACCENTS)
+FILL_SURFACES = ("--bg-primary", "--bg-card")
+MEASURED = MEASURED + ACCENT_TEXT + ACCENT_FILL + ("--on-danger",)
+
+#: (fill token, text colour) for each button that paints text on an accent.
+#: A string starting with ``--`` is a token, anything else a literal colour.
+BUTTON_TEXT = {
+    "btn-primary/primary": ("--accent-primary", "--bg-primary"),
+    "btn-primary/secondary": ("--accent-secondary", "--bg-primary"),
+    "btn-danger": ("--accent-danger", "--on-danger"),
+    "btn-success": ("--accent-success", "--bg-primary"),
+    "btn-warning": ("--accent-warning", "#1e1e1e"),
+}
+
+#: Button text ratios before the accent tokens were split. A button that met
+#: 4.5:1 must still meet it; a button under 4.5:1 must not get worse.
+BUTTON_TEXT_BEFORE = {
+    "dark": {"btn-primary/primary": 15.15, "btn-primary/secondary": 9.88,
+             "btn-danger": 2.78, "btn-success": 9.38, "btn-warning": 12.1},
+    "light": {"btn-primary/primary": 1.19, "btn-primary/secondary": 1.83,
+              "btn-danger": 2.78, "btn-success": 1.92, "btn-warning": 12.1},
+    "darcula": {"btn-primary/primary": 4.54, "btn-primary/secondary": 3.36,
+                "btn-danger": 5.36, "btn-success": 4.1, "btn-warning": 5.9},
+    "monokai": {"btn-primary/primary": 9.58, "btn-primary/secondary": 9.01,
+                "btn-danger": 3.79, "btn-success": 9.58, "btn-warning": 11.71},
+    "nord": {"btn-primary/primary": 6.24, "btn-primary/secondary": 4.64,
+             "btn-danger": 4.09, "btn-success": 6.13, "btn-warning": 10.68},
+    "dracula": {"btn-primary/primary": 5.9, "btn-primary/secondary": 5.97,
+                "btn-danger": 3.14, "btn-success": 10.38, "btn-warning": 14.92},
+}
+
+
+def _colour(tokens, ref):
+    return tokens[ref] if ref.startswith("--") else parse_color(ref)
+
+
+@pytest.mark.parametrize("theme", sorted(_themes()))
+def test_accent_text_meets_aa_on_every_surface(theme):
+    tokens = _themes()[theme]
+    failures = [
+        f"{fg} {tokens[fg]} on {bg}: {contrast(tokens[fg], tokens[bg]):.2f}"
+        for fg in ACCENT_TEXT for bg in BG_TOKENS
+        if contrast(tokens[fg], tokens[bg]) < 4.5
+    ]
+    assert not failures, f"{theme}: " + "; ".join(failures)
+
+
+@pytest.mark.parametrize("theme", sorted(_themes()))
+def test_accent_fill_meets_non_text_contrast(theme):
+    tokens = _themes()[theme]
+    failures = [
+        f"{fill} {tokens[fill]} on {bg}: {contrast(tokens[fill], tokens[bg]):.2f}"
+        for fill in ACCENT_FILL for bg in FILL_SURFACES
+        if contrast(tokens[fill], tokens[bg]) < 3
+    ]
+    assert not failures, f"{theme}: " + "; ".join(failures)
+
+
+@pytest.mark.parametrize("theme", sorted(BUTTON_TEXT_BEFORE))
+def test_button_text_contrast_does_not_get_worse(theme):
+    tokens = _themes()[theme]
+    failures = []
+    for name, (fill, text) in BUTTON_TEXT.items():
+        ratio = contrast(tokens[fill], _colour(tokens, text))
+        floor = min(4.5, BUTTON_TEXT_BEFORE[theme][name])
+        if ratio + 0.005 < floor:
+            failures.append(f"{name}: {ratio:.2f} < {floor}")
+    assert not failures, f"{theme}: " + "; ".join(failures)
+
+
+STATIC = os.path.dirname(os.path.dirname(CSS))
+#: ``color: var(--accent-x)`` paints text with a fill token. ``border-color``
+#: and ``background-color`` do not match: the look-behind rejects a hyphen.
+# text colour set by a CSS declaration (``color: var(--accent-x)``, also with a
+# fallback) or by script (``.style.color = '... var(--accent-x)'``)
+_ACCENT_AS_TEXT = re.compile(
+    r"(?<![-\w])color(?::\s*|\s*=\s*['\"`][^'\"`]*?)var\(--accent-[a-z]+\s*[),]")
+
+
+@pytest.mark.parametrize("path", ["css/style.css", "index.html", "js/app.js"])
+def test_text_uses_the_accent_text_token(path):
+    with open(os.path.join(STATIC, path), encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    hits = [f"{n}: {line.strip()}" for n, line in enumerate(lines, 1)
+            if _ACCENT_AS_TEXT.search(line)]
+    assert not hits, f"{path} paints text with a fill token:\n" + "\n".join(hits)
+
+
+def test_the_text_token_guard_matches_only_text():
+    assert _ACCENT_AS_TEXT.search("color: var(--accent-danger)")
+    assert _ACCENT_AS_TEXT.search('style="color:var(--accent-primary);"')
+    assert not _ACCENT_AS_TEXT.search("border-color: var(--accent-primary)")
+    assert not _ACCENT_AS_TEXT.search("background-color: var(--accent-primary)")
+    assert not _ACCENT_AS_TEXT.search("color: var(--accent-primary-text)")
+    assert _ACCENT_AS_TEXT.search("color: var(--accent-danger, #e74c3c)")
+    assert _ACCENT_AS_TEXT.search("status.style.color = 'var(--accent-danger)';")
+    assert not _ACCENT_AS_TEXT.search("status.style.color = 'var(--accent-danger-text)';")
+    assert not _ACCENT_AS_TEXT.search("el.style.borderColor = 'var(--accent-danger)';")

@@ -47,7 +47,7 @@
             <div id="frStrength" style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:12px;"><div style="height:100%;width:0;border-radius:2px;background:var(--accent-danger);transition:all .2s;"></div></div>
             <label for="frConfirmPass" style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;" data-i18n="confirmPassword">Confirm password</label>
             <input id="frConfirmPass" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitFirstRunPassword()" style="width:100%;padding:10px;margin-bottom:12px;background:var(--bg-hover);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);">
-            <div id="frError" class="hidden" style="color:var(--accent-danger);font-size:12px;margin-bottom:12px;"></div>
+            <div id="frError" class="hidden" style="color:var(--accent-danger-text);font-size:12px;margin-bottom:12px;"></div>
             <button class="btn btn-primary" onclick="submitFirstRunPassword()" style="width:100%;" data-i18n="setPasswordContinue">Set password &amp; continue</button>
             <p style="color:var(--text-secondary);font-size:11px;text-align:center;margin:12px 0 0;" data-i18n="storedHashed">Stored hashed (PBKDF2). Minimum 8 characters.</p>
         </div>
@@ -315,19 +315,19 @@
                             <h3 style="margin-bottom: 12px;">📋 <span data-i18n="howAclWorks">How Access Control Works</span></h3>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <strong style="color: var(--accent-success);" data-i18n="aclMessages">Messages</strong>
+                                    <strong style="color: var(--accent-success-text);" data-i18n="aclMessages">Messages</strong>
                                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                                         <span data-i18n-html="aclMessagesHelp"><strong>Whitelist mode</strong> — By default, ALL messages are blocked. You must explicitly allow each message type the client can send.</span>
                                     </p>
                                 </div>
                                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <strong style="color: var(--accent-warning);" data-i18n="aclSkills">Skills</strong>
+                                    <strong style="color: var(--accent-warning-text);" data-i18n="aclSkills">Skills</strong>
                                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                                         <span data-i18n-html="aclSkillsHelp"><strong>Blacklist mode</strong> — All skills are allowed by default. Add skill IDs to block specific skills.</span>
                                     </p>
                                 </div>
                                 <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                                    <strong style="color: var(--accent-danger);" data-i18n="aclIntents">Intents</strong>
+                                    <strong style="color: var(--accent-danger-text);" data-i18n="aclIntents">Intents</strong>
                                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                                         <span data-i18n-html="aclIntentsHelp"><strong>Blacklist mode</strong> — All intents are allowed by default. Add intent IDs to block specific intents.</span>
                                     </p>
@@ -402,7 +402,7 @@
                                 <!-- Allowed Message Types (Whitelist) -->
                                 <div class="card" style="margin-bottom: 16px; border-left: 4px solid var(--accent-success);">
                                     <div class="card-header" style="padding: 12px 16px;">
-                                        <h4 style="font-size: 14px;">✅ <span data-i18n="allowedMessageTypes">Allowed Message Types</span> <span style="color: var(--accent-success);" data-i18n="whitelistParen">(Whitelist)</span></h4>
+                                        <h4 style="font-size: 14px;">✅ <span data-i18n="allowedMessageTypes">Allowed Message Types</span> <span style="color: var(--accent-success-text);" data-i18n="whitelistParen">(Whitelist)</span></h4>
                                     </div>
                                     <div class="card-body">
                                         <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
@@ -630,35 +630,35 @@
                             </div>
 
                             <div id="sttVoiceSection" class="voice-tab-content">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="sttFull">Speech-to-Text (STT)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary-text);" data-i18n="sttFull">Speech-to-Text (STT)</h4>
                                 <div id="sttPluginsContainer" style="margin-bottom: 24px;">
                                     <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingSttPlugins">Loading STT plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="ttsVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="ttsFull">Text-to-Speech (TTS)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary-text);" data-i18n="ttsFull">Text-to-Speech (TTS)</h4>
                                 <div id="ttsPluginsContainer" style="margin-bottom: 24px;">
                                     <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingTtsPlugins">Loading TTS plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="wwVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="wakeWordFull">Wake Word (WW)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary-text);" data-i18n="wakeWordFull">Wake Word (WW)</h4>
                                 <div id="wwPluginsContainer" style="margin-bottom: 24px;">
                                     <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingWwPlugins">Loading Wake Word plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="vadVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="vadFull">Voice Activity Detection (VAD)</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary-text);" data-i18n="vadFull">Voice Activity Detection (VAD)</h4>
                                 <div id="vadPluginsContainer">
                                     <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingVadPlugins">Loading VAD plugins...</p></div>
                                 </div>
                             </div>
 
                             <div id="solversVoiceSection" class="voice-tab-content hidden">
-                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary);" data-i18n="agentPlugins">Agent Plugins</h4>
+                                <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-primary-text);" data-i18n="agentPlugins">Agent Plugins</h4>
                                 <div id="solversPluginsContainer" style="display: grid; gap: 8px;">
                                     <div class="empty-state"><div class="spinner"></div><p data-i18n="loadingAgentPlugins">Loading Agent plugins...</p></div>
                                 </div>
@@ -738,7 +738,7 @@
                                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                                             <span style="font-size: 24px;">⚠️</span>
                                             <div>
-                                                <strong style="font-size: 16px; color: var(--accent-warning);" data-i18n="binaryProtocolNotEnabled">Binary Protocol Not Enabled</strong>
+                                                <strong style="font-size: 16px; color: var(--accent-warning-text);" data-i18n="binaryProtocolNotEnabled">Binary Protocol Not Enabled</strong>
                                                 <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
                                                     <span data-i18n="enableAudioBinaryHelp">Enable the Audio Binary Protocol to use voice I/O features with satellites.</span>
                                                 </p>
@@ -836,7 +836,7 @@
                             </div>
                             <div class="form-group">
                                 <label style="display:flex;justify-content:space-between;align-items:center;"><span data-i18n="config">Config</span>
-                                    <a href="#" id="presetJsonToggle" onclick="event.preventDefault();togglePresetJson()" style="font-size:11px;font-weight:normal;color:var(--accent-primary);" data-i18n="editAsJson">edit as JSON</a>
+                                    <a href="#" id="presetJsonToggle" onclick="event.preventDefault();togglePresetJson()" style="font-size:11px;font-weight:normal;color:var(--accent-primary-text);" data-i18n="editAsJson">edit as JSON</a>
                                 </label>
                                 <div id="presetFields" style="display:grid;gap:10px;"></div>
                                 <textarea id="presetConfig" placeholder='{ "model": "large-v3", "device": "cuda" }' style="display:none;width:100%;height:120px;font-family:monospace;font-size:12px;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);border-radius:var(--radius-sm);padding:8px;"></textarea>
@@ -1203,7 +1203,7 @@
             </div>
             <div class="modal-body">
                 <div style="padding: 16px; background: rgba(255, 107, 107, 0.1); border: 2px solid var(--accent-danger); border-radius: var(--radius-sm); margin-bottom: 20px;">
-                    <h4 style="color: var(--accent-danger); margin-bottom: 12px; font-size: 15px;">🚨 <span data-i18n="securityWarningTitle">SECURITY WARNING - READ CAREFULLY</span></h4>
+                    <h4 style="color: var(--accent-danger-text); margin-bottom: 12px; font-size: 15px;">🚨 <span data-i18n="securityWarningTitle">SECURITY WARNING - READ CAREFULLY</span></h4>
                     <ul style="font-size: 13px; color: var(--text-primary); line-height: 1.8; margin: 0; padding-left: 20px;">
                         <li data-i18n-html="warnUnverifiedCode"><strong>Unverified Code:</strong> Custom plugins are NOT vetted by HiveMind or OpenVoiceOS.</li>
                         <li data-i18n-html="warnSecurityRisk"><strong>Security Risk:</strong> Malicious plugins can steal data, compromise your system, or expose your network.</li>
@@ -1227,8 +1227,8 @@
                     <label for="customPluginPackage" data-i18n="pluginPackageName">Plugin Package Name</label>
                     <input type="text" id="customPluginPackage" placeholder="e.g., ovos-stt-plugin-custom" style="font-family: monospace; font-size: 14px;" data-i18n-placeholder="ovosSttExamplePh">
                     <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                        💡 <span data-i18n-html="findPluginsOn">Find plugins on <a href="https://pypi.org/search/?q=ovos" target="_blank" style="color: var(--accent-primary);">PyPI</a> or
-                        <a href="https://github.com/OpenVoiceOS" target="_blank" style="color: var(--accent-primary);">GitHub</a></span>
+                        💡 <span data-i18n-html="findPluginsOn">Find plugins on <a href="https://pypi.org/search/?q=ovos" target="_blank" style="color: var(--accent-primary-text);">PyPI</a> or
+                        <a href="https://github.com/OpenVoiceOS" target="_blank" style="color: var(--accent-primary-text);">GitHub</a></span>
                     </p>
                 </div>
 
@@ -1258,7 +1258,7 @@
             <div class="modal-body">
                 <div style="margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span id="installPackageName" style="font-family: monospace; font-size: 13px; color: var(--accent-primary);"></span>
+                        <span id="installPackageName" style="font-family: monospace; font-size: 13px; color: var(--accent-primary-text);"></span>
                         <span id="installProgressPercent" style="font-size: 13px; color: var(--text-secondary);">0%</span>
                     </div>
                     <div style="height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
@@ -1274,7 +1274,7 @@
                 </div>
 
                 <div id="installErrorDetails" class="hidden" style="margin-top: 16px; padding: 12px; background: rgba(255, 107, 107, 0.1); border: 1px solid var(--accent-danger); border-radius: var(--radius-sm);">
-                    <strong style="color: var(--accent-danger); font-size: 13px;">❌ <span data-i18n="installationError">Installation Error</span></strong>
+                    <strong style="color: var(--accent-danger-text); font-size: 13px;">❌ <span data-i18n="installationError">Installation Error</span></strong>
                     <pre id="installErrorText" style="font-size: 11px; color: var(--text-secondary); margin-top: 8px; white-space: pre-wrap; word-break: break-word;"></pre>
                 </div>
             </div>
@@ -1437,7 +1437,7 @@
                         </div>
                     </div>
 
-                    <p style="font-size: 11px; color: var(--accent-warning); margin-top: 8px;">
+                    <p style="font-size: 11px; color: var(--accent-warning-text); margin-top: 8px;">
                         💡 <span data-i18n="agentTipClickDrag">Tip: Click a agent to add/remove it. Drag selected agents to reorder.</span>
                     </p>
                 </div>
@@ -1528,7 +1528,7 @@
                 
                 <div id="enableAgentPersonaConfig" style="display: none;">
                     <div style="padding: 16px; background: rgba(100, 255, 218, 0.1); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); margin-bottom: 16px;">
-                        <h4 style="color: var(--accent-primary); margin-bottom: 8px; font-size: 14px;">👤 <span data-i18n="selectPersona">Select Persona</span></h4>
+                        <h4 style="color: var(--accent-primary-text); margin-bottom: 8px; font-size: 14px;">👤 <span data-i18n="selectPersona">Select Persona</span></h4>
                         <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
                             <span data-i18n="choosePersonaHelp">Choose which persona to use for AI conversations. This persona will handle all incoming messages.</span>
                         </p>
@@ -1560,7 +1560,7 @@
                 <input type="hidden" id="binaryPluginModule">
                 
                 <div style="padding: 16px; background: rgba(100, 255, 218, 0.1); border: 1px solid var(--accent-primary); border-radius: var(--radius-sm); margin-bottom: 16px;">
-                    <h4 style="color: var(--accent-primary); margin-bottom: 8px; font-size: 14px;">🎙️ <span data-i18n="voiceConfiguration">Voice Configuration</span></h4>
+                    <h4 style="color: var(--accent-primary-text); margin-bottom: 8px; font-size: 14px;">🎙️ <span data-i18n="voiceConfiguration">Voice Configuration</span></h4>
                     <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
                         <span data-i18n="selectPluginsEachCategory">Select plugins for each voice processing category. All categories are required.</span>
                     </p>
