@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.11a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a2...0.3.11a1)
+
+**Merged pull requests:**
+
+- fix: accent colours meet contrast as text and as fills [\#121](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/121) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: the SSE ticket endpoint no longer invents an admin identity [\#114](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/114) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.10a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a2) (2026-09-18)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a1...0.3.10a2)
