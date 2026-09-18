@@ -78,9 +78,10 @@ The SPA is dependency-free vanilla JS. Three edits:
    and adds auth). **Always HTML-escape** user data with the existing `esc()`
    helper.
 
-Browser `EventSource` (SSE) cannot send headers. For live feeds, mint a token through
-`/auth/login` and pass it as `?access_token=`. The API accepts it. See
-`startMonitorLive` for the client-side pattern.
+Browser `EventSource` (SSE) cannot send headers. For live feeds, ask for a
+one-time ticket with `POST /events/ticket` (an authenticated call) and pass it
+as `?ticket=`. The ticket lives 30 seconds and works once, so the login token
+stays out of the URL. See `startMonitorLive` for the client-side pattern.
 
 ## Add a translation string
 

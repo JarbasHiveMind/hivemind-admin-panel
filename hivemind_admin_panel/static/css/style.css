@@ -26,11 +26,13 @@
             --bg-card: #ffffff;
             --bg-hover: #e2e8f0;
             --text-primary: #1e293b;
-            --text-secondary: #64748b;
+            --text-secondary: #59687c;
             --border-color: #e2e8f0;
             --shadow: 0 4px 6px rgba(0,0,0,0.05);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
             --code-bg: #f6f8fa;
+            /* 5.2:1 on --bg-primary, 4.4:1 on --bg-hover */
+            --focus-ring: #0f766e;
         }
 
         [data-theme="darcula"] {
@@ -38,9 +40,10 @@
             --bg-secondary: #3c3f41;
             --bg-card: #3c3f41;
             --bg-hover: #494b4d;
-            --text-primary: #a9b7c6;
-            --text-secondary: #9876aa;
+            --text-primary: #b1bdcb;
+            --text-secondary: #c7b5d1;
             --accent-primary: #6897bb;
+            --focus-ring: #7ea7c7;
             --accent-secondary: #287bde;
             --accent-danger: #bc3f3c;
             --accent-warning: #bb9445;
@@ -57,7 +60,7 @@
             --bg-card: #3e3d32;
             --bg-hover: #49483e;
             --text-primary: #f8f8f2;
-            --text-secondary: #75715e;
+            --text-secondary: #bbb8aa;
             --accent-primary: #a6e22e;
             --accent-secondary: #66d9ef;
             --accent-danger: #f92672;
@@ -75,7 +78,7 @@
             --bg-card: #3b4252;
             --bg-hover: #434c5e;
             --text-primary: #eceff4;
-            --text-secondary: #a3be8c;
+            --text-secondary: #acc497;
             --accent-primary: #88c0d0;
             --accent-secondary: #81a1c1;
             --accent-danger: #bf616a;
@@ -93,8 +96,9 @@
             --bg-card: #44475a;
             --bg-hover: #525787;
             --text-primary: #f8f8f2;
-            --text-secondary: #6272a4;
+            --text-secondary: #ced3e3;
             --accent-primary: #bd93f9;
+            --focus-ring: #c9a7fa;
             --accent-secondary: #ff79c6;
             --accent-danger: #ff5555;
             --accent-warning: #f1fa8c;
@@ -283,6 +287,24 @@
         #topologyContainer svg g[role="button"]:focus {
             outline: 2px solid var(--accent-primary);
             outline-offset: 2px;
+        }
+
+        /* A keyboard user must be able to see where they are. Only form fields
+           and the topology nodes styled focus, so every button, link and nav
+           item fell back to the weak browser default. :focus-visible keeps the ring
+           off a mouse click. --focus-ring is set where the accent is under 3:1
+           against a theme background; other themes use the accent. */
+        a:focus-visible,
+        button:focus-visible,
+        [role="button"]:focus-visible,
+        [tabindex]:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        summary:focus-visible {
+            outline: 2px solid var(--focus-ring, var(--accent-primary));
+            outline-offset: 2px;
+            border-radius: var(--radius-sm);
         }
 
         .btn {

@@ -105,44 +105,101 @@
         }
 
         // ---- Modal keyboard handling -------------------------------------------------
-        // Every modal is a div toggled to display:flex (or .active). Without this,
-        // Escape did nothing and focus stayed behind the overlay.
-        let _modalOpener = null;
+        // Every modal is a div toggled to display:flex (or .active) from many call
+        // sites. A MutationObserver sees every open and close, whatever the path, and
+        // keeps the modals in the order they opened. Escape closes the top one through
+        // its own close function, so its cleanup runs. Tab stays inside the top modal.
+        const _modalStack = [];   // [{ el, opener }]
+        const _FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), ' +
+            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-        function _openModals() {
-            return Array.from(document.querySelectorAll('.modal, [id$="Modal"]'))
-                .filter(el => el.classList.contains('active') ||
-                              getComputedStyle(el).display !== 'none');
+        function _isModal(el) {
+            return el && el.nodeType === 1 && (el.classList.contains('modal') || /Modal$/.test(el.id || ''));
+        }
+
+        function _isModalOpen(el) {
+            return el.classList.contains('active') || (!!el.style.display && el.style.display !== 'none');
+        }
+
+        function _focusables(el) {
+            return Array.from(el.querySelectorAll(_FOCUSABLE))
+                .filter(n => !n.closest('.hidden') && n.style.display !== 'none');
+        }
+
+        function _syncModal(el) {
+            const idx = _modalStack.findIndex(m => m.el === el);
+            if (_isModalOpen(el)) {
+                if (idx !== -1) return;
+                const active = document.activeElement;
+                const opener = (active && active !== document.body && !el.contains(active)) ? active : _lastPointerTarget;
+                _modalStack.push({ el, opener });
+                const first = _focusables(el)[0];
+                if (first) first.focus();
+                else { if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1'); el.focus(); }
+            } else if (idx !== -1) {
+                const [entry] = _modalStack.splice(idx, 1);
+                if (entry.opener && document.contains(entry.opener)) entry.opener.focus();
+            }
+        }
+
+        function _topModal() {
+            for (let i = _modalStack.length - 1; i >= 0; i--) {
+                const { el } = _modalStack[i];
+                if (document.contains(el) && _isModalOpen(el)) return el;
+                _modalStack.splice(i, 1);
+            }
+            return null;
         }
 
         function closeTopModal() {
-            const open = _openModals();
-            if (!open.length) return false;
-            const top = open[open.length - 1];
+            const top = _topModal();
+            if (!top) return false;
             // the first-run gate is deliberately not dismissable
             if (top.id === 'firstRunModal') return false;
-            top.style.display = 'none';
-            top.classList.remove('active');
-            if (_modalOpener && document.contains(_modalOpener)) _modalOpener.focus();
-            _modalOpener = null;
+            const name = 'close' + top.id.charAt(0).toUpperCase() + top.id.slice(1);
+            const closeFn = top.id && typeof window[name] === 'function' ? window[name] : null;
+            if (closeFn) closeFn();
+            if (_isModalOpen(top)) {   // no close function, or it left the modal open
+                top.style.display = 'none';
+                top.classList.remove('active');
+            }
+            _syncModal(top);
             return true;
         }
 
+        let _lastPointerTarget = null;
+        if (typeof MutationObserver !== 'undefined') {
+            new MutationObserver((records) => {
+                for (const r of records) if (_isModal(r.target)) _syncModal(r.target);
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'], subtree: true });
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return;
-            if (closeTopModal()) e.preventDefault();
+            if (e.key === 'Escape') {
+                if (closeTopModal()) e.preventDefault();
+                return;
+            }
+            if (e.key !== 'Tab') return;
+            const top = _topModal();
+            if (!top) return;
+            const items = _focusables(top);
+            if (!items.length) { e.preventDefault(); return; }
+            const first = items[0], last = items[items.length - 1];
+            const inside = top.contains(document.activeElement);
+            if (e.shiftKey && (!inside || document.activeElement === first)) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && (!inside || document.activeElement === last)) { e.preventDefault(); first.focus(); }
         });
 
         document.addEventListener('mousedown', (e) => {
             const el = e.target.closest && e.target.closest('button, a, [onclick]');
-            if (el) _modalOpener = el;
+            if (el) _lastPointerTarget = el;
         }, true);
 
         // click fires for keyboard activation (Enter/Space) too, so this catches
         // modals opened without a mouse that mousedown above would otherwise miss.
         document.addEventListener('click', (e) => {
             const el = e.target.closest && e.target.closest('button, a, [onclick]');
-            if (el) _modalOpener = el;
+            if (el) _lastPointerTarget = el;
         }, true);
 
         // Theme
@@ -498,10 +555,14 @@
         // ===================== Topology + pairing =====================
         async function loadTopologyPage() {
             let g;
-            try { g = await apiCall('/topology'); } catch (e) { return; }
+            try { g = await apiCall('/topology'); } catch (e) { showTopologyError(e); return; }
             const sats = g.nodes.filter(n => n.type !== 'core');
             const W = 600, H = 420, cx = W / 2, cy = H / 2, R = 150;
-            let svg = `<svg viewBox="0 0 ${W} ${H}" style="max-width:100%;height:auto;">`;
+            // The map is the only picture in the panel. Without a name, assistive
+            // technology reads an anonymous graphic; role="group" keeps the
+            // satellites inside it exposed as the buttons they are.
+            const mapLabel = `Hive map: ${sats.length} satellite(s), ${g.online_count} online, around one core`;
+            let svg = `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(mapLabel)}" style="max-width:100%;height:auto;"><title>${esc(mapLabel)}</title>`;
             sats.forEach((n, i) => {
                 const a = (2 * Math.PI * i) / Math.max(sats.length, 1);
                 const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
@@ -530,6 +591,15 @@
             document.getElementById('topologyContainer').innerHTML = svg;
         }
 
+        function showTopologyError(e) {
+            const box = document.getElementById('topologyContainer');
+            // The server text is built once, outside the innerHTML statement,
+            // and escaped as a whole where it enters the page.
+            const text = t('topologyLoadFailed') + (e && e.message ? e.message : '');
+            if (box) box.innerHTML = `<div class="empty-state" role="alert"><p>${escapeHtml(text)}</p></div>`;
+            showToast(text, 'error');
+        }
+
         // Pairing is two steps inside the modal: pick the host, then generate.
         // Cancel or Close before the response arrives discards it.
         let _pairRequest = null;
@@ -552,9 +622,17 @@
             try {
                 const bundle = await apiCall(`/clients/${id}/pairing?host=${encodeURIComponent(host)}`);
                 if (_pairRequest !== req) return;
-                const tok = auth.token;
+                // The QR is fetched with the Authorization header: a token in an
+                // <img> URL leaks into history, logs and Referer headers.
+                const qr = await fetch(`/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}`,
+                                       { headers: { 'Authorization': 'Bearer ' + auth.token } });
+                if (!qr.ok) throw new Error(`HTTP ${qr.status}`);
+                if (_pairRequest !== req) return;
+                _revokePairQrUrl();
+                _pairQrUrl = URL.createObjectURL(await qr.blob());
+                if (_pairRequest !== req) { _revokePairQrUrl(); return; }
                 document.getElementById('pairQr').innerHTML =
-                    `<img alt="pairing QR" style="width:240px;height:240px;" src="/api/clients/${id}/pairing/qr.svg?host=${encodeURIComponent(host)}&access_token=${encodeURIComponent(tok)}">`;
+                    `<img alt="pairing QR" style="width:240px;height:240px;" src="${_pairQrUrl}">`;
                 document.getElementById('pairBundle').textContent = JSON.stringify(bundle, null, 2);
                 document.getElementById('pairHostStep').classList.add('hidden');
                 document.getElementById('pairResult').classList.remove('hidden');
@@ -568,9 +646,15 @@
                 showToast(t('toastJsonCopiedToClipboard'));
             } catch (e) { showToast(t('toastFailedToCopyJson'), 'error'); }
         }
+        let _pairQrUrl = null;
+        function _revokePairQrUrl() {
+            if (_pairQrUrl) URL.revokeObjectURL(_pairQrUrl);
+            _pairQrUrl = null;
+        }
         function closePairModal() {
             _pairRequest = null;
             document.getElementById('pairModal').style.display = 'none';
+            _revokePairQrUrl();
         }
 
         // ===================== Persona test chat =====================
@@ -635,6 +719,7 @@
         async function loadMonitorPage() {
             await renderMetrics();
             await loadEvents();
+            await loadRejections();
             await loadLogs();
             await loadAudit();
         }
@@ -680,6 +765,23 @@
                     : '<span style="color:var(--text-secondary);">no events yet</span>';
             } catch (e) {}
         }
+        // Rejected connections with the reason core recorded. The list keeps
+        // only the last rejection_window_seconds, so old attempts drop off.
+        async function loadRejections() {
+            const el = document.getElementById('rejectionsContainer');
+            if (!el) return;
+            try {
+                const r = await apiCall('/connections');
+                const rows = r.recent_rejections || [];
+                const mins = Math.round((r.rejection_window_seconds || 0) / 60);
+                el.innerHTML = rows.length
+                    ? rows.map(e =>
+                        `<div style="padding:6px 0;border-bottom:1px solid var(--border-color);font-size:13px;">
+                           <span style="color:var(--text-secondary);">${new Date(e.time*1000).toLocaleTimeString()}</span>
+                           <strong> ${esc(e.peer)}</strong> — ${esc(e.code)} ${esc(e.reason)}</div>`).join('')
+                    : `<span style="color:var(--text-secondary);">no rejected connections in the last ${esc(mins)} min</span>`;
+            } catch (e) { el.textContent = 'rejections unavailable'; }
+        }
         async function loadLogs() {
             try {
                 const r = await apiCall('/logs?lines=200');
@@ -703,10 +805,19 @@
         }
         async function startMonitorLive() {
             stopMonitorLive();
-            // EventSource can't set headers, so mint a short-lived token and pass it
-            // as access_token (accepted by the SSE endpoint).
+            // EventSource can't set headers, so ask for a one-time ticket over an
+            // authenticated POST and put that in the URL. The login token never
+            // reaches the address bar, the access log or the Referer header.
+            let ticket;
+            try {
+                ticket = (await apiCall('/events/ticket', 'POST')).ticket;
+            } catch (e) {
+                showToast('Live view failed: ' + e.message, 'error');
+                document.getElementById('monitorLive').checked = false;
+                return;
+            }
             monitorEventSource = new EventSource(
-                '/api/events?interval=2&access_token=' + encodeURIComponent(auth.token));
+                '/api/events?interval=2&ticket=' + encodeURIComponent(ticket));
             monitorEventSource.addEventListener('snapshot', renderMetrics);
             monitorEventSource.addEventListener('event', loadEvents);
             monitorEventSource.onerror = () => { renderMetrics(); };
@@ -725,7 +836,7 @@
                        <strong>${esc(s.name)}</strong>
                        <span class="badge">${esc(s.type)}</span>
                        <span style="color:var(--text-secondary);flex:1;">${esc(s.url)}</span>
-                       <span id="health-${s.id}" style="font-size:12px;color:var(--text-secondary);">—</span>
+                       <span id="health-${esc(s.id)}" style="font-size:12px;color:var(--text-secondary);">—</span>
                        <button class="btn btn-secondary btn-sm" onclick="checkServer('${jsArg(s.id)}')">Health</button>
                        <button class="btn btn-danger btn-sm" onclick="deleteServer('${jsArg(s.id)}')">Remove</button>
                      </div>`).join('') : '<span style="color:var(--text-secondary);">no servers registered</span>';
@@ -742,14 +853,14 @@
             loadServersPage();
         }
         async function deleteServer(id) {
-            await apiCall('/servers/' + id, 'DELETE');
+            await apiCall('/servers/' + encodeURIComponent(id), 'DELETE');
             loadServersPage();
         }
         async function checkServer(id) {
             const el = document.getElementById('health-' + id);
             el.textContent = '…';
             try {
-                const h = await apiCall('/servers/' + id + '/health');
+                const h = await apiCall('/servers/' + encodeURIComponent(id) + '/health');
                 el.textContent = h.reachable ? `✅ ${h.status_code} (${h.latency_ms}ms)` : '❌ unreachable';
                 el.style.color = h.reachable ? 'var(--success, #3fb950)' : 'var(--danger, #f85149)';
             } catch (e) { el.textContent = '❌'; }
@@ -782,14 +893,22 @@
         }
 
         async function diffConfigBackup(file) {
+            const out = document.getElementById('configBackupDiff');
             try {
                 const d = await apiCall('/config/backups/diff?file=' + encodeURIComponent(file));
                 const keys = o => Object.keys(o || {});
-                alert(`Reverting to ${file} would change:\n\n` +
+                if (!out) return;
+                out.textContent = `Reverting to ${file} would change:\n` +
                       `added: ${keys(d.added).join(', ') || '—'}\n` +
                       `removed: ${keys(d.removed).join(', ') || '—'}\n` +
-                      `changed: ${keys(d.changed).join(', ') || '—'}`);
-            } catch (e) { showToast(t('toastDiffUnavailable'), 'error'); }
+                      `changed: ${keys(d.changed).join(', ') || '—'}`;
+                out.hidden = false;
+            } catch (e) {
+                // Hide the last preview: it names another snapshot, and leaving
+                // it up answers this click with a diff this click did not get.
+                if (out) out.hidden = true;
+                showToast(t('toastDiffUnavailable'), 'error');
+            }
         }
 
         async function revertConfigBackup(file) {
@@ -797,6 +916,10 @@
             try {
                 await apiCall('/config/backups/restore', 'POST', { file });
                 showToast(t('toastConfigReverted'), 'success');
+                // The preview is written in the future tense, so it must not
+                // outlive the revert it describes.
+                const out = document.getElementById('configBackupDiff');
+                if (out) out.hidden = true;
                 loadConfigBackups();
                 showRestartRequiredModal();
             } catch (e) { showToast(t('toastRevertFailed') + (e.message || ''), 'error'); }
@@ -838,11 +961,14 @@
             } catch (e) {}
         }
         async function savePolicy() {
+            let chain;
             try {
-                const chain = JSON.parse(document.getElementById('policyEditor').value);
+                chain = JSON.parse(document.getElementById('policyEditor').value);
+            } catch (e) { showToast(t('toastPolicyInvalidJson') + e.message, 'error'); return; }
+            try {
                 await apiCall('/policy', 'PUT', { chain });
-                alert('Policy saved');
-            } catch (e) { alert('Invalid JSON: ' + e.message); }
+                showToast(t('toastPolicySaved'));
+            } catch (e) { showToast(t('toastPolicySaveFailed') + (e.message || ''), 'error'); }
         }
 
         // Health Check
@@ -925,14 +1051,14 @@
 
                 // Get all plugin counts from API
                 const [sttPlugins, ttsPlugins, wwPlugins, vadPlugins, networkPlugins, agentPlugins, databasePlugins, binaryPlugins] = await Promise.all([
-                    apiCall('/plugins/installed/ovos/stt').catch(() => []),
-                    apiCall('/plugins/installed/ovos/tts').catch(() => []),
-                    apiCall('/plugins/installed/ovos/ww').catch(() => []),
-                    apiCall('/plugins/installed/ovos/vad').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/network').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/agent').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/database').catch(() => []),
-                    apiCall('/plugins/installed/hivemind/binary').catch(() => [])
+                    apiCall('/plugins/installed/ovos/stt').catch(() => null),
+                    apiCall('/plugins/installed/ovos/tts').catch(() => null),
+                    apiCall('/plugins/installed/ovos/ww').catch(() => null),
+                    apiCall('/plugins/installed/ovos/vad').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/network').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/agent').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/database').catch(() => null),
+                    apiCall('/plugins/installed/hivemind/binary').catch(() => null)
                 ]);
 
                 // Core-readiness banner (in-process core hung before binding listeners)
@@ -946,14 +1072,14 @@
 
                 // Render plugin status grid with API counts
                 renderPluginStatusGrid({
-                    stt: sttPlugins.length,
-                    tts: ttsPlugins.length,
-                    ww: wwPlugins.length,
-                    vad: vadPlugins.length,
-                    network: networkPlugins.length,
-                    agent: agentPlugins.length,
-                    database: databasePlugins.length,
-                    binary: binaryPlugins.length
+                    stt: sttPlugins ? sttPlugins.length : null,
+                    tts: ttsPlugins ? ttsPlugins.length : null,
+                    ww: wwPlugins ? wwPlugins.length : null,
+                    vad: vadPlugins ? vadPlugins.length : null,
+                    network: networkPlugins ? networkPlugins.length : null,
+                    agent: agentPlugins ? agentPlugins.length : null,
+                    database: databasePlugins ? databasePlugins.length : null,
+                    binary: binaryPlugins ? binaryPlugins.length : null
                 });
 
                 // Render network configuration
@@ -1071,23 +1197,24 @@
             if (!container) return;
 
             const categories = {
-                'STT': { icon: '🎙️', count: counts.stt || 0 },
-                'TTS': { icon: '🔊', count: counts.tts || 0 },
-                'Wake Word': { icon: '⏰', count: counts.ww || 0 },
-                'VAD': { icon: '🎯', count: counts.vad || 0 },
-                'Network': { icon: '🌐', count: counts.network || 0 },
-                'Agent': { icon: '🤖', count: counts.agent || 0 },
-                'Database': { icon: '🗄️', count: counts.database || 0 },
-                'Binary': { icon: '📦', count: counts.binary || 0 }
+                'STT': { icon: '🎙️', count: counts.stt },
+                'TTS': { icon: '🔊', count: counts.tts },
+                'Wake Word': { icon: '⏰', count: counts.ww },
+                'VAD': { icon: '🎯', count: counts.vad },
+                'Network': { icon: '🌐', count: counts.network },
+                'Agent': { icon: '🤖', count: counts.agent },
+                'Database': { icon: '🗄️', count: counts.database },
+                'Binary': { icon: '📦', count: counts.binary }
             };
 
             let html = '';
             for (const [catName, catData] of Object.entries(categories)) {
-                if (catData.count > 0) {
+                // null means the request failed: show that the count is unknown.
+                if (catData.count === null || catData.count > 0) {
                     html += `
                         <div style="padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); text-align: center;">
                             <div style="font-size: 20px; margin-bottom: 4px;">${catData.icon}</div>
-                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">${catData.count}</div>
+                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);"${catData.count === null ? ` title="${escapeHtml(t('pluginCountUnavailable'))}"` : ''}>${catData.count === null ? '—' : catData.count}</div>
                             <div style="font-size: 11px; color: var(--text-secondary);">${catName}</div>
                         </div>
                     `;
@@ -1889,11 +2016,11 @@
                 if (result.success) {
                     statusDiv.classList.add('success');
                     statusDiv.style.border = '1px solid var(--accent-success)';
-                    statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${result.message || 'Connection OK'}</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message || 'Connection OK')}</span>`;
                 } else {
                     statusDiv.classList.add('error');
                     statusDiv.style.border = '1px solid var(--accent-danger)';
-                    statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${result.message || 'Test failed'}</span>`;
+                    statusDiv.innerHTML = `<span style="color: var(--accent-danger);">✗ ${escapeHtml(result.message || 'Test failed')}</span>`;
                 }
             } catch (e) {
                 statusDiv.classList.add('error');
@@ -1954,7 +2081,7 @@
                 statusDiv.classList.add('success');
                 statusDiv.style.border = '1px solid var(--accent-success)';
                 const migNote = result.clients_migrated > 0 ? ` (${result.clients_migrated} clients migrated)` : '';
-                statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${result.message}${migNote}</span>`;
+                statusDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message)}${migNote}</span>`;
                 _dbActiveName = name;
                 renderDatabaseProfiles();
                 setTimeout(() => {
@@ -2756,7 +2883,7 @@
                     <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--accent-primary);" draggable="true" ondragstart="dragStart(event, ${index})" ondragover="dragOver(event)" ondrop="drop(event, ${index})">
                         <span style="cursor: grab; font-size: 16px; color: var(--text-secondary);">⋮⋮</span>
                         <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">${index + 1}.</span>
-                        <span style="flex: 1; font-size: 13px; font-family: monospace;">${pkg}${configBadge}</span>
+                        <span style="flex: 1; font-size: 13px; font-family: monospace;">${esc(pkg)}${configBadge}</span>
                         <button class="btn btn-secondary btn-sm" onclick="scrollToSolverConfig('${jsArg(pkg)}')" style="padding: 4px 8px; font-size: 11px;" title="Configure plugin">⚙</button>
                         <button class="btn btn-danger btn-sm" onclick="toggleSolver('${jsArg(pkg)}')" style="padding: 4px 8px; font-size: 11px;">✕</button>
                     </div>
@@ -2805,7 +2932,7 @@
                 const autoOpen = schema !== null && schema.length > 0;
                 html += `<details id="solver-cfg-${safeId}" style="margin-top: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);" ${autoOpen ? 'open' : ''}>
                     <summary style="padding: 10px 14px; cursor: pointer; font-size: 13px; font-family: monospace; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-                        ⚙ <strong>${ep}</strong>${schema !== null && schema.length === 0 ? ' <span style="font-size: 10px; color: var(--text-secondary);">(no config needed)</span>' : ''}
+                        ⚙ <strong>${esc(ep)}</strong>${schema !== null && schema.length === 0 ? ' <span style="font-size: 10px; color: var(--text-secondary);">(no config needed)</span>' : ''}
                     </summary>
                     <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">`;
 
@@ -2972,7 +3099,7 @@
 
                 if (editName) {
                     // Update existing
-                    await apiCall(`/personas/${editName}`, 'PUT', personaConfig);
+                    await apiCall(`/personas/${encodeURIComponent(editName)}`, 'PUT', personaConfig);
                     showToast(t('toastPersonaUpdatedSuccessfully'));
                 } else {
                     // Create new
@@ -2991,7 +3118,7 @@
 
         async function editPersona(name) {
             try {
-                const persona = await apiCall(`/personas/${name}`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}`);
 
                 document.getElementById('createPersonaModalTitle').textContent = '👤 Edit Persona';
                 document.getElementById('editPersonaName').value = persona.name;
@@ -3034,7 +3161,7 @@
                 `Are you sure you want to delete the persona "${name}"? This action cannot be undone.`,
                 async () => {
                     try {
-                        await apiCall(`/personas/${name}`, 'DELETE');
+                        await apiCall(`/personas/${encodeURIComponent(name)}`, 'DELETE');
                         showToast(t('toastPersonaDeletedSuccessfully'));
                         loadPersonasPage();
                     } catch (e) {
@@ -3046,7 +3173,7 @@
 
         async function exportPersona(name) {
             try {
-                const persona = await apiCall(`/personas/${name}/export`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}/export`);
                 
                 // Create download
                 const dataStr = JSON.stringify(persona, null, 2);
@@ -3066,7 +3193,7 @@
 
         async function previewPersona(name) {
             try {
-                const persona = await apiCall(`/personas/${name}`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}`);
                 
                 document.getElementById('previewPersonaJson').textContent = JSON.stringify(persona, null, 2);
                 document.getElementById('previewPersonaModal').classList.add('active');
@@ -3102,7 +3229,7 @@
 
             try {
                 // First, get the persona config to show basic info
-                const persona = await apiCall(`/personas/${name}`);
+                const persona = await apiCall(`/personas/${encodeURIComponent(name)}`);
 
                 let html = '';
 
@@ -3232,7 +3359,7 @@
             try {
                 statusDiv.innerHTML = '<span style="color: var(--text-secondary);">Activating persona...</span>';
                 
-                await apiCall(`/personas/${name}/activate`, 'POST');
+                await apiCall(`/personas/${encodeURIComponent(name)}/activate`, 'POST');
                 
                 statusDiv.innerHTML = '<span style="color: var(--accent-success);">✓ Persona activated successfully!</span>';
                 showToast(`Persona "${name}" activated`);
@@ -3311,7 +3438,7 @@
                 html += '</div>';
                 container.innerHTML = html;
             } catch (e) {
-                container.innerHTML = '<div class="empty-state"><p>Failed to load solver plugins: ' + e.message + '</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>Failed to load solver plugins: ' + escapeHtml(e.message) + '</p></div>';
             }
         }
 
@@ -3340,15 +3467,15 @@
 
             try {
                 // Call backend to perform the test since the bus is internal
-                const result = await apiCall(`/ovos/test-bus?host=${host}&port=${port}`);
+                const result = await apiCall(`/ovos/test-bus?host=${encodeURIComponent(host)}&port=${encodeURIComponent(port)}`);
 
                 if (result.success) {
-                    resultDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${result.message}</span>`;
+                    resultDiv.innerHTML = `<span style="color: var(--accent-success);">✓ ${escapeHtml(result.message)}</span>`;
                 } else {
-                    resultDiv.innerHTML = `<span style="color: var(--accent-danger);">❌ ${result.message}</span>`;
+                    resultDiv.innerHTML = `<span style="color: var(--accent-danger);">❌ ${escapeHtml(result.message)}</span>`;
                 }
             } catch (e) {
-                resultDiv.innerHTML = '<span style="color: var(--accent-danger);">❌ API error: ' + e.message + '</span>';
+                resultDiv.innerHTML = '<span style="color: var(--accent-danger);">❌ API error: ' + escapeHtml(e.message) + '</span>';
             }
         }
         function renderEncodings(enabledEncodings) {
@@ -3796,7 +3923,7 @@
             document.getElementById('installStatusMessage').innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 16px;">❌</span>
-                    <span style="font-size: 13px; color: var(--accent-danger);">${error}</span>
+                    <span style="font-size: 13px; color: var(--accent-danger);">${escapeHtml(error)}</span>
                 </div>
             `;
 
@@ -4023,7 +4150,7 @@
                     });
 
                     // Then activate the selected persona
-                    await apiCall(`/personas/${selectedPersona}/activate`, 'POST');
+                    await apiCall(`/personas/${encodeURIComponent(selectedPersona)}/activate`, 'POST');
 
                     showToast(`Persona agent enabled with "${selectedPersona}"`);
                     closeEnableAgentModal();
@@ -4393,7 +4520,7 @@
 
                 if (result.success) {
                     statusDiv.className = 'validation-result success';
-                    statusDiv.innerHTML = '✓ ' + result.message;
+                    statusDiv.innerHTML = '✓ ' + escapeHtml(result.message);
                     showToast(result.message);
                     setTimeout(() => {
                         closeEnablePluginModal();
@@ -4402,11 +4529,11 @@
                     }, 1500);
                 } else {
                     statusDiv.className = 'validation-result error';
-                    statusDiv.innerHTML = '✗ ' + result.message;
+                    statusDiv.innerHTML = '✗ ' + escapeHtml(result.message);
                 }
             } catch (e) {
                 statusDiv.className = 'validation-result error';
-                statusDiv.innerHTML = '✗ Failed: ' + e.message;
+                statusDiv.innerHTML = '✗ Failed: ' + escapeHtml(e.message);
             }
         }
 
@@ -4687,12 +4814,12 @@
                 } else {
                     resultDiv.className = 'validation-result error';
                     resultDiv.innerHTML = '<strong>✗ Please fix these errors:</strong><ul>' +
-                        result.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                        result.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>';
                 }
             } catch (e) {
                 resultDiv.classList.remove('hidden');
                 resultDiv.className = 'validation-result error';
-                resultDiv.innerHTML = '<strong>Invalid JSON:</strong> ' + e.message;
+                resultDiv.innerHTML = '<strong>Invalid JSON:</strong> ' + escapeHtml(e.message);
             }
         }
 

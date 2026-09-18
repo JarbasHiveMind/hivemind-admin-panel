@@ -930,6 +930,10 @@
                         <div class="card-body"><div id="eventsContainer" data-i18n="loadingEllipsisChar">Loading…</div></div>
                     </div>
                     <div class="card" style="margin-bottom:24px;">
+                        <div class="card-header"><h3>⛔ <span>Rejected connections</span></h3></div>
+                        <div class="card-body"><div id="rejectionsContainer" role="status" aria-live="polite">Loading…</div></div>
+                    </div>
+                    <div class="card" style="margin-bottom:24px;">
                         <div class="card-header"><h3>📜 <span data-i18n="hivemindCoreLog">hivemind-core log</span></h3>
                             <button class="btn btn-secondary btn-sm" onclick="loadLogs()" data-i18n="refresh">Refresh</button></div>
                         <div class="card-body"><pre id="logsContainer" style="max-height:320px;overflow:auto;font-size:12px;"></pre></div>
@@ -1005,6 +1009,7 @@
                         <div class="card-body">
                             <p style="color:var(--text-secondary);margin-bottom:8px;" data-i18n="configHistoryIntro">server.json is snapshotted automatically before every config/plugin change. Revert to any point.</p>
                             <div id="configBackups" style="font-size:13px;" data-i18n="loadingEllipsisChar">Loading…</div>
+                            <pre id="configBackupDiff" hidden aria-live="polite" style="white-space:pre-wrap;font-size:12px;margin-top:12px;padding:10px;background:var(--bg-hover);border-radius:var(--radius-sm);"></pre>
                         </div>
                     </div>
                 </div>

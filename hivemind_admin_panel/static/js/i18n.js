@@ -411,6 +411,11 @@ const I18N = {
     toastSendFailed: 'Send failed',
     toastSnapshotFailed: 'Snapshot failed',
     toastSnapshotSaved: 'Snapshot saved',
+    toastPolicySaved: 'Policy saved',
+    toastPolicyInvalidJson: 'Invalid JSON: ',
+    toastPolicySaveFailed: 'Could not save the policy: ',
+    topologyLoadFailed: 'Could not load the topology: ',
+    pluginCountUnavailable: 'Could not load this count',
     toastTestFailed: 'Test failed',
     toastTestTheConnectionFirstBeforeSaving: 'Test the connection first before saving',
     toastUninstallBlocked: 'Uninstall blocked: ',
@@ -825,6 +830,11 @@ const I18N = {
     toastSendFailed: 'Error al enviar',
     toastSnapshotFailed: 'Error al capturar',
     toastSnapshotSaved: 'Captura guardada',
+    toastPolicySaved: 'Política guardada',
+    toastPolicyInvalidJson: 'JSON no válido: ',
+    toastPolicySaveFailed: 'No se pudo guardar la política: ',
+    topologyLoadFailed: 'No se pudo cargar la topología: ',
+    pluginCountUnavailable: 'No se pudo cargar este recuento',
     toastTestFailed: 'Error en la prueba',
     toastTestTheConnectionFirstBeforeSaving: 'Prueba la conexión antes de guardar',
     toastUninstallBlocked: 'Desinstalación bloqueada: ',
@@ -1239,6 +1249,11 @@ const I18N = {
     toastSendFailed: 'Falha ao enviar',
     toastSnapshotFailed: 'Falha ao capturar',
     toastSnapshotSaved: 'Captura guardada',
+    toastPolicySaved: 'Política guardada',
+    toastPolicyInvalidJson: 'JSON inválido: ',
+    toastPolicySaveFailed: 'Não foi possível guardar a política: ',
+    topologyLoadFailed: 'Não foi possível carregar a topologia: ',
+    pluginCountUnavailable: 'Não foi possível carregar esta contagem',
     toastTestFailed: 'Falha no teste',
     toastTestTheConnectionFirstBeforeSaving: 'Testa a ligação antes de guardar',
     toastUninstallBlocked: 'Desinstalação bloqueada: ',
@@ -1250,10 +1265,17 @@ const I18N = {
 
 let CURRENT_LANG = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || 'en';
 
+// I18N is a plain object, so a stored code naming an inherited property
+// ('toString', 'constructor', '__proto__') passes a bare I18N[code] test and
+// reaches <html lang>. Only an own key is a language.
+function hasLang(code) {
+  return Object.prototype.hasOwnProperty.call(I18N, code);
+}
+
 // t('key') looks up a plain string. t('key', {name: 'foo'}) also replaces
 // {name} placeholders in the translated string with the given values.
 function t(key, params) {
-  let str = (I18N[CURRENT_LANG] && I18N[CURRENT_LANG][key]) || I18N.en[key] || key;
+  let str = (hasLang(CURRENT_LANG) && I18N[CURRENT_LANG][key]) || I18N.en[key] || key;
   if (params) {
     Object.keys(params).forEach(p => {
       str = str.split('{' + p + '}').join(params[p]);
@@ -1286,6 +1308,8 @@ function applyI18n() {
   });
   const sel = document.getElementById('langSelect');
   if (sel) sel.value = CURRENT_LANG;
+  // t() falls back to English for an unknown code, so html lang does too.
+  document.documentElement.lang = hasLang(CURRENT_LANG) ? CURRENT_LANG : 'en';
 }
 
 document.addEventListener('DOMContentLoaded', applyI18n);

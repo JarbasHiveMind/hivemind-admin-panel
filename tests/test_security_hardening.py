@@ -188,11 +188,22 @@ def test_query_token_is_not_accepted_on_arbitrary_routes(client):
     assert client.get(f"/clients?access_token={token}").status_code == 401
 
 
-def test_query_token_still_works_for_the_sse_feed(client):
-    from hivemind_admin_panel.api import _allows_query_token
-    assert _allows_query_token("/api/events")
-    assert _allows_query_token("/api/clients/1/pairing/qr.svg")
-    assert not _allows_query_token("/api/clients")
+def test_only_the_sse_feed_reads_a_credential_from_the_url(client):
+    """The QR image now sends a header; the feed reads a one-time ticket.
+
+    A credential in a query string reaches the access log, the Referer header
+    and the browser history, so the login token is refused in every URL.
+    """
+    import hivemind_admin_panel.api as api
+
+    assert not hasattr(api, "_allows_query_token")   # the old allowlist is gone
+    tok = client.post("/auth/login",
+                      json={"username": ADMIN_USER, "password": ADMIN_PASS}).json()["token"]
+
+    assert client.get(f"/clients?access_token={tok}").status_code == 401
+    assert client.get(f"/events/recent?access_token={tok}").status_code == 401
+    with client.stream("GET", f"/events?limit=1&access_token={tok}") as resp:
+        assert resp.status_code == 401
 
 
 # ------------------------------------------------------------ S1: fail-closed on bind

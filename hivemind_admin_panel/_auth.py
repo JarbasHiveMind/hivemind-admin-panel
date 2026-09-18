@@ -157,8 +157,17 @@ def rotate_token_secret(config: Dict[str, Any]) -> None:
         LOG.warning(f"could not rotate token secret: {e}")
 
 
-def create_token(config: Dict[str, Any], username: str, role: str, ttl: int = TOKEN_TTL) -> Dict[str, Any]:
+def create_token(config: Dict[str, Any], username: str, role: str, ttl: int = TOKEN_TTL,
+                 extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Sign a token for ``username``.
+
+    ``extra`` adds claims to the payload. The SSE ticket uses it to mark the
+    token with a scope and a one-time id, so a ticket can not be replayed and
+    can not be used as a login token.
+    """
     payload = {"sub": username, "role": role, "exp": int(time.time()) + ttl}
+    if extra:
+        payload.update(extra)
     raw = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
     sig = hmac.new(_secret(config), raw.encode(), hashlib.sha256).hexdigest()
     return {"token": f"{raw}.{sig}", "role": role, "expires": payload["exp"]}

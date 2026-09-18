@@ -21,7 +21,11 @@ beforeEach(() => {
   resetDom();
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   global.prompt = jest.fn(() => '');
-  global.fetch = jest.fn();
+  // the QR is fetched with the Authorization header (#89) and shown as a blob URL
+  let n = 0;
+  URL.createObjectURL = jest.fn(() => `blob:qr-${n++}`);
+  URL.revokeObjectURL = jest.fn();
+  global.fetch = jest.fn(async () => ({ ok: true, status: 200, blob: async () => new Blob(['<svg/>']) }));
   api = mockFn('apiCall').mockResolvedValue({ key: 'k', host: 'h' });
 });
 
@@ -68,6 +72,7 @@ test('a response that arrives after Cancel is discarded', async () => {
   resolve({ key: 'late' });
   await pending;
   expect(document.getElementById('pairBundle').textContent).toBe('');
+  expect(global.fetch).not.toHaveBeenCalled();
 });
 
 test('Copy puts the bundle JSON on the clipboard', async () => {

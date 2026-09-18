@@ -27,7 +27,12 @@ dynamic = ["version"]
 # (imported by api.py). These alpha floors pull the Apache-licensed, current
 # packages and make pip accept them without --pre.
 dependencies = [
-    "hivemind-core>=5.1.1a2,<6.0.0",
+    # >=5.2.0a1 is the first release with the rejection ring
+    # (HiveMindListenerProtocol.get_recent_rejections). Below it the panel's
+    # rejections card is always empty: api.py reads the ring through getattr,
+    # so an older core gives no error and no rows, and the operator cannot tell
+    # "nothing was refused" from "this core cannot say".
+    "hivemind-core>=5.2.0a1,<6.0.0",
     # used directly for the client-impersonation chat (server-side bus client).
     # The cap is <2.0.0, not <1.0.0: the old bound pinned every install of this
     # panel to bus-client 0.11.x, and because hivemind-core depends on the same

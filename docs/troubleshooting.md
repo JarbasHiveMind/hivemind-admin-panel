@@ -94,7 +94,18 @@ Each entry is **symptom → cause → fix**.
     `network_protocol` in `server.json`, *not* the panel's `--port`). Open it on
     the hivemind-core host.
   - **Wrong access key** (or a revoked client). Re-issue credentials from the
-    panel and re-pair. hivemind-core logs rejected keys as `auth.rejected` events.
+    panel and re-pair. hivemind-core logs every rejected key at ERROR as
+    `Client provided an invalid api key`. When the protocol v3 handshake is
+    what fails, the line before it names the peer:
+    `protocol v3 handshake with <peer> FAILED: <reason>`. hivemind-core also
+    emits `hive.client.connection.error`, with the refused peer, on its bus.
+    When the panel runs hivemind-core in-process (not with `--no-core` or
+    `--reload`), the panel also adds an `auth.rejected` entry naming the peer
+    to its events feed: read it at `GET /api/events/recent`, or watch
+    `GET /api/events`. That entry is kept in memory only: it is not written
+    to a log, the feed holds only recent events, and a restart clears it. In
+    panel-only mode there is no such entry, so read the hivemind-core log on
+    its host.
 
 ### `--reload` doesn't start hivemind-core
 
@@ -107,12 +118,12 @@ Each entry is **symptom → cause → fix**.
 
 - **Cause:** The `/api/events` Server-Sent Events feed is authenticated, but the
   browser `EventSource` API cannot set an `Authorization` header. It must pass a
-  token through `?access_token=<token>`. If that token is missing or expired, the
-  stream returns a 401 and the dashboard stops updating.
-- **Fix:** The UI mints a bearer token (through `POST /api/auth/login`) and appends it
-  automatically. If the feed is stale, you are almost certainly looking at an auth
-  problem. Log out and back in to refresh the token, and verify your credentials
-  work on a normal endpoint.
+  one-time ticket through `?ticket=<ticket>`. If the ticket is missing, expired
+  or already used, the stream returns a 401 and the dashboard stops updating.
+- **Fix:** The UI asks for a ticket (through `POST /api/events/ticket`) each time
+  it opens the stream. If the feed is stale, you are almost certainly looking at
+  an auth problem. Log out and back in to refresh the login token, and verify
+  your credentials work on a normal endpoint.
 
 ### Plugin install fails
 
