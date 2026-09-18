@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.10a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.9a2...0.3.10a1)
+
+**Merged pull requests:**
+
+- fix\(i18n\): config history and restore text use t\(\) keys [\#123](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/123) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.9a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.9a2) (2026-09-17)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.9a1...0.3.9a2)
@@ -362,17 +370,9 @@
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.2a1...0.1.3a1)
 
-**Merged pull requests:**
-
-- fix: stop the panel reporting and writing things that are not true [\#16](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/16) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.1.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.2a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a2...0.1.2a1)
-
-**Merged pull requests:**
-
-- fix: close the panel's authentication and authorization holes [\#15](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/15) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.1a2) (2026-07-31)
 
