@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.10a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a2) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a1...0.3.10a2)
+
+**Merged pull requests:**
+
+- docs: fix integration quickstart blocked by the default-password gate [\#75](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/75) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.10a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a1) (2026-09-18)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.9a2...0.3.10a1)
@@ -354,17 +362,9 @@
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a1...0.1.4a2)
 
-**Merged pull requests:**
-
-- docs: correct the claims that do not match the code [\#18](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/18) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.1.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.4a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.3a1...0.1.4a1)
-
-**Merged pull requests:**
-
-- fix: stop the UI stating things it cannot know [\#17](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/17) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.3a1) (2026-08-12)
 
