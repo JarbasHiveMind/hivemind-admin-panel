@@ -5,6 +5,13 @@
 // or data-i18n-aria-label="key" (attribute value).
 const I18N = {
   en: {
+    noSnapshotsYet: 'No snapshots yet.',
+    diff: 'Diff',
+    revert: 'Revert',
+    configHistoryLoadFailed: 'Could not load the config history',
+    configRevertPreview: 'Reverting to {file} would change:\nadded: {added}\nremoved: {removed}\nchanged: {changed}',
+    configRevertConfirm: 'Revert server.json to {file}? The panel saves a snapshot of your current config first.',
+    restoreResult: 'Restored: +{added} clients, {skipped} skipped.',
     dashboard: 'Dashboard',
     clients: 'Clients',
     acl: 'Permissions',
@@ -423,6 +430,13 @@ const I18N = {
     toastYouMustAcceptTheDisclaimerToContinue: 'You must accept the disclaimer to continue'
   },
   es: {
+    noSnapshotsYet: 'Todavía no hay capturas.',
+    diff: 'Comparar',
+    revert: 'Revertir',
+    configHistoryLoadFailed: 'No se pudo cargar el historial de configuración',
+    configRevertPreview: 'Revertir a {file} cambiaría:\nañadidas: {added}\neliminadas: {removed}\ncambiadas: {changed}',
+    configRevertConfirm: '¿Revertir server.json a {file}? El panel guarda antes una captura de la configuración actual.',
+    restoreResult: 'Restaurado: +{added} clientes, {skipped} omitidos.',
     dashboard: 'Panel',
     clients: 'Clientes',
     acl: 'Permisos',
@@ -841,6 +855,13 @@ const I18N = {
     toastYouMustAcceptTheDisclaimerToContinue: 'Debes aceptar el aviso legal para continuar'
   },
   pt: {
+    noSnapshotsYet: 'Ainda não há capturas.',
+    diff: 'Comparar',
+    revert: 'Reverter',
+    configHistoryLoadFailed: 'Não foi possível carregar o histórico de configuração',
+    configRevertPreview: 'Reverter para {file} alteraria:\nadicionadas: {added}\nremovidas: {removed}\nalteradas: {changed}',
+    configRevertConfirm: 'Reverter server.json para {file}? O painel guarda primeiro uma captura da configuração atual.',
+    restoreResult: 'Restaurado: +{added} clientes, {skipped} ignorados.',
     dashboard: 'Painel',
     clients: 'Clientes',
     acl: 'Permissões',
