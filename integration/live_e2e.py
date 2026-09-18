@@ -13,7 +13,17 @@ Admin API: http://127.0.0.1:8100   Core websocket: 127.0.0.1:5678
 import os, sys, time, threading, requests
 
 ADMIN = os.environ.get("ADMIN_URL", "http://127.0.0.1:8100/api")
-AUTH = ("admin", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    sys.exit(
+        "ADMIN_PASSWORD is not set.\n"
+        "While the admin password is still the shipped default (admin/admin), "
+        "the panel refuses every request except /api/health, /api/auth/login, "
+        "/api/auth/logout, /api/auth/me, /api/auth/password and "
+        "/api/setup/status; set a real one and export it here. "
+        "See integration/README.md."
+    )
+AUTH = ("admin", ADMIN_PASSWORD)
 CORE_HOST, CORE_PORT = "127.0.0.1", 5678
 
 results = []
