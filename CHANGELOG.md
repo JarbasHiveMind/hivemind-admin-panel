@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.14a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.14a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.13a1...0.3.14a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): ask for the pairing host inside the pairing dialog [\#94](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/94) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.13a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.13a1) (2026-09-18)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.12a1...0.3.13a1)
@@ -374,11 +382,6 @@
 ## [0.1.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.6a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a2...0.1.6a1)
-
-**Merged pull requests:**
-
-- fix: admin-gate the privilege-widening and destructive routes [\#26](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/26) ([JarbasAl](https://github.com/JarbasAl))
-- fix: close the remaining XSS sinks in the admin UI [\#25](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/25) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.4a2) (2026-08-12)
 
