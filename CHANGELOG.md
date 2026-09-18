@@ -1,13 +1,28 @@
 # Changelog
 
+## [0.3.13a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.13a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.12a1...0.3.13a1)
+
+**Merged pull requests:**
+
+- fix: certificate and policy loaders show a failed request [\#122](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/122) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.12a1) (2026-09-18)
 
-[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a2...0.3.12a1)
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.11a1...0.3.12a1)
+
+**Merged pull requests:**
+
+- fix: the SSE ticket endpoint no longer invents an admin identity [\#114](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/114) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.11a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a2...0.3.11a1)
 
 **Merged pull requests:**
 
 - fix: accent colours meet contrast as text and as fills [\#121](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/121) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix: the SSE ticket endpoint no longer invents an admin identity [\#114](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/114) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.3.10a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a2) (2026-09-18)
 
@@ -364,8 +379,6 @@
 
 - fix: admin-gate the privilege-widening and destructive routes [\#26](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/26) ([JarbasAl](https://github.com/JarbasAl))
 - fix: close the remaining XSS sinks in the admin UI [\#25](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/25) ([JarbasAl](https://github.com/JarbasAl))
-- fix: close the path-parameter bypass in the security gates [\#24](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/24) ([JarbasAl](https://github.com/JarbasAl))
-- fix: make a clean pip install resolve again [\#23](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/23) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.4a2) (2026-08-12)
 
