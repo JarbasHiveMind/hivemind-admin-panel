@@ -7,17 +7,24 @@
             --bg-hover: #1e2a4a;
             --text-primary: #e8e8f0;
             --text-secondary: #8892b0;
-            --accent-primary: #64ffda;
-            --accent-secondary: #00d4aa;
-            --accent-danger: #ff6b6b;
-            --accent-warning: #ffd93d;
-            --accent-success: #6bcb77;
             --border-color: #2a2a4e;
             --shadow: 0 4px 6px rgba(0,0,0,0.3);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
             --radius: 12px;
             --radius-sm: 8px;
             --code-bg: #0d1117;
+            --accent-primary: #64ffda;
+            --accent-secondary: #00d4aa;
+            --accent-danger: #ff6b6b;
+            --accent-warning: #ffd93d;
+            --accent-success: #6bcb77;
+            /* text tokens: 4.5:1 on every surface; the fills above are 3:1 */
+            --accent-primary-text: #64ffda;
+            --accent-secondary-text: #00d4aa;
+            --accent-danger-text: #ff6b6b;
+            --accent-warning-text: #ffd93d;
+            --accent-success-text: #6bcb77;
+            --on-danger: #ffffff;
         }
 
         [data-theme="light"] {
@@ -26,11 +33,25 @@
             --bg-card: #ffffff;
             --bg-hover: #e2e8f0;
             --text-primary: #1e293b;
-            --text-secondary: #64748b;
+            --text-secondary: #59687c;
             --border-color: #e2e8f0;
             --shadow: 0 4px 6px rgba(0,0,0,0.05);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
             --code-bg: #f6f8fa;
+            /* 5.2:1 on --bg-primary, 4.4:1 on --bg-hover */
+            --focus-ring: #0f766e;
+            --accent-primary: #00a37c;
+            --accent-secondary: #00a383;
+            --accent-danger: #ff5252;
+            --accent-warning: #ad8b00;
+            --accent-success: #39a246;
+            /* text tokens: 4.5:1 on every surface; the fills above are 3:1 */
+            --accent-primary-text: #007559;
+            --accent-secondary-text: #00755e;
+            --accent-danger-text: #d10000;
+            --accent-warning-text: #7a6200;
+            --accent-success-text: #297533;
+            --on-danger: #ffffff;
         }
 
         [data-theme="darcula"] {
@@ -38,17 +59,25 @@
             --bg-secondary: #3c3f41;
             --bg-card: #3c3f41;
             --bg-hover: #494b4d;
-            --text-primary: #a9b7c6;
-            --text-secondary: #9876aa;
-            --accent-primary: #6897bb;
-            --accent-secondary: #287bde;
-            --accent-danger: #bc3f3c;
-            --accent-warning: #bb9445;
-            --accent-success: #629755;
+            --text-primary: #b1bdcb;
+            --text-secondary: #c7b5d1;
+            --focus-ring: #7ea7c7;
             --border-color: #555555;
             --shadow: 0 4px 6px rgba(0,0,0,0.4);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
             --code-bg: #1e1e1e;
+            --accent-primary: #6897bb;
+            --accent-secondary: #418ae2;
+            --accent-danger: #cf6b68;
+            --accent-warning: #bb9445;
+            --accent-success: #629755;
+            /* text tokens: 4.5:1 on every surface; the fills above are 3:1 */
+            --accent-primary-text: #a0bed4;
+            --accent-secondary-text: #95beef;
+            --accent-danger-text: #e5afae;
+            --accent-warning-text: #d2b884;
+            --accent-success-text: #a0c497;
+            --on-danger: #000000;
         }
 
         [data-theme="monokai"] {
@@ -57,16 +86,23 @@
             --bg-card: #3e3d32;
             --bg-hover: #49483e;
             --text-primary: #f8f8f2;
-            --text-secondary: #75715e;
-            --accent-primary: #a6e22e;
-            --accent-secondary: #66d9ef;
-            --accent-danger: #f92672;
-            --accent-warning: #e6db74;
-            --accent-success: #a6e22e;
+            --text-secondary: #bbb8aa;
             --border-color: #49483e;
             --shadow: 0 4px 6px rgba(0,0,0,0.4);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
             --code-bg: #1e1f1c;
+            --accent-primary: #a6e22e;
+            --accent-secondary: #66d9ef;
+            --accent-danger: #f9347b;
+            --accent-warning: #e6db74;
+            --accent-success: #a6e22e;
+            /* text tokens: 4.5:1 on every surface; the fills above are 3:1 */
+            --accent-primary-text: #a6e22e;
+            --accent-secondary-text: #66d9ef;
+            --accent-danger-text: #fc97bb;
+            --accent-warning-text: #e6db74;
+            --accent-success-text: #a6e22e;
+            --on-danger: #000000;
         }
 
         [data-theme="nord"] {
@@ -75,16 +111,23 @@
             --bg-card: #3b4252;
             --bg-hover: #434c5e;
             --text-primary: #eceff4;
-            --text-secondary: #a3be8c;
-            --accent-primary: #88c0d0;
-            --accent-secondary: #81a1c1;
-            --accent-danger: #bf616a;
-            --accent-warning: #ebcb8b;
-            --accent-success: #a3be8c;
+            --text-secondary: #acc497;
             --border-color: #4c566a;
             --shadow: 0 4px 6px rgba(0,0,0,0.3);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
             --code-bg: #242933;
+            --accent-primary: #88c0d0;
+            --accent-secondary: #81a1c1;
+            --accent-danger: #c7757d;
+            --accent-warning: #ebcb8b;
+            --accent-success: #a3be8c;
+            /* text tokens: 4.5:1 on every surface; the fills above are 3:1 */
+            --accent-primary-text: #91c5d4;
+            --accent-secondary-text: #aabfd5;
+            --accent-danger-text: #e0b3b7;
+            --accent-warning-text: #ebcb8b;
+            --accent-success-text: #acc497;
+            --on-danger: #000000;
         }
 
         [data-theme="dracula"] {
@@ -93,16 +136,24 @@
             --bg-card: #44475a;
             --bg-hover: #525787;
             --text-primary: #f8f8f2;
-            --text-secondary: #6272a4;
-            --accent-primary: #bd93f9;
-            --accent-secondary: #ff79c6;
-            --accent-danger: #ff5555;
-            --accent-warning: #f1fa8c;
-            --accent-success: #50fa7b;
+            --text-secondary: #ced3e3;
+            --focus-ring: #c9a7fa;
             --border-color: #6272a4;
             --shadow: 0 4px 6px rgba(0,0,0,0.4);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
             --code-bg: #1d1e26;
+            --accent-primary: #bd93f9;
+            --accent-secondary: #ff79c6;
+            --accent-danger: #ff5c5c;
+            --accent-warning: #f1fa8c;
+            --accent-success: #50fa7b;
+            /* text tokens: 4.5:1 on every surface; the fills above are 3:1 */
+            --accent-primary-text: #dfcafc;
+            --accent-secondary-text: #ffc2e5;
+            --accent-danger-text: #ffc7c7;
+            --accent-warning-text: #f1fa8c;
+            --accent-success-text: #50fa7b;
+            --on-danger: #000000;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -145,7 +196,7 @@
         }
 
         .tab-item.active {
-            color: var(--accent-primary);
+            color: var(--accent-primary-text);
             border-bottom-color: var(--accent-primary);
         }
 
@@ -233,7 +284,7 @@
         .login-card h1 {
             font-size: 28px;
             margin-bottom: 8px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            background: linear-gradient(135deg, var(--accent-primary-text), var(--accent-secondary-text));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -280,6 +331,29 @@
             box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
         }
 
+        #topologyContainer svg g[role="button"]:focus {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        /* A keyboard user must be able to see where they are. Only form fields
+           and the topology nodes styled focus, so every button, link and nav
+           item fell back to the weak browser default. :focus-visible keeps the ring
+           off a mouse click. --focus-ring is set where the accent is under 3:1
+           against a theme background; other themes use the accent. */
+        a:focus-visible,
+        button:focus-visible,
+        [role="button"]:focus-visible,
+        [tabindex]:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        summary:focus-visible {
+            outline: 2px solid var(--focus-ring, var(--accent-primary));
+            outline-offset: 2px;
+            border-radius: var(--radius-sm);
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -319,7 +393,7 @@
 
         .btn-danger {
             background: var(--accent-danger);
-            color: white;
+            color: var(--on-danger);
         }
 
         .btn-success {
@@ -342,7 +416,7 @@
         }
 
         .error-msg {
-            color: var(--accent-danger);
+            color: var(--accent-danger-text);
             font-size: 13px;
             margin-top: 12px;
             display: flex;
@@ -378,7 +452,7 @@
 
         .sidebar-header h1 {
             font-size: 20px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            background: linear-gradient(135deg, var(--accent-primary-text), var(--accent-secondary-text));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -422,7 +496,7 @@
 
         .nav-item.active {
             background: linear-gradient(135deg, rgba(100, 255, 218, 0.1), rgba(0, 212, 170, 0.1));
-            color: var(--accent-primary);
+            color: var(--accent-primary-text);
         }
 
         .nav-icon {
@@ -596,17 +670,17 @@
 
         .badge-success {
             background: rgba(107, 203, 119, 0.15);
-            color: var(--accent-success);
+            color: var(--accent-success-text);
         }
 
         .badge-danger {
             background: rgba(255, 107, 107, 0.15);
-            color: var(--accent-danger);
+            color: var(--accent-danger-text);
         }
 
         .badge-warning {
             background: rgba(255, 217, 61, 0.15);
-            color: var(--accent-warning);
+            color: var(--accent-warning-text);
         }
 
         /* Search & Filter */
@@ -774,17 +848,17 @@
 
         .status-online {
             background: rgba(107, 203, 119, 0.15);
-            color: var(--accent-success);
+            color: var(--accent-success-text);
         }
 
         .status-offline {
             background: rgba(255, 107, 107, 0.15);
-            color: var(--accent-danger);
+            color: var(--accent-danger-text);
         }
 
         .status-degraded {
             background: rgba(255, 217, 61, 0.15);
-            color: var(--accent-warning);
+            color: var(--accent-warning-text);
         }
 
         .status-dot {
@@ -854,6 +928,25 @@
             overflow-y: auto;
         }
 
+        /* A fixed max-height with overflow:hidden clips instead of scrolls
+           unless the body is the flexible part. In landscape the footer sat
+           below the visible modal and Save could not be reached at all. */
+        .modal {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .modal-header,
+        .modal-footer {
+            flex: 0 0 auto;
+        }
+
         .modal-footer {
             padding: 16px 24px;
             border-top: 1px solid var(--border-color);
@@ -862,12 +955,88 @@
             gap: 12px;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
+        /* The hamburger. Hidden on wide screens, where the sidebar is always
+           visible and a toggle would be noise. */
+        .nav-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            font-size: 20px;
+            line-height: 1;
+            padding: 6px 12px;
+            cursor: pointer;
+            margin-right: 12px;
+            min-height: 44px;
+            min-width: 44px;
+            justify-content: center;
+        }
+
+        .nav-toggle:hover { background: var(--bg-hover); }
+
+        /* Dims the page behind the open drawer and gives a tap target for
+           dismissing it, which is what people try first. */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 150;
+        }
+
+        .sidebar-backdrop.visible { display: block; }
+
+        /* A wide table must scroll inside its own box at ANY width. Scoped to
+           the phone query this left every tablet and the desktop overflowing —
+           the monitor still slid 2.7k pixels sideways at 769px and 960 at
+           2560. min-width:0 is the load-bearing part: a grid child defaults to
+           min-width:auto, so wide content widens its ancestors instead. */
+        .main,
+        .content,
+        .card,
+        .page {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .table-container,
+        .table-wrapper {
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* The topbar holds a title, a restart button and a status pill. They
+           stop fitting well before the phone breakpoint — at 769px the page
+           slid sideways — so let them wrap whenever they need to. */
+        .topbar {
+            flex-wrap: wrap;
+            height: auto;
+            min-height: 64px;
+        }
+
+        /* Responsive. Landscape phones are wider than 768px but far too short
+           for the desktop layout, so they get the drawer too. */
+        @media (max-width: 768px), (max-height: 500px) and (orientation: landscape) {
+            .nav-toggle { display: inline-flex; align-items: center; }
+
             .sidebar {
-                width: 100%;
+                width: min(82vw, 320px);
                 transform: translateX(-100%);
                 transition: transform 0.3s;
+                /* Above the topbar, which is also z-index 100 and comes later
+                   in the DOM — it was painting over the first nav item, so a
+                   tap near the top edge silently did nothing. */
+                z-index: 200;
+                /* 16 nav items plus a footer are taller than a short phone.
+                   Without this the drawer simply ran off the bottom: at
+                   360x640 six destinations and the theme/logout footer were
+                   unreachable. dvh tracks the URL bar; vh is the fallback. */
+                height: 100vh;
+                height: 100dvh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .sidebar.open {
@@ -878,9 +1047,82 @@
                 margin-left: 0;
             }
 
-            .stats-grid {
+            /* The topbar holds a title, a restart button and a status pill.
+               Side by side they overflow a phone, so let them wrap. */
+            .topbar {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 12px 16px;
+                /* height is a fixed 64px on desktop. Once these controls wrap
+                   to a second row the sticky bar keeps that height and paints
+                   its overflow straight over the page beneath it, so the
+                   status pill lands on top of the first card. */
+                height: auto;
+                min-height: 64px;
+            }
+
+            .topbar h2 { font-size: 18px; }
+            .topbar-actions { flex-wrap: wrap; gap: 8px; }
+
+            .stats-grid,
+            .cards-grid,
+            .grid-2,
+            .grid-3 {
                 grid-template-columns: 1fr;
             }
+
+            .content { padding: 16px; }
+
+            /* Client and ACL tables, and the monitor's message log, are wider
+               than any phone. Without this the whole PAGE grows instead — the
+               clients page overflowed by 398px and the monitor by 2838px, so
+               the layout slid sideways under the fixed topbar.
+
+               min-width:0 is the load-bearing part: a flex/grid child defaults
+               to min-width:auto, so a wide table pushes its ancestors wide
+               rather than letting the scroll container do its job. */
+            .main,
+            .content,
+            .card,
+            .page {
+                min-width: 0;
+                max-width: 100%;
+            }
+
+            .table-container,
+            .table-wrapper {
+                max-width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table { min-width: 560px; }
+
+            /* Logs, JSON dumps and key material are long single tokens. Let
+               them wrap rather than widen the page. */
+            pre,
+            code,
+            .log-entry,
+            .monitor-log {
+                max-width: 100%;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+
+            .modal {
+                width: calc(100vw - 24px);
+                max-width: none;
+                margin: 12px;
+            }
+
+            .modal-footer { flex-wrap: wrap; }
+        }
+
+        /* Very small phones: stop the stat numbers forcing a sideways scroll. */
+        @media (max-width: 420px) {
+            .stat-value { font-size: 28px; }
+            .sidebar { width: 86vw; }
         }
 
         /* Loading spinner */

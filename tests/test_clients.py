@@ -16,9 +16,28 @@ def test_create_admin_client(make_client):
     assert c["is_admin"] is True
 
 
-def test_create_rejects_bad_crypto_key_length(client, auth):
-    resp = client.post("/clients", json={"name": "x", "crypto_key": "tooshort"}, headers=auth)
-    assert resp.status_code == 400
+def test_create_returns_full_secrets(make_client):
+    """POST /clients is the only response that ever carries the plaintext
+    password; the admin panel's "Add Client" reveal UI reads this field
+    directly off this response. Pin the contract so the UI doesn't silently
+    break if the field is renamed or dropped."""
+    c = make_client(name="sat-secrets")
+    assert c["api_key"]
+    assert c["password"]
+    assert "crypto_key" not in c
+
+
+def test_create_ignores_crypto_key(client, auth):
+    """The Noise handshake is the sole key agreement (HIVEMIND-CRYPTO-1 §3):
+    a create request carrying a legacy crypto_key is accepted and the field
+    is simply dropped, never persisted."""
+    resp = client.post(
+        "/clients", json={"name": "sat-legacy", "crypto_key": "0" * 32}, headers=auth
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["name"] == "sat-legacy"
+    assert "crypto_key" not in body
 
 
 def test_list_and_get_roundtrip(client, auth, make_client):
@@ -36,7 +55,7 @@ def test_credentials_endpoint_returns_secrets(client, auth, make_client):
     c = make_client(name="sat-c")
     creds = client.get(f"/clients/{c['client_id']}/credentials", headers=auth).json()
     assert creds["api_key"] == c["api_key"]
-    assert "crypto_key" in creds
+    assert "crypto_key" not in creds
 
 
 def test_active_excludes_deleted(client, auth, make_client):

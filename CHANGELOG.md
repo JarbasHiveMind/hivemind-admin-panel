@@ -1,0 +1,420 @@
+# Changelog
+
+## [0.3.14a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.14a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.13a1...0.3.14a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): ask for the pairing host inside the pairing dialog [\#94](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/94) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.13a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.13a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.12a1...0.3.13a1)
+
+**Merged pull requests:**
+
+- fix: certificate and policy loaders show a failed request [\#122](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/122) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.12a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.11a1...0.3.12a1)
+
+**Merged pull requests:**
+
+- fix: the SSE ticket endpoint no longer invents an admin identity [\#114](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/114) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.11a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a2...0.3.11a1)
+
+**Merged pull requests:**
+
+- fix: accent colours meet contrast as text and as fills [\#121](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/121) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.10a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a2) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a1...0.3.10a2)
+
+**Merged pull requests:**
+
+- docs: fix integration quickstart blocked by the default-password gate [\#75](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/75) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.10a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.10a1) (2026-09-18)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.9a2...0.3.10a1)
+
+**Merged pull requests:**
+
+- fix\(i18n\): config history and restore text use t\(\) keys [\#123](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/123) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.9a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.9a2) (2026-09-17)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.9a1...0.3.9a2)
+
+**Merged pull requests:**
+
+- test: no request model field is declared and never read [\#76](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/76) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.9a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.9a1) (2026-09-16)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a5...0.3.9a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): show a focus ring on buttons, links and navigation [\#81](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/81) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.8a5](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.8a5) (2026-09-16)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a4...0.3.8a5)
+
+**Merged pull requests:**
+
+- chore\(deps\): update the Valkey image to 9-alpine [\#87](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/87) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.8a4](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.8a4) (2026-09-16)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a3...0.3.8a4)
+
+## [0.3.8a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.8a3) (2026-09-16)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a2...0.3.8a3)
+
+**Merged pull requests:**
+
+- docs: say where a rejected access key is actually recorded [\#80](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/80) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.8a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.8a2) (2026-09-16)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.8a1...0.3.8a2)
+
+**Merged pull requests:**
+
+- Update jest monorepo to v30.5.1 [\#55](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/55) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.3.8a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.8a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.7a1...0.3.8a1)
+
+**Merged pull requests:**
+
+- test: the theme contrast test reads every colour form, or fails [\#109](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/109) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: only an own key of I18N is a language [\#108](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/108) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.7a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.6a1...0.3.7a1)
+
+**Merged pull requests:**
+
+- fix: no login token in a URL; the SSE feed takes a one-time ticket [\#107](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/107) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.6a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.5a1...0.3.6a1)
+
+**Merged pull requests:**
+
+- fix: /topology matches the access key of a live connection [\#105](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/105) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.5a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.4a2...0.3.5a1)
+
+**Merged pull requests:**
+
+- fix: show failed requests instead of failing silently [\#93](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/93) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.4a2) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.4a1...0.3.4a2)
+
+**Merged pull requests:**
+
+- chore: raise the hivemind-core floor to \>=5.2.0a1 for the rejection ring [\#104](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/104) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.4a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.3a1...0.3.4a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): raise theme text contrast to 4.5:1 on every surface [\#92](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/92) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.3a1) (2026-09-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.2a1...0.3.3a1)
+
+**Merged pull requests:**
+
+- fix: load the pairing QR with the Authorization header [\#89](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/89) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.2a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.1a1...0.3.2a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): set html lang to the active UI language [\#91](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/91) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.1a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.0a1...0.3.1a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): close the top modal on Escape and keep focus inside it [\#90](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/90) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.3.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.0a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.6a1...0.3.0a1)
+
+**Merged pull requests:**
+
+- feat: show rejected connections with their reason on the monitor page [\#97](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/97) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.6a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.5a1...0.2.6a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): give the hive map an accessible name [\#96](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/96) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.5a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.5a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.4a1...0.2.5a1)
+
+**Merged pull requests:**
+
+- fix: escape server text before it reaches innerHTML [\#88](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/88) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.4a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.3a1...0.2.4a1)
+
+**Merged pull requests:**
+
+- fix: refuse to restore a revoked client [\#79](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/79) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.3a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.2a1...0.2.3a1)
+
+**Merged pull requests:**
+
+- fix: remove dead crypto key field from edit-client modal [\#74](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/74) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.2a1) (2026-09-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.1a2...0.2.2a1)
+
+**Merged pull requests:**
+
+- fix: use Valkey for the panel's cache sidecar [\#73](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/73) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.1a2) (2026-09-11)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.1a1...0.2.1a2)
+
+## [0.2.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.1a1) (2026-09-11)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.2.0a1...0.2.1a1)
+
+**Merged pull requests:**
+
+- fix: drop crypto\_key from the admin panel client API [\#72](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/72) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.2.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.2.0a1) (2026-09-02)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.20a1...0.2.0a1)
+
+**Merged pull requests:**
+
+- feat: translate the full admin UI \(complete es/pt beyond the sidebar\) [\#70](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/70) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.20a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.20a1) (2026-09-02)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.19a1...0.1.20a1)
+
+**Merged pull requests:**
+
+- fix: repair plugin-install progress, preset 404, and first-run UX [\#68](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/68) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.19a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.19a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.18a1...0.1.19a1)
+
+**Merged pull requests:**
+
+- fix: recursive hint-based config redaction \(nested database/provider secrets\) [\#66](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/66) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.18a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.18a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.17a1...0.1.18a1)
+
+**Merged pull requests:**
+
+- fix: gate/redact remaining operator-reachable secret leaks \(clients pairing/detail, persona LLM keys\) + profile PUT restore [\#64](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/64) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.17a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.17a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.16a1...0.1.17a1)
+
+**Merged pull requests:**
+
+- fix: redact/gate secret-leaking sibling config & client endpoints \(authz sweep\) [\#62](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/62) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.16a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.16a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.15a1...0.1.16a1)
+
+**Merged pull requests:**
+
+- fix: surface ACL denials in Test Chat; drop deprecated blacklist shims [\#60](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/60) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.15a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.15a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.14a1...0.1.15a1)
+
+**Merged pull requests:**
+
+- fix\(a11y\): toast live-region, dialog semantics, aria-current, keyboard pairing [\#57](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/57) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.14a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.14a1) (2026-09-01)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a3...0.1.14a1)
+
+**Merged pull requests:**
+
+- fix: stop leaking token-signing secret and client secrets to operator role \(authz\) [\#56](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/56) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.13a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a3) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a2...0.1.13a3)
+
+## [0.1.13a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a2) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.13a1...0.1.13a2)
+
+## [0.1.13a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.13a1) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.12a1...0.1.13a1)
+
+**Merged pull requests:**
+
+- fix: reveal newly-created client credentials instead of discarding them [\#42](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/42) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.12a1) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a4...0.1.12a1)
+
+**Merged pull requests:**
+
+- fix: the admin panel must not die silently when it cannot bind [\#43](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/43) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.11a4](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a4) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a3...0.1.11a4)
+
+**Merged pull requests:**
+
+- Update jest monorepo to v30 [\#45](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/45) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.1.11a3](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a3) (2026-08-15)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a2...0.1.11a3)
+
+**Merged pull requests:**
+
+- docs: add AGENTS.md with per-repo agent conventions [\#47](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/47) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.11a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a2) (2026-08-14)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.11a1...0.1.11a2)
+
+**Merged pull requests:**
+
+- Update dependency node to v24 [\#35](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/35) ([renovate[bot]](https://github.com/apps/renovate))
+- Update actions/setup-node action to v7 [\#34](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/34) ([renovate[bot]](https://github.com/apps/renovate))
+
+## [0.1.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.11a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.10a1...0.1.11a1)
+
+**Merged pull requests:**
+
+- fix: make the panel usable on a phone, and show every page in the docs [\#40](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/40) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.10a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.10a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.9a1...0.1.10a1)
+
+**Merged pull requests:**
+
+- fix: raise the hivemind-bus-client cap so the panel stops freezing the hub [\#38](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/38) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.9a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.9a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.8a1...0.1.9a1)
+
+**Merged pull requests:**
+
+- fix: stop docker compose publishing the panel on every interface [\#33](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/33) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.8a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.8a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.7a1...0.1.8a1)
+
+**Merged pull requests:**
+
+- test: make the frontend suite run again and wire it into CI [\#31](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/31) ([JarbasAl](https://github.com/JarbasAl))
+- fix: stop concurrent client edits discarding each other [\#30](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/30) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.7a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.6a1...0.1.7a1)
+
+**Merged pull requests:**
+
+- fix: throttle Basic-auth guessing and refuse weak new passwords [\#28](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/28) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.6a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a2...0.1.6a1)
+
+## [0.1.4a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.4a2) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.4a1...0.1.4a2)
+
+## [0.1.4a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.4a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.3a1...0.1.4a1)
+
+## [0.1.3a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.3a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.2a1...0.1.3a1)
+
+## [0.1.2a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.2a1) (2026-08-12)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a2...0.1.2a1)
+
+## [0.1.1a2](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.1a2) (2026-07-31)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.1a1...0.1.1a2)
+
+## [0.1.1a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.1a1) (2026-07-04)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.0...0.1.1a1)
+
+## [0.1.0](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.0) (2026-06-23)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.0a1...0.1.0)
+
+## [0.1.0a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.0a1) (2026-06-22)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/d96eb90d833c7aa5f5d6b2422e73affcc19d43a2...0.1.0a1)
+
+
+
+\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
