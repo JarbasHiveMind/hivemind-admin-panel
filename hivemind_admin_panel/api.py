@@ -4228,7 +4228,19 @@ def create_sse_ticket(request: Request) -> Dict[str, Any]:
     refused on its second use.
     """
     who = _identify(request)
-    username, role = who if who else ("?", "admin")
+    if who is None:
+        # verify_credentials already identified this request, so reaching here
+        # means the identity stopped being valid between the dependency and
+        # this line — a bearer token expiring on the boundary is the way that
+        # happens. Refuse it. The previous code invented ("?", "admin"), which
+        # minted a ticket carrying a role nobody proved, and a role default of
+        # "admin" is the wrong way for a default to fail whether or not any
+        # caller reads it today.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+    username, role = who
     return _issue_sse_ticket(username, role)
 
 
