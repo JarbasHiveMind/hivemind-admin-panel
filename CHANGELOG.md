@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.3.11a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.11a1) (2026-09-18)
+## [0.3.12a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.12a1) (2026-09-18)
 
-[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a2...0.3.11a1)
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.10a2...0.3.12a1)
 
 **Merged pull requests:**
 
