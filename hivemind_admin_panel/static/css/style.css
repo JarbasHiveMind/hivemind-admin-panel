@@ -24,7 +24,10 @@
             --accent-danger-text: #ff6b6b;
             --accent-warning-text: #ffd93d;
             --accent-success-text: #6bcb77;
-            --on-danger: #ffffff;
+            /* Black, not white. --accent-danger is a LIGHT red in this theme:
+               white on it is 2.78:1, black is 7.57:1. The token is the text
+               colour for a danger fill, so it has to be the one that reads. */
+            --on-danger: #000000;
         }
 
         [data-theme="light"] {
@@ -51,7 +54,8 @@
             --accent-danger-text: #d10000;
             --accent-warning-text: #7a6200;
             --accent-success-text: #297533;
-            --on-danger: #ffffff;
+            /* Black: white on #ff5252 is 3.19:1, black is 6.58:1. */
+            --on-danger: #000000;
         }
 
         [data-theme="darcula"] {
