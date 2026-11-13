@@ -174,7 +174,7 @@ def check_bind_safety(host: str, allow_insecure: bool = False) -> None:
     """
     from hivemind_admin_panel._auth import (using_default_credentials, is_loopback,
                                             protect_config_file)
-    from hivemind_core.config import get_server_config
+    from hivemind_admin_panel.api import get_server_config
 
     cfg = get_server_config()
     protect_config_file(cfg)
@@ -251,6 +251,12 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"HiveMind Admin Panel v{__version__}")
+
+    from hivemind_admin_panel.api import _config_file_error
+    err = _config_file_error()
+    if err:
+        raise SystemExit(f"Refusing to start: {err}\n"
+                         "Repair the file or restore a copy; it has not been changed.")
 
     try:
         check_bind_safety(args.host, allow_insecure=args.allow_insecure)

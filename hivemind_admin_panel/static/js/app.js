@@ -247,6 +247,10 @@
             } catch (e) { showLoginError('Could not reach the server.'); return; }
             if (res.status === 401) { showLoginError('Invalid credentials'); return; }
             if (res.status === 429) { showLoginError('Too many failed logins — wait 5 minutes.'); return; }
+            if (res.status === 503) {
+                const d = await res.json().catch(() => ({}));
+                showLoginError(d.detail || 'Server unavailable (503)'); return;
+            }
             if (!res.ok) { showLoginError('Server error: ' + res.status); return; }
             const data = await res.json();
             auth = { username, token: data.token };
@@ -1049,6 +1053,11 @@
             if (response.status === 401) {
                 logout();
                 throw new Error('Unauthorized');
+            }
+
+            if (response.status === 503) {
+                const d = await response.clone().json().catch(() => ({}));
+                if (d.detail) throw new Error(d.detail);
             }
 
             if (!response.ok) {

@@ -131,8 +131,18 @@ def store_config(config: Dict[str, Any]) -> None:
     protect_config_file(config)
 
 
+#: The signing secret last read, minted or rotated. It outlives an unreadable
+#: server.json, so a session opened earlier stays valid while the file is broken.
+_known_secret: Optional[str] = None
+
+
+def known_secret() -> Optional[str]:
+    return _known_secret
+
+
 def _secret(config: Dict[str, Any]) -> bytes:
     """Persistent signing secret, generated into server.json on first use."""
+    global _known_secret
     secret = config.get("admin_token_secret")
     if not secret:
         secret = os.urandom(32).hex()
@@ -141,6 +151,8 @@ def _secret(config: Dict[str, Any]) -> bytes:
             store_config(config)
         except Exception as e:  # config may be a plain dict in tests
             LOG.debug(f"could not persist token secret: {e}")
+            return secret.encode()
+    _known_secret = secret
     return secret.encode()
 
 
@@ -150,9 +162,12 @@ def rotate_token_secret(config: Dict[str, Any]) -> None:
     Called on password change: tokens minted with the old password must not
     outlive it.
     """
+    global _known_secret
     try:
-        config["admin_token_secret"] = os.urandom(32).hex()
+        secret = os.urandom(32).hex()
+        config["admin_token_secret"] = secret
         store_config(config)
+        _known_secret = secret
     except Exception as e:
         LOG.warning(f"could not rotate token secret: {e}")
 
