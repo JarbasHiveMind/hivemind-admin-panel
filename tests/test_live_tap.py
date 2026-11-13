@@ -64,3 +64,21 @@ def test_messages_endpoint(client, auth):
     # filter works
     filtered = client.get("/messages/recent?msg_type=speak", headers=auth).json()
     assert all(m["msg_type"] == "speak" for m in filtered)
+
+
+class _CoreSignatureBase(_FakeBaseProtocol):
+    def handle_invalid_key_connected(self, client, *, error="invalid access key",
+                                     log_message="Client provided an invalid api key"):
+        self.rejected = (client.peer, error, log_message)
+
+
+def test_invalid_key_override_forwards_core_keywords():
+    proto = _tracked_protocol(_CoreSignatureBase, _FakeService())()
+    proto.handle_invalid_key_connected(
+        _Peer("tcp4:1.2.3.4"), error="protocol v3 handshake failed", log_message="why")
+    assert proto.rejected == ("tcp4:1.2.3.4", "protocol v3 handshake failed", "why")
+
+    proto.handle_invalid_key_connected(_Peer("tcp4:5.6.7.8"))
+    assert proto.rejected == ("tcp4:5.6.7.8", "invalid access key",
+                              "Client provided an invalid api key")
+    api.init_injected_objects(service=None, db=None, protocol=None)

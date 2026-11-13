@@ -114,9 +114,9 @@ def _tracked_protocol(base, service):
                 pass
             return super().handle_message(message, client)
 
-        def handle_invalid_key_connected(self, client):
+        def handle_invalid_key_connected(self, client, **kwargs):
             METRICS.event("auth.rejected", f"invalid key from {getattr(client, 'peer', '?')}")
-            return super().handle_invalid_key_connected(client)
+            return super().handle_invalid_key_connected(client, **kwargs)
 
     return _Tracked
 
