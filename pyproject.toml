@@ -79,3 +79,6 @@ hivemind_admin_panel = [
     "static/**/*",
     "*.json",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

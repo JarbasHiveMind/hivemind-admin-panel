@@ -33,6 +33,7 @@ import logging
 import os
 import re
 import secrets
+import shutil
 import socket
 import subprocess
 import sys
@@ -46,9 +47,11 @@ from fastapi import FastAPI, HTTPException, Depends, status, BackgroundTasks, Re
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from hivemind_admin_panel._auth import (authenticate, verify_token, create_token, audit,
                                         read_audit, using_default_credentials, is_loopback,
-                                        rotate_token_secret, store_config, protect_config_file)
+                                        rotate_token_secret, store_config, protect_config_file,
+                                        known_secret)
 from hivemind_admin_panel.version import __version__ as admin_version
 from hivemind_core.config import get_server_config as _get_server_config_raw, _DEFAULT
+from json_database import load_commented_json
 
 # hivemind-core's get_server_config() builds a JsonStorageXDG whose ComboLock
 # does a non-atomic create+chmod on a *shared* lock file. Concurrent calls — e.g.
@@ -82,11 +85,45 @@ def client_db_write():
             yield db
 
 
+class ConfigUnreadable(Exception):
+    """server.json exists but does not parse. Answered as 503 by the app."""
+
+
+class _ReadOnlyConfig(dict):
+    """Last config read from a parseable server.json; it refuses to be written."""
+
+    def __init__(self, values, message):
+        super().__init__(values)
+        self._message = message
+
+    def store(self):
+        raise ConfigUnreadable(self._message)
+
+
 def get_server_config():
-    """Thread-safe wrapper around hivemind-core's ``get_server_config``."""
+    """Thread-safe wrapper around hivemind-core's ``get_server_config``.
+
+    hivemind-core may rewrite an unparseable server.json with its defaults while
+    loading it. An unreadable file is therefore never handed to it: no-account
+    defaults plus the last known token secret are returned read-only, so a
+    session that is already open can still reach the repair endpoints, no
+    password authenticates, and nothing can be saved over the file.
+    """
     with _config_lock:
+        err = _config_file_error()
+        if err:
+            values = copy.deepcopy(_DEFAULT)
+            # no account matches while the file is unreadable: the shipped
+            # admin/admin must not authenticate against defaults
+            values["admin_user"] = secrets.token_hex(16)
+            values["admin_pass"] = secrets.token_hex(16)
+            if known_secret():
+                values["admin_token_secret"] = known_secret()
+            return _ReadOnlyConfig(values, err)
         return _get_server_config_raw()
-from hivemind_core.database import ClientDatabase
+
+
+from hivemind_core.database import ClientDatabase as _CoreClientDatabase
 from hivemind_plugin_manager import AgentProtocolFactory
 from hivemind_plugin_manager import BinaryDataHandlerProtocolFactory
 from hivemind_plugin_manager import DatabaseFactory
@@ -118,7 +155,7 @@ security = HTTPBasic()
 
 #: Global references to injected core objects (set at startup)
 _service: Optional["HiveMindService"] = None
-_db: Optional[ClientDatabase] = None
+_db: Optional[_CoreClientDatabase] = None
 _protocol: Optional["HiveMindListenerProtocol"] = None
 _logger: Optional[logging.Logger] = None
 _startup_error: Optional[Exception] = None
@@ -143,7 +180,7 @@ def set_runtime_info(run_mode: str = "unknown", host: Optional[str] = None) -> N
 
 def init_injected_objects(
         service: "HiveMindService" = None,
-        db: ClientDatabase = None,
+        db: _CoreClientDatabase = None,
         protocol: "HiveMindListenerProtocol" = None,
         logger: logging.Logger = None,
         startup_error: Exception = None
@@ -865,10 +902,22 @@ def _config_file_error() -> Optional[str]:
     if not path.exists():
         return None
     try:
-        json.loads(path.read_text())
+        load_commented_json(str(path))
         return None
     except Exception as e:
         return f"{path} is unreadable: {e}"
+
+
+def ClientDatabase() -> _CoreClientDatabase:
+    """Open the client database, never over an unreadable server.json.
+
+    The database constructor loads the config through hivemind-core, which can
+    rewrite a corrupt file with defaults.
+    """
+    err = _config_file_error()
+    if err:
+        raise ConfigUnreadable(err)
+    return _CoreClientDatabase()
 
 
 #: Placeholder sent to the client in place of a secret value.
@@ -1105,6 +1154,31 @@ def restore_config_backup(data: ConfigRestoreRequest, request: Request) -> Dict[
         restored = json.loads(src.read_text())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Corrupt backup: {e}")
+    if _config_file_error():
+        # An explicit repair of a file nothing can parse: keep the broken file
+        # beside it, then replace it atomically with the snapshot.
+        if not isinstance(restored, dict):
+            raise HTTPException(status_code=400, detail="Backup is not a JSON object")
+        link = _server_json_path()
+        real = Path(os.path.realpath(link))
+        kept = real.with_name("server.json.unreadable-" + time.strftime(
+            "%Y%m%dT%H%M%SZ", time.gmtime()))
+        tmp = real.with_name(real.name + ".tmp")
+        try:
+            shutil.copyfile(real, kept)
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                f.write(json.dumps(restored, indent=4))
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, real)
+        except OSError as e:
+            with contextlib.suppress(OSError):
+                tmp.unlink()
+            raise HTTPException(status_code=500,
+                                detail=f"Restore failed, server.json is untouched: {e}")
+        audit(_current_user(request), "config.restore", file=data.file)
+        return {"status": "ok", "restored": data.file, "unreadable_copy": kept.name}
     _snapshot_config()   # so a revert is itself reversible
     cfg = get_server_config()
     try:
@@ -4464,7 +4538,7 @@ async def _default_credentials_gate(request: Request, call_next):
 #: problem and roll back to a snapshot.
 _CONFIG_BROKEN_ALLOWED = frozenset(("/health", "/config", "/config/backups",
                                     "/config/backups/restore", "/config/backups/diff",
-                                    "/auth/login", "/auth/logout", "/auth/me",
+                                    "/auth/logout", "/auth/me",
                                     "/setup/status"))
 
 
@@ -4476,13 +4550,22 @@ async def _broken_config_guard(request: Request, call_next):
     server.json is corrupt. Left alone, the panel would then report the defaults
     as the operator's config and write them back on the next save.
     """
-    if _gate_path(request) not in _CONFIG_BROKEN_ALLOWED:
+    basic = request.headers.get("Authorization", "").startswith("Basic ")
+    if basic or _gate_path(request) not in _CONFIG_BROKEN_ALLOWED:
         err = _config_file_error()
         if err:
-            return _json_error(
-                409, f"{err}. The panel is read-limited until it is repaired: "
-                     "restore a snapshot from /api/config/backups or fix the file.")
+            return _json_error(503, _UNREADABLE_HELP.format(err=err))
     return await call_next(request)
+
+
+_UNREADABLE_HELP = ("server.json is unreadable: {err}. The panel is read-limited "
+                    "until it is repaired: restore a snapshot from "
+                    "/api/config/backups or fix the file.")
+
+
+@app.exception_handler(ConfigUnreadable)
+async def _config_unreadable_handler(request: Request, exc: ConfigUnreadable):
+    return _json_error(503, _UNREADABLE_HELP.format(err=exc))
 
 
 # ===================== Onboarding: pairing + bulk client ops =====================

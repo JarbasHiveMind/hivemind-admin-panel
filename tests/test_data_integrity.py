@@ -58,14 +58,16 @@ def test_can_broadcast_is_editable_through_the_acl_endpoint(client, auth, make_c
 # --------------------------------------- C2: never write defaults over a config
 
 @pytest.fixture()
-def broken_auth():
-    """With server.json unreadable, hivemind-core falls back to admin/admin."""
-    import base64
-    return {"Authorization": "Basic " + base64.b64encode(b"admin:admin").decode()}
+def broken_auth(client):
+    """A session opened while server.json is still valid; the tests then break the file."""
+    from tests.conftest import ADMIN_USER, ADMIN_PASS
+    r = client.post("/auth/login", json={"username": ADMIN_USER, "password": ADMIN_PASS})
+    assert r.status_code == 200
+    return {"Authorization": "Bearer " + r.json()["token"]}
 
 
 @pytest.fixture()
-def corrupt_config(tmp_path):
+def corrupt_config(tmp_path, broken_auth):
     """Temporarily make server.json unparseable."""
     from hivemind_admin_panel.api import _server_json_path
     path = _server_json_path()
