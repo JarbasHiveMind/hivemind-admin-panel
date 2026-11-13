@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.15a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.15a1) (2026-11-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.14a1...0.3.15a1)
+
+**Merged pull requests:**
+
+- fix: the danger modal header reads in every theme [\#131](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/131) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.3.14a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.14a1) (2026-09-18)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.13a1...0.3.14a1)
@@ -374,10 +382,6 @@
 ## [0.1.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.7a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.6a1...0.1.7a1)
-
-**Merged pull requests:**
-
-- fix: throttle Basic-auth guessing and refuse weak new passwords [\#28](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/28) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.6a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.6a1) (2026-08-12)
 
