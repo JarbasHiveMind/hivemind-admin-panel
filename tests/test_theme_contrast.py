@@ -262,3 +262,96 @@ def test_the_text_token_guard_matches_only_text():
     assert _ACCENT_AS_TEXT.search("status.style.color = 'var(--accent-danger)';")
     assert not _ACCENT_AS_TEXT.search("status.style.color = 'var(--accent-danger-text)';")
     assert not _ACCENT_AS_TEXT.search("el.style.borderColor = 'var(--accent-danger)';")
+
+
+# --------------------------------------------- text painted on a gradient
+#
+# A modal header paints its own text on an inline gradient. The gradient is
+# not a token, so nothing above measures it: the install-custom-plugin header
+# carried ``color: white`` on the danger gradient at 2.78:1 to 3.62:1,
+# depending on the theme and on which end of the gradient the glyph sat.
+#
+# A gradient has no single background colour, so the text must meet 4.5:1 on
+# EVERY stop, in EVERY theme. A stop is either a token or a literal.
+
+INDEX = os.path.join(STATIC, "index.html")
+
+#: ``<element ... style="background: linear-gradient(<angle>, <stops>)">``
+#: followed, within the header, by a child that sets its own ``color:``.
+_GRADIENT = re.compile(
+    r"linear-gradient\(\s*[^,]+,\s*(.*?)\)\s*[;\"']")
+_STOP = re.compile(r"var\((--[\w-]+)[^)]*\)|(#[0-9a-fA-F]{3,6})")
+_TEXT_ON_HEADER = re.compile(
+    r'style="color:\s*(var\((--[\w-]+)[^)]*\)|#[0-9a-fA-F]{3,6}|[a-z]+)\s*;?"')
+
+
+def _header_pairs():
+    """(line number, text colour, [gradient stops]) for each header that
+    paints text on a gradient it sets inline.
+
+    The pairing is positional and deliberately small: a gradient line, then
+    the first following line that sets a text colour inline, inside the same
+    header block. Nothing else in this page does that, and a new one that
+    does reaches this test by construction.
+    """
+    with open(INDEX, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    pairs = []
+    for n, line in enumerate(lines):
+        grad = _GRADIENT.search(line)
+        if not grad or "modal-header" not in line:
+            continue
+        stops = [a or b for a, b in _STOP.findall(grad.group(1))]
+        for offset in range(1, 4):
+            if n + offset >= len(lines):
+                break
+            text = _TEXT_ON_HEADER.search(lines[n + offset])
+            if text:
+                pairs.append((n + offset + 1, text.group(1), stops))
+                break
+    return pairs
+
+
+def test_a_gradient_header_is_found_at_all():
+    """The control. If the page stops matching, every test below passes on an
+    empty list and measures nothing."""
+    pairs = _header_pairs()
+    assert pairs, "no gradient modal header found in index.html"
+    for _, _, stops in pairs:
+        assert len(stops) >= 2, f"a gradient with fewer than two stops: {stops}"
+
+
+@pytest.mark.parametrize("theme", sorted(_themes()))
+def test_gradient_header_text_meets_aa_on_every_stop(theme):
+    tokens = _themes()[theme]
+    failures = []
+    for line, text, stops in _header_pairs():
+        fg = _named(tokens, text)
+        for stop in stops:
+            bg = _colour(tokens, stop)
+            ratio = contrast(fg, bg)
+            if ratio < 4.5:
+                failures.append(f"index.html:{line} {text} on {stop}: "
+                                f"{ratio:.2f}")
+    assert not failures, f"{theme}: " + "; ".join(failures)
+
+
+def _named(tokens, value):
+    """A text colour written as a literal: ``var(--x)``, ``#abc`` or the two
+    CSS names this page uses. An unknown name fails loudly rather than being
+    read as black."""
+    inner = re.match(r"var\((--[\w-]+)", value)
+    if inner:
+        return tokens[inner.group(1)]
+    if value in ("white", "black"):
+        return parse_color("#ffffff" if value == "white" else "#000000")
+    return parse_color(value)
+
+
+def test_the_gradient_reader_reads_what_the_page_holds():
+    """The parser is measured, not assumed: these are the two forms the page
+    uses, and the one the fix introduces."""
+    stops = _STOP.findall("var(--accent-danger), #ff6b6b")
+    assert [a or b for a, b in stops] == ["--accent-danger", "#ff6b6b"]
+    assert _TEXT_ON_HEADER.search('style="color: var(--on-danger);"')
+    assert _TEXT_ON_HEADER.search('style="color: white;"').group(1) == "white"
