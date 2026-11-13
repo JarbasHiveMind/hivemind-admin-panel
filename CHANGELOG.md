@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.17a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.17a1) (2026-11-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.16a1...0.3.17a1)
+
+**Merged pull requests:**
+
+- fix: forward core keywords in handle\_invalid\_key\_connected override [\#135](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/135) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.3.16a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.16a1) (2026-11-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.15a1...0.3.16a1)
@@ -381,10 +389,6 @@
 ## [0.1.8a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.8a1) (2026-08-12)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.1.7a1...0.1.8a1)
-
-**Merged pull requests:**
-
-- test: make the frontend suite run again and wire it into CI [\#31](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/31) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.7a1) (2026-08-12)
 
