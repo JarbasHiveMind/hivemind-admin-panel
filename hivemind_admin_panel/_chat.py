@@ -18,7 +18,7 @@ class ImpersonationSession:
     """One live impersonated client connection and its chat transcript."""
 
     def __init__(self, client_id: int, name: str, key: str, password: str,
-                 crypto_key: Optional[str], host: str, port: int):
+                 host: str, port: int):
         self.id = uuid.uuid4().hex
         self.client_id = client_id
         self.name = name
@@ -28,18 +28,19 @@ class ImpersonationSession:
         self._transcript: List[Dict[str, Any]] = []
         self._lock = threading.Lock()
         self.bus = None
-        self._connect(key, password, crypto_key, host, port)
+        self._connect(key, password, host, port)
 
-    def _connect(self, key, password, crypto_key, host, port):
+    def _connect(self, key, password, host, port):
         from ovos_utils.fakebus import FakeBus
         from hivemind_bus_client import HiveMessageBusClient
 
         self.bus = HiveMessageBusClient(
-            key=key, password=password, crypto_key=crypto_key,
+            key=key, password=password,
             host=host, port=port, self_signed=True, useragent="HiveMindAdminChat",
         )
         self.bus.on_mycroft("speak", self._on_speak)
         self.bus.on_mycroft("hive.complete_intent_failure", self._on_fail)
+        self.bus.on_mycroft("hive.policy.denied", self._on_denied)
 
         def _do():
             try:
@@ -49,9 +50,7 @@ class ImpersonationSession:
 
         threading.Thread(target=_do, daemon=True).start()
         if not self.bus.handshake_event.wait(15):
-            self.error = self.error or (
-                "handshake timed out — is the hub running and does this client have "
-                "a crypto key?")
+            self.error = self.error or "handshake timed out — is the hub running?"
 
     # --- bus callbacks (run on the websocket thread) ---------------------------
     def _on_speak(self, message):
@@ -65,6 +64,18 @@ class ImpersonationSession:
 
     def _on_fail(self, message):
         self._append("system", "the hub reported no skill/agent handled that utterance")
+
+    def _on_denied(self, message):
+        try:
+            denied_type = message.data.get("denied_type") or "that message"
+            reason = message.data.get("reason") or "not permitted"
+        except Exception:
+            denied_type, reason = "that message", "not permitted"
+        self._append(
+            "error",
+            f"Blocked: '{denied_type}' is not in this client's allowed message "
+            f"types — add it in Permissions. ({reason})",
+        )
 
     def _append(self, role: str, text: str):
         with self._lock:
@@ -110,7 +121,7 @@ class ChatSessions:
                 s.close()
                 self._sessions.pop(sid, None)
 
-    def create(self, client_id, name, key, password, crypto_key, host, port
+    def create(self, client_id, name, key, password, host, port
                ) -> ImpersonationSession:
         with self._lock:
             self._reap()
@@ -123,7 +134,7 @@ class ChatSessions:
                 oldest = min(self._sessions.values(), key=lambda s: s.last_used)
                 oldest.close()
                 self._sessions.pop(oldest.id, None)
-        sess = ImpersonationSession(client_id, name, key, password, crypto_key, host, port)
+        sess = ImpersonationSession(client_id, name, key, password, host, port)
         with self._lock:
             self._sessions[sess.id] = sess
         return sess

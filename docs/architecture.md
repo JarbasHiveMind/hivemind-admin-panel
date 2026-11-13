@@ -1,5 +1,8 @@
 # Architecture
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 ## Components
 
 ```
@@ -18,8 +21,8 @@ as `/clients` is served at `http://host:port/api/clients`, and the UI is at `/`.
 ## The coupling seam to core
 
 The panel depends on `hivemind-core` (for `ClientDatabase`, config, and the plugin
-factories), but its coupling to a *running* hivemind-core is deliberately tiny — a single
-function:
+factories), but its coupling to a *running* hivemind-core is deliberately tiny: a single
+function.
 
 ```python
 init_injected_objects(service=None, db=None, protocol=None, startup_error=None)
@@ -34,15 +37,18 @@ It stores the live objects in module globals that the endpoints read:
 | `_protocol` | the live listener protocol | `/connections`, live counts |
 | `_startup_error` | exception if core failed to boot | `/startup-error` |
 
-By default the panel is the launcher: `launch_core()` (in `__main__.py`)
-constructs a `HiveMindService`, calls `init_injected_objects(service, db)`, and
-runs hivemind-core in a daemon thread — then uvicorn serves the panel in the main
-thread. So the panel holds the live hivemind-core reference directly; there is no separate
+By default the panel is the launcher. `launch_core()` (in `__main__.py`)
+constructs a `HiveMindService` and calls `init_injected_objects(service, db)`.
+hivemind-core then runs on the **main** thread, because `HiveMindService.run()`
+installs the SIGINT/SIGTERM handlers and those only work there. Uvicorn serves
+the panel in a **daemon** thread, since it skips signal handling off the main
+thread. The panel holds the live hivemind-core reference directly. There is no separate
 `hivemind-core` process and no `--with-admin` flag in core.
 
-In `--no-core` mode none of the globals are injected; endpoints that need a live
-hivemind-core degrade gracefully (placeholder connections, restart returns an error) while
-everything DB/config/filesystem-backed works by opening the same on-disk state.
+In `--no-core` mode, none of the globals are injected. Endpoints that need a live
+hivemind-core degrade honestly — `/connections` returns an empty list plus a note,
+`/stats` reports no counts at all, restart returns an error — while
+everything backed by the database, config, or filesystem works by opening the same on-disk state.
 
 If hivemind-core raises during construction, `launch_core()` injects the exception as
 `_startup_error` and the panel still serves, surfacing the error at
@@ -52,26 +58,35 @@ If hivemind-core raises during construction, `launch_core()` injects the excepti
 
 The panel was extracted from core so that:
 
-- it ships on its **own release cadence** (UI churn doesn't force core releases);
-- the **admin plane is optional and separately deployable** — it can `pip install`
+- It ships on its **own release cadence** (UI churn does not force core releases).
+- The **admin plane is optional and separately deployable**. It can `pip install`
   packages, migrate databases, and restart the service, so you may not want it
-  present in every deployment;
-- core's wheel stays lean (no FastAPI/uvicorn unless you opt into `[admin]`);
-- its **JS/frontend toolchain** stays out of the core repo.
+  present in every deployment.
+- Core's wheel stays lean (no FastAPI/uvicorn unless you opt into `[admin]`).
+- Its **JS/frontend toolchain** stays out of the core repo.
 
 ## Known limitation & direction
 
 Live objects are injected **once at startup**, and the panel starts *before* the
-listener protocol is fully built — so live-connection introspection (`/connections`)
-is best-effort. The intended direction is for core to expose a small, stable
+listener protocol is fully built. Live-connection introspection (`/connections`)
+is therefore best-effort.
+
+The intended direction is for core to expose a small, stable
 read-only status/control seam (a localhost query or a bus message) that the panel
-consumes, which would also let the panel run fully **out-of-process or remote**
+can consume. This would also let the panel run fully **out-of-process or remote**
 rather than only in-process. Until then, treat `/connections` live data as
 advisory and rely on the database-backed views for authoritative state.
 
----
 
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [Test Chat](test-chat.md) | [📖 Docs home](index.md) | [Extending](extending.md) → |
+### What it looks like
+
+**Widescreen**
+
+![Topology, the architecture as the running system sees it (widescreen)](img/topology.png)
+
+**Mobile**
+
+![Topology, the architecture as the running system sees it (mobile)](img/topology-mobile.png)
+
+---
+[← Test Chat](test-chat.md) · [Home](index.md) · [Extending →](extending.md)

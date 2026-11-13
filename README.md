@@ -1,9 +1,9 @@
 # HiveMind Admin Panel
 
-Web-based administration panel for [HiveMind-core](https://github.com/JarbasHiveMind/HiveMind-core)
-— a FastAPI backend and single-page web UI for running and managing a HiveMind hub.
+A web-based administration panel for [HiveMind-core](https://github.com/JarbasHiveMind/HiveMind-core),
+a FastAPI backend and single-page web UI for running and managing a HiveMind hub.
 
-It ships as a **standalone, optional package**. It's the single launcher: it starts
+It ships as a **standalone, optional package**. It is the single launcher. It starts
 `hivemind-core` in-process and serves the admin UI, so you run **one** command and
 get a hub plus a place to administer it.
 
@@ -11,32 +11,32 @@ get a hub plus a place to administer it.
 
 ## Features
 
-- **Clients & access keys** — create, list, update, revoke; bulk ops; reveal
-  credentials; **QR pairing** for one-tap satellite onboarding.
-- **Per-client ACLs** — allow message types, skills, and intents; toggle
-  escalate / propagate and admin flags; apply ACL templates.
-- **Test Chat** — an in-browser chat that **impersonates any client**, talking
-  through the hub to whatever agent is behind it. Exercises the real path: the
+- **Clients & access keys**: create, list, update, and revoke keys. Run bulk
+  operations, reveal credentials, and use **QR pairing** for one-tap satellite onboarding.
+- **Per-client ACLs**: allow message types, skills, and intents. Toggle
+  escalate and propagate flags and admin flags, and apply ACL templates.
+- **Test Chat**: an in-browser chat that **impersonates any client**, talking
+  through the hub to whatever agent is behind it. It exercises the real path: the
   client's ACL, routing, and the agent's reply.
-- **Chat bridges** — provision a ready client for Matrix / Twitch / Mattermost /
-  DeltaChat / HackChat bridges and see them labelled in the topology.
-- **Security** — a forced first-run password change, a dashboard security
+- **Chat bridges**: provision a ready client for a Matrix, Twitch, Mattermost,
+  DeltaChat, or HackChat bridge, and see it labelled in the topology.
+- **Security**: a forced first-run password change, a dashboard security
   self-check, session tokens, `admin`/`operator` roles, and an audit trail.
-- **Monitor** — live metrics, an SSE event feed, the hub log tail, and the audit log.
-- **Topology** — an interactive mesh graph (hub ↔ satellites) with online status.
-- **Personas & agents** — manage personas (modern `handlers` schema), a **multi-turn
-  memory-aware** test chat, **configurable + installable memory modules**, and
-  pre-activation validation; browse the agent-engine taxonomy.
-- **Plugin lifecycle** — install, **upgrade**, and **uninstall** plugins (with an
+- **Monitor**: live metrics, an SSE event feed, the hub log tail, and the audit log.
+- **Topology**: an interactive mesh graph (hub and satellites) with online status.
+- **Personas & agents**: manage personas (modern `handlers` schema), run a **multi-turn
+  memory-aware** test chat, use **configurable, installable memory modules**, and
+  get pre-activation validation. Browse the agent-engine taxonomy.
+- **Plugin lifecycle**: install, **upgrade**, and **uninstall** plugins (with an
   active-module guard) and see installed versions.
-- **Plugin presets** — named, reusable `{module, config}` for STT/TTS/WW/VAD/agent/
-  network (local plugin or OVOS-server pointer); author once, test, and select.
-- **Config safety** — `server.json` is snapshotted before every change; diff and
-  one-click **revert** from the Operations page.
-- **OVOS servers** — register and health-check external persona/STT/TTS/translate servers.
-- **Plugins & databases** — discover/install network/agent/database & OVOS plugins
-  (via uv); JSON / SQLite / Redis backends with profiles, tests, and migration.
-- **Ops** — backup/restore, admission-policy editor, self-signed TLS certs.
+- **Plugin presets**: named, reusable `{module, config}` sets for STT, TTS, WW, VAD, agent, and
+  network plugins (local plugin or OVOS-server pointer). Author a preset once, test it, and select it.
+- **Config safety**: the panel snapshots `server.json` before every change. Diff it and
+  **revert** with one click from the Operations page.
+- **OVOS servers**: register and health-check external persona, STT, TTS, and translate servers.
+- **Plugins & databases**: discover and install network, agent, database, and OVOS plugins
+  (via uv). Use JSON, SQLite, or Redis backends with profiles, tests, and migration.
+- **Ops**: back up and restore, edit the admission policy, and manage self-signed TLS certs.
 
 ## Install
 
@@ -46,7 +46,7 @@ pip install hivemind-admin-panel
 
 ## Quickstart
 
-`hivemind-admin-panel` is the single launcher — it starts hivemind-core in-process
+`hivemind-admin-panel` is the single launcher. It starts hivemind-core in-process
 and serves the admin UI. You do **not** run `hivemind-core` separately.
 
 ```bash
@@ -69,7 +69,7 @@ docker compose up --build
 
 > The hub bridges to an **agent backend** (an OVOS messagebus by default) for
 > answers. Without one reachable, the panel stays up and tells you the satellite
-> listener isn't ready — see [Troubleshooting](docs/troubleshooting.md).
+> listener is not ready. See [Troubleshooting](docs/troubleshooting.md).
 
 ## Screenshots
 
@@ -83,16 +83,16 @@ docker compose up --build
 
 ## Credentials
 
-HTTP Basic / bearer auth, read from `~/.config/hivemind-core/server.json`
-(`admin_user` / `admin_pass`, both default `admin`). On first login with the
-default password the panel **forces** a change and stores it hashed (PBKDF2). It
-can install packages and migrate databases — keep it on `127.0.0.1` or behind a
-trusted reverse proxy. See [docs/security.md](docs/security.md).
+The panel uses HTTP Basic or bearer auth, read from `~/.config/hivemind-core/server.json`
+(`admin_user` and `admin_pass`, both default to `admin`). On first login with the
+default password, the panel **forces** a change and stores it hashed (PBKDF2). The panel
+can install packages and migrate databases, so keep it on `127.0.0.1` or behind a
+trusted reverse proxy. See [Security](docs/security.md).
 
 ## Documentation
 
-Full docs in [`docs/`](docs/index.md) — a zero-to-hero path for newcomers and a
-reference track for advanced devs.
+Full docs live in [`docs/`](docs/index.md): a path from zero to a working setup for newcomers, and a
+reference track for advanced developers.
 
 **Newcomers:** [Concepts](docs/concepts.md) · [Getting started](docs/getting-started.md) ·
 [Tutorial](docs/tutorial.md) · [Glossary](docs/glossary.md) ·

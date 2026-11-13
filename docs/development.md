@@ -1,5 +1,8 @@
 # Development
 
+> **Paths in this file** omit the `/api` prefix the panel mounts the API under.
+> A route written `/clients` is served at `http://<host>:8100/api/clients`.
+
 ## Setup
 
 ```bash
@@ -68,15 +71,22 @@ The end-to-end suite runs in `build-tests` and `coverage` on every PR.
 
 ## Conventions
 
-- Versions bump automatically from conventional-commit prefixes; **do not edit
+- Versions bump automatically from conventional-commit prefixes. **Do not edit
   `version.py`** by hand.
-- Branch model: work on a feature branch → PR into `dev`; releases flow `dev` →
-  `master`. `dev` is the default branch.
-- License: Apache-2.0; keep the SPDX header on new source files.
+- Branch model: work on a feature branch, then PR into `dev`. Releases flow from `dev`
+  to `master`. `dev` is the default branch.
+- License: Apache-2.0. Keep the SPDX header on new source files.
+
+
+### What it looks like
+
+**Widescreen**
+
+![Monitor: live message flow, the fastest way to see your change work (widescreen)](img/monitor.png)
+
+**Mobile**
+
+![Monitor: live message flow, the fastest way to see your change work (mobile)](img/monitor-mobile.png)
 
 ---
-
-<!-- nav-footer -->
-|  |  |  |
-|:--|:-:|--:|
-| ← [API reference](api-reference.md) | [📖 Docs home](index.md) | [Roadmap](roadmap.md) → |
+[← API reference](api-reference.md) · [Home](index.md) · [Roadmap →](roadmap.md)

@@ -146,6 +146,7 @@ describe('showCreatePersonaModal', () => {
 describe('editPersona', () => {
   test('populates form fields from persona JSON', async () => {
     mockFn('loadSolverPluginsForPersona').mockResolvedValue();
+    mockFn('loadMemoryModules').mockResolvedValue();
     mockFn('renderSelectedSolvers');
     mockFn('renderSolverConfigSections');
 
@@ -167,6 +168,7 @@ describe('editPersona', () => {
 
   test('sets modal title to edit', async () => {
     mockFn('loadSolverPluginsForPersona').mockResolvedValue();
+    mockFn('loadMemoryModules').mockResolvedValue();
     mockFn('renderSelectedSolvers');
     mockFn('renderSolverConfigSections');
     mockFn('apiCall').mockResolvedValue(makePersona({ name: 'MyBot' }));
@@ -178,6 +180,7 @@ describe('editPersona', () => {
 
   test('sets selectedSolvers from persona data', async () => {
     mockFn('loadSolverPluginsForPersona').mockResolvedValue();
+    mockFn('loadMemoryModules').mockResolvedValue();
     mockFn('renderSelectedSolvers');
     mockFn('renderSolverConfigSections');
     mockFn('apiCall').mockResolvedValue(makePersona({

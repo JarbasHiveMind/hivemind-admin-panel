@@ -19,12 +19,12 @@ def test_change_password_then_login(client, auth):
     cfg = get_server_config()
     try:
         r = client.post("/auth/password",
-                        json={"old_password": ADMIN_PASS, "new_password": "newpass123"}, headers=auth)
+                        json={"old_password": ADMIN_PASS, "new_password": "newpass123-strong"}, headers=auth)
         assert r.status_code == 200
         # stored hashed, not plaintext
         assert get_server_config().get("admin_pass").startswith("pbkdf2_sha256$")
         # new password logs in; old one fails
-        assert client.post("/auth/login", json={"username": ADMIN_USER, "password": "newpass123"}).status_code == 200
+        assert client.post("/auth/login", json={"username": ADMIN_USER, "password": "newpass123-strong"}).status_code == 200
         assert client.post("/auth/login", json={"username": ADMIN_USER, "password": ADMIN_PASS}).status_code == 401
     finally:
         cfg["admin_pass"] = ADMIN_PASS  # restore for the rest of the session

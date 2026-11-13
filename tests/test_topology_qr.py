@@ -23,10 +23,12 @@ def test_pairing_qr_svg(client, auth, make_client):
     assert b"<svg" in resp.content
 
 
-def test_sse_accepts_query_token(client):
+def test_sse_accepts_a_ticket(client):
     tok = client.post("/auth/login", json={"username": ADMIN_USER, "password": ADMIN_PASS}).json()["token"]
-    # no Authorization header — auth solely via access_token query param
-    with client.stream("GET", f"/events?limit=1&interval=0.25&access_token={tok}") as resp:
+    auth = {"Authorization": f"Bearer {tok}"}
+    ticket = client.post("/events/ticket", headers=auth).json()["ticket"]
+    # no Authorization header — auth solely via the one-time ticket
+    with client.stream("GET", f"/events?limit=1&interval=0.25&ticket={ticket}") as resp:
         assert resp.status_code == 200
         body = "".join(resp.iter_text())
     assert "event: snapshot" in body

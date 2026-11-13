@@ -13,7 +13,17 @@ Admin API: http://127.0.0.1:8100   Core websocket: 127.0.0.1:5678
 import os, sys, time, threading, requests
 
 ADMIN = os.environ.get("ADMIN_URL", "http://127.0.0.1:8100/api")
-AUTH = ("admin", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    sys.exit(
+        "ADMIN_PASSWORD is not set.\n"
+        "While the admin password is still the shipped default (admin/admin), "
+        "the panel refuses every request except /api/health, /api/auth/login, "
+        "/api/auth/logout, /api/auth/me, /api/auth/password and "
+        "/api/setup/status; set a real one and export it here. "
+        "See integration/README.md."
+    )
+AUTH = ("admin", ADMIN_PASSWORD)
 CORE_HOST, CORE_PORT = "127.0.0.1", 5678
 
 results = []
@@ -50,12 +60,11 @@ check("core service is RUNNING/STARTED", str(h.get("service_status")) not in ("N
       h.get("service_status"))
 
 # --- 1. Register a client through the admin API ------------------------------------
-crypto = os.urandom(16).hex()            # 32-char shared cipher key
-r = api("POST", "/clients", json={"name": "qa-satellite", "crypto_key": crypto})
+r = api("POST", "/clients", json={"name": "qa-satellite"})
 check("POST /clients succeeds", r.status_code == 200, r.status_code)
 client_rec = r.json()
-KEY = client_rec["api_key"]; PW = client_rec["password"]; CK = client_rec["crypto_key"]; CID = client_rec["client_id"]
-check("minted creds returned (key/password/crypto)", all([KEY, PW, CK]), f"id={CID}")
+KEY = client_rec["api_key"]; PW = client_rec["password"]; CID = client_rec["client_id"]
+check("minted creds returned (key/password)", all([KEY, PW]), f"id={CID}")
 
 # Grant it permission to speak an utterance (whitelist-only core)
 api("POST", f"/clients/{CID}/allow-msg", json={"msg_type": "recognizer_loop:utterance"})
@@ -69,7 +78,7 @@ from hivemind_bus_client import HiveMessageBusClient
 from hivemind_bus_client.message import HiveMessage, HiveMessageType
 from ovos_bus_client.message import Message
 
-bus = HiveMessageBusClient(key=KEY, password=PW, crypto_key=CK,
+bus = HiveMessageBusClient(key=KEY, password=PW,
                            host=CORE_HOST, port=CORE_PORT, self_signed=True)
 err = {}
 def _connect():
@@ -114,7 +123,7 @@ check("a client.connected event was recorded",
       any("connect" in str(t).lower() for t in ev_types), ev_types[:6])
 
 # --- 5. Bogus key is rejected (auth enforcement, observable in the UI) -------------
-bogus = HiveMessageBusClient(key="deadbeef" * 4, password="nope", crypto_key=os.urandom(16).hex(),
+bogus = HiveMessageBusClient(key="deadbeef" * 4, password="nope",
                              host=CORE_HOST, port=CORE_PORT, self_signed=True)
 threading.Thread(target=lambda: _safe(bogus), daemon=True).start()
 rejected = not bogus.handshake_event.wait(10)
@@ -128,7 +137,7 @@ time.sleep(2)
 delr = api("DELETE", f"/clients/{CID}")
 check("DELETE /clients/{id} succeeds", delr.status_code == 200, delr.status_code)
 # reconnect with the now-deleted credentials -> must fail
-reborn = HiveMessageBusClient(key=KEY, password=PW, crypto_key=CK,
+reborn = HiveMessageBusClient(key=KEY, password=PW,
                               host=CORE_HOST, port=CORE_PORT, self_signed=True)
 threading.Thread(target=lambda: _safe(reborn), daemon=True).start()
 revoked = not reborn.handshake_event.wait(10)
