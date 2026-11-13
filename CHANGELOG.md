@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.16a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.16a1) (2026-11-13)
+
+[Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.15a1...0.3.16a1)
+
+**Merged pull requests:**
+
+- fix: make CI green \(importable tests, no overwrite of corrupt server.json\) [\#136](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/136) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.3.15a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.3.15a1) (2026-11-13)
 
 [Full Changelog](https://github.com/JarbasHiveMind/hivemind-admin-panel/compare/0.3.14a1...0.3.15a1)
@@ -377,7 +385,6 @@
 **Merged pull requests:**
 
 - test: make the frontend suite run again and wire it into CI [\#31](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/31) ([JarbasAl](https://github.com/JarbasAl))
-- fix: stop concurrent client edits discarding each other [\#30](https://github.com/JarbasHiveMind/hivemind-admin-panel/pull/30) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.1.7a1](https://github.com/JarbasHiveMind/hivemind-admin-panel/tree/0.1.7a1) (2026-08-12)
 
